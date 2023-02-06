@@ -54,7 +54,7 @@ contract ArrakisUniswapV3AmmAdapter is IAmmAdapter {
      * @param _router          Address of Arrakis Router contract
      * @param _uniV3Factory    Address of UniswapV3 Factory contract
      */
-    constructor(address _router, address _uniV3Factory) public {
+    constructor(address _router, address _uniV3Factory){
         require(_router != address(0),"_router address must not be zero address");
         require(_uniV3Factory != address(0),"_uniV3Factory address must not be zero address");
         router = _router;
@@ -127,7 +127,7 @@ contract ArrakisUniswapV3AmmAdapter is IAmmAdapter {
         uint256 /*_minLiquidity*/
     )
         external
-        view
+        pure
         override
         returns (address /*target*/, uint256 /*value*/, bytes memory /*data*/)
     {
@@ -194,7 +194,7 @@ contract ArrakisUniswapV3AmmAdapter is IAmmAdapter {
         uint256 /*_liquidity*/
     )
         external
-        view
+        pure
         override
         returns (address /*target*/, uint256 /*value*/, bytes memory /*data*/)
     {
