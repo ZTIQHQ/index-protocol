@@ -18,7 +18,6 @@
 
 pragma solidity 0.6.10;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
@@ -32,8 +31,6 @@ import "../../../interfaces/external/IArrakisVaultV1.sol";
  * Adapter for Arrakis Vault representing Uniswap V3 liquidity position that encodes adding and removing liquidty
  */
 contract ArrakisUniswapV3AmmAdapter is IAmmAdapter {
-    using SafeMath for uint256;
-
     /* ============ State Variables ============ */
 
     // Address of Arrakis Router contract
