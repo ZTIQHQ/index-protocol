@@ -19,7 +19,6 @@
 pragma solidity 0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
@@ -232,13 +231,13 @@ contract ArrakisUniswapV3AmmAdapter is IAmmAdapter {
         // Attempt to get the tokens of the provided pool
         address token0;
         address token1;
-        try IArrakisVaultV1(_pool).token0() returns (IERC20 _token0) {
-            token0 = address(_token0);
+        try IArrakisVaultV1(_pool).token0() returns (address _token0) {
+            token0 = _token0;
         } catch {
             return false;
         }
-        try IArrakisVaultV1(_pool).token1() returns (IERC20 _token1) {
-            token1 = address(_token1);
+        try IArrakisVaultV1(_pool).token1() returns (address _token1) {
+            token1 = _token1;
         } catch {
             return false;
         }

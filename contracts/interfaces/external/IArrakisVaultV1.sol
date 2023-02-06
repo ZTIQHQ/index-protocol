@@ -16,7 +16,6 @@
 
 pragma solidity 0.6.10;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import {
     IUniswapV3Pool
@@ -60,9 +59,9 @@ interface IArrakisVaultV1 {
 
     function getPositionID() external view returns (bytes32 positionID);
 
-    function token0() external view returns (IERC20);
+    function token0() external view returns (address);
 
-    function token1() external view returns (IERC20);
+    function token1() external view returns (address);
 
     function upperTick() external view returns (int24);
 
