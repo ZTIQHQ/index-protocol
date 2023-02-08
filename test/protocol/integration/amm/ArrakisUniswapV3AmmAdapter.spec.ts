@@ -3,9 +3,7 @@ import { BigNumber } from "ethers";
 import { ether } from "@utils/index";
 import { Account } from "@utils/test/types";
 import { Address } from "@utils/types";
-import {
-  ZERO,
-} from "@utils/constants";
+import { ZERO } from "@utils/constants";
 import { ArrakisUniswapV3AmmAdapter } from "@utils/contracts";
 import DeployHelper from "@utils/deploys";
 import {
@@ -14,7 +12,7 @@ import {
   getSystemFixture,
   getUniswapV3Fixture,
   getArrakisV1Fixture,
-  getWaffleExpect
+  getWaffleExpect,
 } from "@utils/test/index";
 
 import { SystemFixture, UniswapV3Fixture, ArrakisV1Fixture } from "@utils/fixtures";
@@ -30,30 +28,29 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
   let arrakisUniswapV3AmmAdapter: ArrakisUniswapV3AmmAdapter;
 
   before(async () => {
-    [
-      owner,
-    ] = await getAccounts();
+    [owner] = await getAccounts();
 
     deployer = new DeployHelper(owner.wallet);
     setup = getSystemFixture(owner.address);
     await setup.initialize();
 
     uniswapV3Setup = getUniswapV3Fixture(owner.address);
-    await uniswapV3Setup.initialize(
+    await uniswapV3Setup.initialize(owner, setup.weth, 2500, setup.wbtc, 35000, setup.dai);
+
+    arrakisV1Setup = getArrakisV1Fixture(owner.address);
+    await arrakisV1Setup.initialize(
       owner,
+      uniswapV3Setup,
       setup.weth,
       2500,
       setup.wbtc,
       35000,
-      setup.dai
+      setup.dai,
     );
-
-    arrakisV1Setup = getArrakisV1Fixture(owner.address);
-    await arrakisV1Setup.initialize(owner, uniswapV3Setup, setup.weth, 2500, setup.wbtc, 35000, setup.dai);
 
     arrakisUniswapV3AmmAdapter = await deployer.adapters.deployArrakisUniswapV3AmmAdapter(
       arrakisV1Setup.router.address,
-      uniswapV3Setup.factory.address
+      uniswapV3Setup.factory.address,
     );
   });
 
@@ -63,7 +60,7 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
     async function subject(): Promise<ArrakisUniswapV3AmmAdapter> {
       return await deployer.adapters.deployArrakisUniswapV3AmmAdapter(
         arrakisV1Setup.router.address,
-        uniswapV3Setup.factory.address
+        uniswapV3Setup.factory.address,
       );
     }
 
@@ -160,7 +157,6 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
         expect(status).to.be.false;
       });
     });
-
   });
 
   describe("getProvideLiquiditySingleAssetCalldata", async () => {
@@ -182,7 +178,8 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
         subjectAmmPool,
         subjectComponent,
         subjectMaxTokenIn,
-        subjectMinLiquidity);
+        subjectMinLiquidity,
+      );
     }
 
     it("should revert", async () => {
@@ -209,7 +206,8 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
         subjectAmmPool,
         subjectComponent,
         subjectMinTokenOut,
-        subjectLiquidity);
+        subjectLiquidity,
+      );
     }
 
     it("should revert", async () => {
@@ -231,9 +229,12 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
         setup.weth.address,
         setup.dai.address,
         subjectMaxTokensIn[0],
-        subjectMaxTokensIn[1]
+        subjectMaxTokensIn[1],
       );
-      const mintAmount = await arrakisV1Setup.wethDaiPool.getMintAmounts(orderedMaxTokensIn[0], orderedMaxTokensIn[1]);
+      const mintAmount = await arrakisV1Setup.wethDaiPool.getMintAmounts(
+        orderedMaxTokensIn[0],
+        orderedMaxTokensIn[1],
+      );
       subjectMinLiquidity = mintAmount[2];
     });
 
@@ -243,7 +244,8 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
         subjectAmmPool,
         subjectComponents,
         subjectMaxTokensIn,
-        subjectMinLiquidity);
+        subjectMinLiquidity,
+      );
     }
 
     it("should return the correct provide liquidity calldata", async () => {
@@ -254,9 +256,12 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
         setup.weth.address,
         setup.dai.address,
         subjectMaxTokensIn[0],
-        subjectMaxTokensIn[1]
+        subjectMaxTokensIn[1],
       );
-      const mintAmount = await arrakisV1Setup.wethDaiPool.getMintAmounts(orderedMaxTokensIn[0], orderedMaxTokensIn[1]);
+      const mintAmount = await arrakisV1Setup.wethDaiPool.getMintAmounts(
+        orderedMaxTokensIn[0],
+        orderedMaxTokensIn[1],
+      );
       const amountAMin = mintAmount[0];
       const amountBMin = mintAmount[1];
 
@@ -266,9 +271,11 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
         orderedMaxTokensIn[1],
         amountAMin,
         amountBMin,
-        owner.address
+        owner.address,
       ]);
-      expect(JSON.stringify(calldata)).to.eq(JSON.stringify([arrakisV1Setup.router.address, ZERO, expectedCallData]));
+      expect(JSON.stringify(calldata)).to.eq(
+        JSON.stringify([arrakisV1Setup.router.address, ZERO, expectedCallData]),
+      );
     });
 
     describe("when the either of the _maxTokensIn is zero", async () => {
@@ -287,7 +294,9 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("_minLiquidity is too high for input token limit");
+        await expect(subject()).to.be.revertedWith(
+          "_minLiquidity is too high for input token limit",
+        );
       });
     });
   });
@@ -311,7 +320,8 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
         subjectAmmPool,
         subjectComponents,
         subjectMinTokensOut,
-        subjectLiquidity);
+        subjectLiquidity,
+      );
     }
 
     it("should return the correct remove liquidity calldata", async () => {
@@ -320,21 +330,28 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
         setup.weth.address,
         setup.dai.address,
         subjectMinTokensOut[0],
-        subjectMinTokensOut[1]
+        subjectMinTokensOut[1],
       );
-      const expectedCallData = arrakisV1Setup.router.interface.encodeFunctionData("removeLiquidity", [
-        subjectAmmPool,
-        subjectLiquidity,
-        orderedMinTokensOut[0],
-        orderedMinTokensOut[1],
-        owner.address
-      ]);
-      expect(JSON.stringify(calldata)).to.eq(JSON.stringify([arrakisV1Setup.router.address, ZERO, expectedCallData]));
+      const expectedCallData = arrakisV1Setup.router.interface.encodeFunctionData(
+        "removeLiquidity",
+        [
+          subjectAmmPool,
+          subjectLiquidity,
+          orderedMinTokensOut[0],
+          orderedMinTokensOut[1],
+          owner.address,
+        ],
+      );
+      expect(JSON.stringify(calldata)).to.eq(
+        JSON.stringify([arrakisV1Setup.router.address, ZERO, expectedCallData]),
+      );
     });
 
     describe("when the _liquidity is more than available", async () => {
       beforeEach(async () => {
-        subjectLiquidity = (await arrakisV1Setup.wethDaiPool.balanceOf(owner.address)).add(ether(1));
+        subjectLiquidity = (await arrakisV1Setup.wethDaiPool.balanceOf(owner.address)).add(
+          ether(1),
+        );
       });
 
       it("should revert", async () => {
@@ -342,5 +359,4 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
       });
     });
   });
-
 });
