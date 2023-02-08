@@ -142,7 +142,18 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
       });
     });
 
-    describe("when the components don't match", async () => {
+    describe("when the first component doesn't match pool", async () => {
+      beforeEach(async () => {
+        subjectComponents = [setup.wbtc.address, setup.dai.address];
+      });
+
+      it("should be an invalid pool", async () => {
+        const status = await subject();
+        expect(status).to.be.false;
+      });
+    });
+
+    describe("when the second component doesn't match pool", async () => {
       beforeEach(async () => {
         subjectComponents = [setup.weth.address, setup.wbtc.address];
       });
