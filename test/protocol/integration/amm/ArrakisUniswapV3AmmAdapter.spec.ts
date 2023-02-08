@@ -3,7 +3,7 @@ import { BigNumber } from "ethers";
 import { ether } from "@utils/index";
 import { Account } from "@utils/test/types";
 import { Address } from "@utils/types";
-import { ZERO } from "@utils/constants";
+import { ZERO, ADDRESS_ZERO } from "@utils/constants";
 import { ArrakisUniswapV3AmmAdapter } from "@utils/contracts";
 import DeployHelper from "@utils/deploys";
 import {
@@ -57,12 +57,29 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
   addSnapshotBeforeRestoreAfterEach();
 
   describe("constructor", async () => {
-    async function subject(): Promise<ArrakisUniswapV3AmmAdapter> {
+    async function subject(
+      router?: Address,
+      factory?: Address,
+    ): Promise<ArrakisUniswapV3AmmAdapter> {
       return await deployer.adapters.deployArrakisUniswapV3AmmAdapter(
-        arrakisV1Setup.router.address,
-        uniswapV3Setup.factory.address,
+        router ? router : arrakisV1Setup.router.address,
+        factory ? factory : uniswapV3Setup.factory.address,
       );
     }
+
+    it("Should revert when router address is 0", async () => {
+      const invalidDeployment = subject(ADDRESS_ZERO);
+      await expect(invalidDeployment).to.be.revertedWith(
+        "_router address must not be zero address",
+      );
+    });
+
+    it("Should revert when factory address is 0", async () => {
+      const invalidDeployment = subject(undefined, ADDRESS_ZERO);
+      await expect(invalidDeployment).to.be.revertedWith(
+        "_uniV3Factory address must not be zero address",
+      );
+    });
 
     it("should have the correct router address", async () => {
       const deployedArrakisUniswapV3AmmAdapter = await subject();
