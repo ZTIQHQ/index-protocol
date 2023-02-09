@@ -98,6 +98,7 @@
   },
   "devDependencies": {
     "@0x/utils": "^6.4.3",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "^3.1.0",
@@ -140,6 +141,7 @@
     "web3": "^1.2.9"
   },
   "dependencies": {
+    "@openzeppelin-upgradeable/contracts": "npm:@openzeppelin/contracts-upgradeable@4.5.2",
     "@uniswap/v3-core": "1.0.1",
     "@uniswap/v3-sdk": "^3.5.1",
     "ethers": "^5.5.2",
@@ -147,7 +149,6 @@
     "jsbi": "^3.2.5",
     "module-alias": "^2.2.2",
     "notional-solidity-sdk": "https://github.com/ckoopmann/notional-solidity-sdk.git#77aa2f8fd8a72b8f5865e561f2d39d4606c3740c",
-    "@openzeppelin-upgradeable/contracts": "npm:@openzeppelin/contracts-upgradeable@4.5.2",
     "replace-in-file": "^6.1.0"
   },
   "peerDependencies": {
