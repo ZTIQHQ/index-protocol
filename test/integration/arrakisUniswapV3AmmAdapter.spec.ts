@@ -1,7 +1,8 @@
 import "module-alias/register";
 
-import { network } from "hardhat";
+import { userConfig } from "hardhat";
 import { BigNumber } from "ethers";
+import helpers from "@nomicfoundation/hardhat-network-helpers";
 import { ether } from "@utils/index";
 import { Account } from "@utils/test/types";
 import { Address } from "@utils/types";
@@ -34,18 +35,12 @@ describe("ArrakisUniswapV3AmmAdapter Integration [ @forked-mainnet ]", () => {
   let arrakisUniswapV3AmmAdapter: ArrakisUniswapV3AmmAdapter;
   let arrakisUniswapV3AmmAdapterName: string;
 
+  const forkConfig = userConfig.networks?.hardhat?.forking;
+
   before(async () => {
-    await network.provider.request({
-      method: "hardhat_reset",
-      params: [
-        {
-          forking: {
-            jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_TOKEN}`,
-            blockNumber: 15180700,
-          },
-        },
-      ],
-    });
+    if (forkConfig) {
+      await helpers.reset(forkConfig.url, 15180700);
+    }
 
     [
       owner,
@@ -85,6 +80,12 @@ describe("ArrakisUniswapV3AmmAdapter Integration [ @forked-mainnet ]", () => {
   });
 
   addSnapshotBeforeRestoreAfterEach();
+
+  after(async () => {
+    if (forkConfig) {
+      await helpers.reset(forkConfig.url, forkConfig.blockNumber);
+    }
+  });
 
   context("Add and Remove Liquidity Tests", async () => {
     let subjectCaller: Account;
