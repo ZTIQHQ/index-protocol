@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2015",
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
@@ -13,9 +13,14 @@
     "sourceMap": true,
     "baseUrl": ".",
     "moduleResolution": "node",
+    "skipLibCheck": true,
     "paths": {
-        "@utils/*": ["utils/*"],
-        "@typechain/*": ["typechain/*"]
+      "@utils/*": [
+        "utils/*"
+      ],
+      "@typechain/*": [
+        "typechain/*"
+      ]
     }
   },
   "include": [
