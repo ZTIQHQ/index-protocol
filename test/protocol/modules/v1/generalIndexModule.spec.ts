@@ -1913,7 +1913,7 @@ describe("GeneralIndexModule", () => {
               });
 
               it("should revert", async () => {
-                await expect(subject()).to.be.revertedWith("transfer amount exceeds balance");
+                await expect(subject()).to.be.revertedWith("ERC20: transfer amount exceeds balance");
               });
             });
 
@@ -1928,7 +1928,7 @@ describe("GeneralIndexModule", () => {
               });
 
               it("should revert", async () => {
-                await expect(subject()).to.be.revertedWith("transfer amount exceeds balance");
+                await expect(subject()).to.be.revertedWith("ERC20: transfer amount exceeds balance");
               });
             });
           });
@@ -2565,7 +2565,7 @@ describe("GeneralIndexModule", () => {
         });
 
         it("it should revert", async () => {
-          await expect(subject()).to.be.revertedWith("addition overflow");
+          await expect(subject()).to.be.revertedWith("SafeMath: addition overflow");
         });
       });
 

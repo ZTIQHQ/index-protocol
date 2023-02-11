@@ -655,7 +655,7 @@ describe("SetToken", () => {
         });
 
         it("should revert", async () => {
-          await expect(subject()).to.be.revertedWith("Virtual unit conversion invalid");
+          await expect(subject()).to.be.revertedWith("Real to Virtual unit conversion invalid");
         });
       });
 
