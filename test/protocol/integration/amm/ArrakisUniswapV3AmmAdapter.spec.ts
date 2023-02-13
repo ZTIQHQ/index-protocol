@@ -15,6 +15,9 @@ import {
   getWaffleExpect,
 } from "@utils/test/index";
 
+import { smock, FakeContract } from "@defi-wonderland/smock";
+import { ArrakisVaultV1__factory } from "@typechain/factories/ArrakisVaultV1__factory";
+import { ArrakisVaultV1 } from "@typechain/ArrakisVaultV1";
 import { SystemFixture, UniswapV3Fixture, ArrakisV1Fixture } from "@utils/fixtures";
 
 const expect = getWaffleExpect();
@@ -131,12 +134,17 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
       expect(status).to.be.true;
     });
 
-    describe("when the pool address is invalid", async () => {
+    describe("when the pool reverts call to token1", async () => {
+      let fakePoolContract: FakeContract<ArrakisVaultV1>;
       beforeEach(async () => {
-        subjectAmmPool = setup.weth.address;
+        fakePoolContract = await smock.fake(ArrakisVaultV1__factory, {
+          address: arrakisV1Setup.wethDaiPool.address,
+        });
+        subjectAmmPool = fakePoolContract.address;
       });
 
       it("should be an invalid pool", async () => {
+        fakePoolContract.token1.reverts();
         const status = await subject();
         expect(status).to.be.false;
       });
