@@ -1,8 +1,10 @@
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
+import { smock } from "@defi-wonderland/smock";
 import { SetToken } from "@utils/contracts";
 
 chai.use(solidity);
+chai.use(smock.matchers);
 
 // Use HARDHAT version of providers
 import { ethers } from "hardhat";
