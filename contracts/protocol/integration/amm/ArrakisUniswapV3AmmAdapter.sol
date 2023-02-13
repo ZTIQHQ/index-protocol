@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Set Labs Inc.
+    Copyright 2023 Index Coop.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,10 +23,11 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
 import "../../../interfaces/IAmmAdapter.sol";
 import "../../../interfaces/external/IArrakisVaultV1.sol";
+import "../../../interfaces/external/IArrakisRouterV1.sol";
 
 /**
- * @title UniswapV3AmmAdapter
- * @author Zishan Sami
+ * @title ArrakisUniswapV3AmmAdapter
+ * @author Index Coop
  *
  * Adapter for Arrakis Vault representing Uniswap V3 liquidity position that encodes adding and removing liquidty
  */
@@ -84,35 +85,30 @@ contract ArrakisUniswapV3AmmAdapter is IAmmAdapter {
         override
         returns (address target, uint256 value, bytes memory data)
     {   
-        address setToken = _setToken;
-        address[] memory components = _components;
-        uint256[] memory maxTokensIn = _maxTokensIn;
-        uint256 minLiquidity = _minLiquidity;
-
-        require(maxTokensIn[0] > 0 && maxTokensIn[1] > 0, "Component quantity must be nonzero");
-
-        IArrakisVaultV1 arrakisVaultPool = IArrakisVaultV1(_pool);
+        require(_maxTokensIn[0] > 0 && _maxTokensIn[1] > 0, "Component quantity must be nonzero");
 
         // Sort the amount in order of tokens stored in Arrakis Pool
-        (uint256 maxTokensInA, uint256 maxTokensInB) = _getOrderedAmount(components[0], components[1], maxTokensIn[0], maxTokensIn[1]);
+        (uint256 maxTokensInA, uint256 maxTokensInB) = _getOrderedAmount(_components[0], _components[1], _maxTokensIn[0], _maxTokensIn[1]);
 
-        (uint256 amountAMin, uint256 amountBMin, uint256 liquidityExpectedFromSuppliedTokens) = arrakisVaultPool.getMintAmounts(maxTokensInA, maxTokensInB);
+        (uint256 amountAMin, uint256 amountBMin, uint256 liquidityExpectedFromSuppliedTokens) = IArrakisVaultV1(_pool).getMintAmounts(maxTokensInA, maxTokensInB);
         
         require(
-            minLiquidity <= liquidityExpectedFromSuppliedTokens,
+            _minLiquidity <= liquidityExpectedFromSuppliedTokens,
             "_minLiquidity is too high for input token limit"
         );
 
         target = router;
         value = 0;
-        data = abi.encodeWithSignature( 
-            ADD_LIQUIDITY,
-            arrakisVaultPool,
-            maxTokensInA,
-            maxTokensInB,
-            amountAMin,
-            amountBMin,
-            setToken
+        data = abi.encodeCall(IArrakisRouterV1.addLiquidity, 
+         (   
+                IArrakisVaultV1(_pool),
+                maxTokensInA,
+                maxTokensInB,
+                amountAMin,
+                amountBMin,
+                _minLiquidity,
+                _setToken
+        )
         );
     }
 
@@ -155,31 +151,28 @@ contract ArrakisUniswapV3AmmAdapter is IAmmAdapter {
         override
         returns (address target, uint256 value, bytes memory data)
     {   
-        address setToken = _setToken;
-        address[] memory components = _components;
-        uint256[] memory minTokensOut = _minTokensOut;
-        uint256 liquidity = _liquidity;
-        IArrakisVaultV1 arrakisVaultPool = IArrakisVaultV1(_pool);
 
         // Make sure that only up to the amount of liquidity tokens owned by the Set Token are redeemed
-        uint256 setTokenLiquidityBalance = arrakisVaultPool.balanceOf(setToken);
-        require(liquidity <= setTokenLiquidityBalance, "_liquidity must be <= to current balance");
+        uint256 setTokenLiquidityBalance = IArrakisVaultV1(_pool).balanceOf(_setToken);
+        require(_liquidity <= setTokenLiquidityBalance, "_liquidity must be <= to current balance");
 
         // Checks for minTokensOut
-        require(minTokensOut[0] > 0 && minTokensOut[1] > 0, "Minimum quantity must be nonzero");
+        require(_minTokensOut[0] > 0 && _minTokensOut[1] > 0, "Minimum quantity must be nonzero");
 
         // Sort the amount in order of tokens stored in Arrakis Pool
-        (uint256 minTokensOutA, uint256 minTokensOutB) = _getOrderedAmount(components[0], components[1], minTokensOut[0], minTokensOut[1]);
+        (uint256 minTokensOutA, uint256 minTokensOutB) = _getOrderedAmount(_components[0], _components[1], _minTokensOut[0], _minTokensOut[1]);
 
         target = router;
         value = 0;
-        data = abi.encodeWithSignature(
-            REMOVE_LIQUIDITY,
-            arrakisVaultPool,
-            liquidity,
+        data = abi.encodeCall(
+            IArrakisRouterV1.removeLiquidity,
+            (
+            IArrakisVaultV1(_pool),
+            _liquidity,
             minTokensOutA,
             minTokensOutB,
-            setToken
+            _setToken
+            )
         );
     }
 
