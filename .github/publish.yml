@@ -2,7 +2,7 @@ name: publish
 
 on:
   push:
-    branches: [master]
+    branches: [master, pblivin0x/npm-publish]
   pull_request:
     branches: [master]
 
