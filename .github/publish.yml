@@ -4,7 +4,7 @@ on:
   push:
     branches: [master, pblivin0x/npm-publish]
   pull_request:
-    branches: [master]
+    branches: [master, pblivin0x/npm-publish]
 
 jobs:
 
