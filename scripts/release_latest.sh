@@ -20,4 +20,4 @@ echo '{
 # Regenerate artifacts to strip out hardcoded gas values in artifact ABIs
 yarn build:npm:latest
 
-npx semantic-release --debug
+npx semantic-release --debug --dry-run
