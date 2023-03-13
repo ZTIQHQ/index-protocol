@@ -2,7 +2,7 @@ import "module-alias/register";
 
 import { userConfig } from "hardhat";
 import { BigNumber } from "ethers";
-import helpers from "@nomicfoundation/hardhat-network-helpers";
+import * as helpers from "@nomicfoundation/hardhat-network-helpers";
 import { ether } from "@utils/index";
 import { Account } from "@utils/test/types";
 import { Address } from "@utils/types";
