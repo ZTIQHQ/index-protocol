@@ -18,6 +18,7 @@ import {
 import { smock, FakeContract } from "@defi-wonderland/smock";
 import { ArrakisVaultV1__factory } from "@typechain/factories/ArrakisVaultV1__factory";
 import { ArrakisVaultV1 } from "@typechain/ArrakisVaultV1";
+import { IArrakisRouterV1__factory } from "@typechain/factories/IArrakisRouterV1__factory";
 import { SystemFixture, UniswapV3Fixture, ArrakisV1Fixture } from "@utils/fixtures";
 
 const expect = getWaffleExpect();
@@ -300,15 +301,21 @@ describe("ArrakisUniswapV3AmmAdapter", () => {
       );
       const amountAMin = mintAmount[0];
       const amountBMin = mintAmount[1];
+      const minliquidity = mintAmount[2];
 
-      const expectedCallData = arrakisV1Setup.router.interface.encodeFunctionData("addLiquidity", [
-        subjectAmmPool,
-        orderedMaxTokensIn[0],
-        orderedMaxTokensIn[1],
-        amountAMin,
-        amountBMin,
-        owner.address,
-      ]);
+      const expectedCallData = IArrakisRouterV1__factory.createInterface().encodeFunctionData(
+        "addLiquidity",
+        [
+          subjectAmmPool,
+          orderedMaxTokensIn[0],
+          orderedMaxTokensIn[1],
+          amountAMin,
+          amountBMin,
+          minliquidity,
+          owner.address,
+        ],
+      );
+
       expect(JSON.stringify(calldata)).to.eq(
         JSON.stringify([arrakisV1Setup.router.address, ZERO, expectedCallData]),
       );
