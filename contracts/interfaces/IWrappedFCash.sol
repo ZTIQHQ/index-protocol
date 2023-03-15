@@ -3,6 +3,7 @@ pragma solidity 0.6.10;
 pragma experimental "ABIEncoderV2";
 
 import "./IERC20Metadata.sol";
+import "./external/IERC4626.sol";
 
 /// @notice Different types of internal tokens
 ///  - UnderlyingToken: underlying asset for a cToken (except for Ether)
@@ -65,7 +66,7 @@ interface IWrappedfCash {
 }
 
 
-interface IWrappedfCashComplete is IWrappedfCash, IERC20Metadata {
+interface IWrappedfCashComplete is IWrappedfCash, IERC20Metadata, IERC4626 {
     /// @notice Returns the maturity of the underlying fCash instance
     function getMaturity() external view returns (uint40);
 } 
