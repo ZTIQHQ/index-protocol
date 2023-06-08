@@ -19,6 +19,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import {IVault} from "../../../interfaces/external/balancer-v2/IVault.sol";
+import {IAsset} from "../../../interfaces/external/balancer-v2/IAsset.sol";
 import {IExchangeAdapter} from "../../../interfaces/IExchangeAdapter.sol";
 
 /**
@@ -75,21 +76,21 @@ contract BalancerV2ExchangeAdapter is IExchangeAdapter {
     uint256 _minToQuantity,
     bytes memory _data
   ) external view override returns (address, uint256, bytes memory) {
-    bytes32 memory poolId = abi.decode(_data, (bytes32));
+    bytes32 poolId = abi.decode(_data, (bytes32));
 
     IVault.SingleSwap memory swap = IVault.SingleSwap({
       poolId: poolId,
       kind: IVault.SwapKind.GIVEN_IN,
-      assetIn: fromToken,
-      assetOut: toToken,
-      amount: fromQuantity,
+      assetIn: IAsset(_fromToken),
+      assetOut: IAsset(_toToken),
+      amount: _fromQuantity,
       userData: ""
     });
 
     IVault.FundManagement memory fm = IVault.FundManagement({
       sender: _toAddress,
       fromInternalBalance: false,
-      recipient: _toAddress,
+      recipient: payable(_toAddress),
       toInternalBalance: false
     });
 
