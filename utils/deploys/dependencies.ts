@@ -71,7 +71,6 @@ export default {
   },
   RETH: {
     1: "0xae78736Cd615f374D3085123A210448E74Fc6393",
-    42: "",
   },
 
   // AAVE V2
@@ -120,7 +119,6 @@ export default {
 
   SUSHISWAP_ROUTER: {
     1: "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F",
-    42: "",
   },
 
   BALANCER_EXCHANGE_PROXY: {
