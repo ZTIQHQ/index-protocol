@@ -15,11 +15,7 @@
 pragma solidity 0.6.10;
 pragma experimental "ABIEncoderV2";
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
-
 import {IVault} from "../../../interfaces/external/balancer-v2/IVault.sol";
-import {IAsset} from "../../../interfaces/external/balancer-v2/IAsset.sol";
 import {IExchangeAdapter} from "../../../interfaces/IExchangeAdapter.sol";
 
 /**
@@ -81,8 +77,8 @@ contract BalancerV2ExchangeAdapter is IExchangeAdapter {
     IVault.SingleSwap memory swap = IVault.SingleSwap({
       poolId: poolId,
       kind: IVault.SwapKind.GIVEN_IN,
-      assetIn: IAsset(_fromToken),
-      assetOut: IAsset(_toToken),
+      assetIn: _fromToken,
+      assetOut: _toToken,
       amount: _fromQuantity,
       userData: ""
     });

@@ -33,6 +33,7 @@ const expect = getWaffleExpect();
 describe("BalancerV2ExchangeAdapter TradeModule Integration [ @forked-mainnet ]", () => {
 
   const balancerVaultAddress = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
+  const poolId = "0x1e19cf2d73a72ef1332c882f20534b6519be0276000200000000000000000112";
 
   let owner: Account;
   let manager: Account;
@@ -134,7 +135,7 @@ describe("BalancerV2ExchangeAdapter TradeModule Integration [ @forked-mainnet ]"
         subjectSourceQuantity = ether(1);
         subjectMinDestinationQuantity = ether(1); // assume almost 1:1
         subjectAdapterName = balancerV2AdapterName;
-        subjectData = "0x1e19cf2d73a72ef1332c882f20534b6519be0276000200000000000000000112";
+        subjectData = poolId;
         subjectCaller = manager;
       });
 

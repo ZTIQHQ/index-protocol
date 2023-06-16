@@ -17,8 +17,6 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./IAsset.sol";
-
 /**
  * Stripped down interface of IVault.
  * https://github.com/balancer/balancer-v2-monorepo/blob/master/pkg/interfaces/contracts/vault/IVault.sol
@@ -109,8 +107,8 @@ interface IVault {
   struct SingleSwap {
     bytes32 poolId;
     SwapKind kind;
-    IAsset assetIn;
-    IAsset assetOut;
+    address assetIn;
+    address assetOut;
     uint256 amount;
     bytes userData;
   }
@@ -147,7 +145,7 @@ interface IVault {
   function batchSwap(
     SwapKind kind,
     BatchSwapStep[] memory swaps,
-    IAsset[] memory assets,
+    address[] memory assets,
     FundManagement memory funds,
     int256[] memory limits,
     uint256 deadline
@@ -224,7 +222,7 @@ interface IVault {
   function queryBatchSwap(
     SwapKind kind,
     BatchSwapStep[] memory swaps,
-    IAsset[] memory assets,
+    address[] memory assets,
     FundManagement memory funds
   ) external returns (int256[] memory assetDeltas);
 }
