@@ -45,6 +45,10 @@ import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
  *
  * @dev Compatible with StreamingFeeModule and BasicIssuanceModule. Review compatibility if used
  * with additional modules.
+ * @dev WARNING: This contract does NOT support ERC-777 component tokens or quote assets.
+ * @dev WARNING: Please note that the behavior of block.timestamp varies across different EVM chains. 
+ * This contract does not incorporate additional checks for unique behavior or for elements like sequencer uptime. 
+ * Ensure you understand these characteristics when interacting with the contract on different EVM chains.
  */
 contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
     using SafeCast for int256;
