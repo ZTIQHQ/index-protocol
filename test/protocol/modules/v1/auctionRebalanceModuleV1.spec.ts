@@ -2977,7 +2977,7 @@ describe("AuctionRebalanceModuleV1", () => {
         beforeEach(async () => {
           const daiExponentialCurveParams = await boundedStepwiseExponentialPriceAdapter.getEncodedData(
             ether(0.0005),
-            1,
+            ether(1),
             ether(0.00001),
             ONE_HOUR_IN_SECONDS,
             true,
@@ -2988,7 +2988,7 @@ describe("AuctionRebalanceModuleV1", () => {
           const wbtcPerWethDecimalFactor = ether(1).div(bitcoin(1));
           const wbtcExponentialCurveParams = await boundedStepwiseExponentialPriceAdapter.getEncodedData(
             ether(14.5).mul(wbtcPerWethDecimalFactor),
-            1,
+            ether(1),
             ether(0.1).mul(wbtcPerWethDecimalFactor),
             ONE_HOUR_IN_SECONDS,
             false,
@@ -2998,7 +2998,7 @@ describe("AuctionRebalanceModuleV1", () => {
 
           const wethExponentialCurveParams = await boundedStepwiseExponentialPriceAdapter.getEncodedData(
             ether(1),
-            1,
+            ether(1),
             ether(0.1),
             ONE_HOUR_IN_SECONDS,
             false,
@@ -3164,7 +3164,7 @@ describe("AuctionRebalanceModuleV1", () => {
         beforeEach(async () => {
           const daiLogarithmicCurveParams = await boundedStepwiseLogarithmicPriceAdapter.getEncodedData(
             ether(0.0005),
-            1,
+            ether(1),
             ether(0.00001),
             ONE_HOUR_IN_SECONDS,
             true,
@@ -3175,7 +3175,7 @@ describe("AuctionRebalanceModuleV1", () => {
           const wbtcPerWethDecimalFactor = ether(1).div(bitcoin(1));
           const wbtcLogarithmicCurveParams = await boundedStepwiseLogarithmicPriceAdapter.getEncodedData(
             ether(14.5).mul(wbtcPerWethDecimalFactor),
-            1,
+            ether(1),
             ether(0.1).mul(wbtcPerWethDecimalFactor),
             ONE_HOUR_IN_SECONDS,
             false,
@@ -3185,7 +3185,7 @@ describe("AuctionRebalanceModuleV1", () => {
 
           const wethLogarithmicCurveParams = await boundedStepwiseLogarithmicPriceAdapter.getEncodedData(
             ether(1),
-            1,
+            ether(1),
             ether(0.1),
             ONE_HOUR_IN_SECONDS,
             false,
