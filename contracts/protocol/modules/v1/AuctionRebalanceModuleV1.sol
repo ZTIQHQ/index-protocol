@@ -290,7 +290,8 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
      * is used to push the current component units closer to the target units defined in startRebalance().
      *
      * Bidders specify the amount of the component they intend to buy or sell, and also specify the maximum/minimum amount 
-     * of the quote asset they are willing to spend/receive.
+     * of the quote asset they are willing to spend/receive. If the component amount is max uint256, the bid will fill
+     * the remaining amount to reach the target.
      *
      * The auction parameters, which are set by the manager, are used to determine the price of the component. Any bids that 
      * either don't move the component units towards the target, or overshoot the target, will be reverted.
