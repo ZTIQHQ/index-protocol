@@ -75,8 +75,8 @@ library Invoke {
             bytes memory callData = abi.encodeWithSignature("transfer(address,uint256)", _to, _quantity);
 
             bytes memory returnData = _setToken.invoke(_token, 0, callData);
-            if (returnData.length != 0) {
-                require(abi.decode(returnData, (bool)), "Transfer failed with false return data");
+            if (returnData.length > 0) {
+                require(abi.decode(returnData, (bool)), "ERC20 transfer did not succeed with false return data");
             }
         }
     }
