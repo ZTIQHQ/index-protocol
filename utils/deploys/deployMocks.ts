@@ -17,6 +17,7 @@ import {
   DebtIssuanceMock,
   DebtModuleMock,
   ExplicitERC20Mock,
+  ERC20ReturnFalseMock,
   ERC4626Mock,
   ForceFunderMock,
   GaugeControllerMock,
@@ -81,6 +82,7 @@ import { CurveStableswapMock__factory } from "../../typechain/factories/CurveSta
 import { CustomSetValuerMock__factory } from "../../typechain/factories/CustomSetValuerMock__factory";
 import { DebtIssuanceMock__factory } from "../../typechain/factories/DebtIssuanceMock__factory";
 import { DebtModuleMock__factory } from "../../typechain/factories/DebtModuleMock__factory";
+import { ERC20ReturnFalseMock__factory } from "../../typechain/factories/ERC20ReturnFalseMock__factory";
 import { ERC4626Mock__factory } from "../../typechain/factories/ERC4626Mock__factory";
 import { ExplicitERC20Mock__factory } from "../../typechain/factories/ExplicitERC20Mock__factory";
 import { ForceFunderMock__factory } from "../../typechain/factories/ForceFunderMock__factory";
@@ -284,6 +286,18 @@ export default class DeployMocks {
       name,
       symbol,
       decimals,
+    );
+  }
+
+  public async deployERC20ReturnFalseMock(
+    name: string = "Token",
+    symbol: string = "Symbol",
+    decimals: BigNumberish = BigNumber.from(18),
+  ): Promise<ERC20ReturnFalseMock> {
+    return await new ERC20ReturnFalseMock__factory(this._deployerSigner).deploy(
+      name,
+      symbol,
+      decimals
     );
   }
 

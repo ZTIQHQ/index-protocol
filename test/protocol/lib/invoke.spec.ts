@@ -133,6 +133,17 @@ describe("Invoke", () => {
         await expect(newBalance).to.eq(previousBalance);
       });
     });
+
+    describe("when the erc20 transfer call returns false", async () => {
+      beforeEach(async () => {
+        const erc20ReturnFalseMock = await deployer.mocks.deployERC20ReturnFalseMock();
+        subjectToken = erc20ReturnFalseMock.address;
+      });
+
+      it("should revert", async () => {
+        await expect(subject()).to.be.revertedWith("Transfer failed with false return data");
+      });
+    });
   });
 
   describe("#strictInvokeTransfer", async () => {
