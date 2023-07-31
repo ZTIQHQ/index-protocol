@@ -17,6 +17,7 @@ import {
   DebtIssuanceMock,
   DebtModuleMock,
   ExplicitERC20Mock,
+  ERC20NoReturnMock,
   ERC20ReturnFalseMock,
   ERC4626Mock,
   ForceFunderMock,
@@ -82,6 +83,7 @@ import { CurveStableswapMock__factory } from "../../typechain/factories/CurveSta
 import { CustomSetValuerMock__factory } from "../../typechain/factories/CustomSetValuerMock__factory";
 import { DebtIssuanceMock__factory } from "../../typechain/factories/DebtIssuanceMock__factory";
 import { DebtModuleMock__factory } from "../../typechain/factories/DebtModuleMock__factory";
+import { ERC20NoReturnMock__factory } from "../../typechain/factories/ERC20NoReturnMock__factory";
 import { ERC20ReturnFalseMock__factory } from "../../typechain/factories/ERC20ReturnFalseMock__factory";
 import { ERC4626Mock__factory } from "../../typechain/factories/ERC4626Mock__factory";
 import { ExplicitERC20Mock__factory } from "../../typechain/factories/ExplicitERC20Mock__factory";
@@ -281,6 +283,22 @@ export default class DeployMocks {
     symbol: string = "Symbol",
   ): Promise<StandardTokenMock> {
     return await new StandardTokenMock__factory(this._deployerSigner).deploy(
+      initialAccount,
+      initialBalance,
+      name,
+      symbol,
+      decimals,
+    );
+  }
+
+  public async deployERC20NoReturnMock(
+    initialAccount: Address,
+    initialBalance: BigNumberish = ether(1000000000),
+    decimals: BigNumberish = 18,
+    name: string = "Token",
+    symbol: string = "Symbol",
+  ): Promise<ERC20NoReturnMock> {
+    return await new ERC20NoReturnMock__factory(this._deployerSigner).deploy(
       initialAccount,
       initialBalance,
       name,
