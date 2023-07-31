@@ -141,7 +141,7 @@ describe("Invoke", () => {
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("ERC20 transfer did not succeed with false return data");
+        await expect(subject()).to.be.revertedWith("ERC20 transfer failed");
       });
     });
 
