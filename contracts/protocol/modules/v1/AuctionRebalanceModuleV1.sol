@@ -45,6 +45,10 @@ import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
  *
  * @dev Compatible with StreamingFeeModule and BasicIssuanceModule. Review compatibility if used
  * with additional modules.
+ * @dev WARNING: If rebalances don't lock the SetToken, there's potential for bids to be front-run
+ * by sizable issuance/redemption. This could lead to the SetToken not approaching its target allocation
+ * proportionately to the bid size. To counteract this risk, a supply cap can be applied to the SetToken,
+ * allowing regular issuance/redemption while preventing front-running with large issuance/redemption.
  * @dev WARNING: This contract does NOT support ERC-777 component tokens or quote assets.
  * @dev WARNING: Please note that the behavior of block.timestamp varies across different EVM chains. 
  * This contract does not incorporate additional checks for unique behavior or for elements like sequencer uptime. 
@@ -231,6 +235,8 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
      * target units, e.g., in cases where fee accrual affects the positionMultiplier of the SetToken, ensuring proportional
      * allocation among components. If target allocations are not met within the specified duration, the rebalance concludes
      * with the allocations achieved.
+     * 
+     * @dev WARNING: If rebalances don't lock the SetToken, enforce a supply cap on the SetToken to prevent front-running.
      *
      * @param _setToken                     The SetToken to be rebalanced.
      * @param _quoteAsset                   ERC20 token used as the quote asset in auctions.
@@ -290,7 +296,8 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
      * is used to push the current component units closer to the target units defined in startRebalance().
      *
      * Bidders specify the amount of the component they intend to buy or sell, and also specify the maximum/minimum amount 
-     * of the quote asset they are willing to spend/receive.
+     * of the quote asset they are willing to spend/receive. If the component amount is max uint256, the bid will fill
+     * the remaining amount to reach the target.
      *
      * The auction parameters, which are set by the manager, are used to determine the price of the component. Any bids that 
      * either don't move the component units towards the target, or overshoot the target, will be reverted.
@@ -321,7 +328,7 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
         onlyAllowedBidder(_setToken)
     {
         // Validate whether the bid targets are legitimate
-        _validateBidTargets(_setToken, _component);
+        _validateBidTargets(_setToken, _component, _componentAmount);
 
         // Create the bid information structure
         BidInfo memory bidInfo = _createBidInfo(_setToken, _component, _componentAmount, _quoteAssetLimit);
@@ -386,7 +393,7 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
     /**
      * @dev Unlocks the SetToken after rebalancing. Can be called once the rebalance duration has elapsed.
      * Can only be called before the rebalance duration has elapsed if all targets are met, there is excess
-     * or at-target quote asset, and raiseTargetPercentage is zero.
+     * or at-target quote asset, and raiseTargetPercentage is zero. Resets the raiseTargetPercentage to zero.
      *
      * @param _setToken The SetToken to be unlocked.
      */
@@ -402,6 +409,9 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
             delete rebalanceInfo[_setToken].rebalanceDuration;
             emit LockedRebalanceEndedEarly(_setToken);
         }
+
+        // Reset the raiseTargetPercentage to zero
+        rebalanceInfo[_setToken].raiseTargetPercentage = 0;
 
         // Unlock the SetToken
         _setToken.unlock();
@@ -421,9 +431,6 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
         external
         onlyManagerAndValidSet(_setToken)
     {
-        // Ensure the raise target percentage is greater than 0
-        require(_raiseTargetPercentage > 0, "Target percentage must be greater than 0");
-
         // Update the raise target percentage in the RebalanceInfo struct
         rebalanceInfo[_setToken].raiseTargetPercentage = _raiseTargetPercentage;
 
@@ -617,7 +624,7 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
         onlyValidAndInitializedSet(_setToken)
         returns (BidInfo memory)
     {
-        _validateBidTargets(_setToken, _component);
+        _validateBidTargets(_setToken, _component, _componentQuantity);
         BidInfo memory bidInfo = _createBidInfo(_setToken, _component, _componentQuantity, _quoteQuantityLimit);
         
         return bidInfo;
@@ -739,13 +746,15 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
     /**
      * @dev Validates that the component is an eligible target for bids during the rebalance. Bids cannot be placed explicitly
      * on the rebalance quote asset, it may only be implicitly bid by being the quote asset for other component bids.
-     *
-     * @param _setToken     The SetToken instance involved in the rebalance.
-     * @param _component    The component to be validated.
+     * 
+     * @param _setToken          The SetToken instance involved in the rebalance.
+     * @param _component         The component to be validated.
+     * @param _componentAmount   The amount of component in the bid.
      */
     function _validateBidTargets(
         ISetToken _setToken,
-        IERC20 _component
+        IERC20 _component,
+        uint256 _componentAmount
     )
         internal
         view
@@ -761,6 +770,9 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
 
         // Ensure that the rebalance is in progress.
         require(!_isRebalanceDurationElapsed(_setToken), "Rebalance must be in progress");
+
+        // Ensure that the component amount is greater than zero.
+        require(_componentAmount > 0, "Component amount must be > 0");
     }
 
     /**
@@ -796,8 +808,13 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
             bidInfo.setTotalSupply
         );
 
+        // Settle the auction if the component quantity is max uint256.
         // Ensure that the component quantity in the bid does not exceed the available auction quantity.
-        require(_componentQuantity <= bidInfo.auctionQuantity, "Bid size exceeds auction quantity");
+        if (_componentQuantity == type(uint256).max) {
+            _componentQuantity = bidInfo.auctionQuantity;
+        } else {
+            require(_componentQuantity <= bidInfo.auctionQuantity, "Bid size exceeds auction quantity");
+        }
 
         // Set the sendToken and receiveToken based on the auction type (sell or buy).
         (bidInfo.sendToken, bidInfo.receiveToken) = _getSendAndReceiveTokens(bidInfo.isSellAuction, _setToken, _component);

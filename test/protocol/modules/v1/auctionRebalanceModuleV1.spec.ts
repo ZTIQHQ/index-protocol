@@ -1577,16 +1577,27 @@ describe("AuctionRebalanceModuleV1", () => {
             defaultDuration,
             defaultPositionMultiplier
           );
+
+          await auctionModule.connect(owner.wallet).setRaiseTargetPercentage(
+            indexWithQuoteAsset.address,
+            ether(0.0001)
+          );
         });
 
-        it("should unlock the SetToken", async () => {
+        it("should unlock the SetToken and reset the raiseTargetPercentage", async () => {
           const isLockedBefore = await subjectSetToken.isLocked();
           expect(isLockedBefore).to.be.true;
+
+          const raiseTargetPercentageBefore = (await auctionModule.rebalanceInfo(subjectSetToken.address)).raiseTargetPercentage;
+          expect(raiseTargetPercentageBefore).to.gt(ZERO);
 
           await subject();
 
           const isLockedAfter = await subjectSetToken.isLocked();
           expect(isLockedAfter).to.be.false;
+
+          const raiseTargetPercentageAfter = (await auctionModule.rebalanceInfo(subjectSetToken.address)).raiseTargetPercentage;
+          expect(raiseTargetPercentageAfter).to.eq(ZERO);
         });
       });
 
@@ -1620,6 +1631,9 @@ describe("AuctionRebalanceModuleV1", () => {
 
           const isLockedAfter = await subjectSetToken.isLocked();
           expect(isLockedAfter).to.be.false;
+
+          const raiseTargetPercentageAfter = (await auctionModule.rebalanceInfo(subjectSetToken.address)).raiseTargetPercentage;
+          expect(raiseTargetPercentageAfter).to.eq(ZERO);
         });
 
         it("should emit the LockedRebalanceEndedEarly event", async () => {
@@ -1773,11 +1787,22 @@ describe("AuctionRebalanceModuleV1", () => {
 
       describe("when the target percentage is set to 0", async () => {
         beforeEach(async () => {
+          await auctionModule.connect(owner.wallet).setRaiseTargetPercentage(
+            indexWithQuoteAsset.address,
+            ether(0.001)
+          );
+
           subjectRaiseTargetPercentage = ZERO;
         });
 
-        it("should revert with 'Target percentage must be greater than 0'", async () => {
-          await expect(subject()).to.be.revertedWith("Target percentage must be greater than 0");
+        it("should set the raiseTargetPercentage", async () => {
+          const oldRaiseTargetPercentage = (await auctionModule.rebalanceInfo(subjectSetToken.address)).raiseTargetPercentage;
+          expect(oldRaiseTargetPercentage).to.eq(ether(0.001));
+
+          await subject();
+          const newRaiseTargetPercentage = (await auctionModule.rebalanceInfo(subjectSetToken.address)).raiseTargetPercentage;
+
+          expect(newRaiseTargetPercentage).to.eq(ZERO);
         });
       });
     });
@@ -2320,6 +2345,63 @@ describe("AuctionRebalanceModuleV1", () => {
           );
         });
 
+        describe("when the component amount is the max uint256", async () => {
+          beforeEach(async () => {
+            subjectComponentAmount = MAX_UINT_256;
+          });
+
+          it("updates position units and transfers tokens correctly on a component sell auction with ConstantPriceAdapter", async () => {
+            const preBidBalances = {
+              bidderDai: await setup.dai.balanceOf(bidder.address),
+              bidderWeth: await setup.weth.balanceOf(bidder.address),
+              setTokenDai: await setup.dai.balanceOf(subjectSetToken.address),
+              setTokenWeth: await setup.weth.balanceOf(subjectSetToken.address)
+            };
+            const setTokenTotalSupply = await subjectSetToken.totalSupply();
+
+            await subject();
+
+            const expectedWethPositionUnits = preciseDiv(preBidBalances.setTokenWeth.add(subjectQuoteAssetLimit), setTokenTotalSupply);
+            const expectedDaiPositionUnits = preciseDiv(preBidBalances.setTokenDai.sub(ether(900)), setTokenTotalSupply);
+
+            const wethPositionUnits = await subjectSetToken.getDefaultPositionRealUnit(setup.weth.address);
+            const daiPositionUnits = await subjectSetToken.getDefaultPositionRealUnit(setup.dai.address);
+
+            expect(wethPositionUnits).to.eq(expectedWethPositionUnits);
+            expect(daiPositionUnits).to.eq(expectedDaiPositionUnits);
+
+            const postBidBalances = {
+              bidderDai: await setup.dai.balanceOf(bidder.address),
+              bidderWeth: await setup.weth.balanceOf(bidder.address),
+              setTokenDai: await setup.dai.balanceOf(subjectSetToken.address),
+              setTokenWeth: await setup.weth.balanceOf(subjectSetToken.address)
+            };
+
+            expect(postBidBalances.bidderDai).to.eq(preBidBalances.bidderDai.add(ether(900)));
+            expect(postBidBalances.bidderWeth).to.eq(preBidBalances.bidderWeth.sub(subjectQuoteAssetLimit));
+            expect(postBidBalances.setTokenDai).to.eq(preBidBalances.setTokenDai.sub(ether(900)));
+            expect(postBidBalances.setTokenWeth).to.eq(preBidBalances.setTokenWeth.add(subjectQuoteAssetLimit));
+          });
+
+          it("emits the correct BidExecuted event", async () => {
+            const totalSupply = await subjectSetToken.totalSupply();
+
+            await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
+              subjectSetToken.address,
+              subjectComponent,
+              defaultQuoteAsset,
+              subjectCaller.address,
+              constantPriceAdapter.address,
+              true,
+              ether(0.0005),
+              ether(900), // not the max uint256
+              subjectQuoteAssetLimit,
+              0,
+              totalSupply
+            );
+          });
+        });
+
         describe("when there is a protcol fee charged", async () => {
           let feePercentage: BigNumber;
 
@@ -2536,6 +2618,63 @@ describe("AuctionRebalanceModuleV1", () => {
             0,
             totalSupply
           );
+        });
+
+        describe("when the component amount is the max uint256", async () => {
+          beforeEach(async () => {
+            subjectComponentAmount = MAX_UINT_256;
+          });
+
+          it("updates position units and transfers tokens correctly on a component buy auction with ConstantPriceAdapter", async () => {
+            const preBidBalances = {
+              bidderWbtc: await setup.wbtc.balanceOf(bidder.address),
+              bidderWeth: await setup.weth.balanceOf(bidder.address),
+              setTokenWbtc: await setup.wbtc.balanceOf(subjectSetToken.address),
+              setTokenWeth: await setup.weth.balanceOf(subjectSetToken.address)
+            };
+            const setTokenTotalSupply = await subjectSetToken.totalSupply();
+
+            await subject();
+
+            const expectedWethPositionUnits = preciseDiv(preBidBalances.setTokenWeth.sub(subjectQuoteAssetLimit), setTokenTotalSupply);
+            const expectedWbtcPositionUnits = preciseDiv(preBidBalances.setTokenWbtc.add(bitcoin(0.1)), setTokenTotalSupply);
+
+            const wethPositionUnits = await subjectSetToken.getDefaultPositionRealUnit(setup.weth.address);
+            const wbtcPositionUnits = await subjectSetToken.getDefaultPositionRealUnit(setup.wbtc.address);
+
+            expect(wethPositionUnits).to.eq(expectedWethPositionUnits);
+            expect(wbtcPositionUnits).to.eq(expectedWbtcPositionUnits);
+
+            const postBidBalances = {
+              bidderWbtc: await setup.wbtc.balanceOf(bidder.address),
+              bidderWeth: await setup.weth.balanceOf(bidder.address),
+              setTokenWbtc: await setup.wbtc.balanceOf(subjectSetToken.address),
+              setTokenWeth: await setup.weth.balanceOf(subjectSetToken.address)
+            };
+
+            expect(postBidBalances.bidderWbtc).to.eq(preBidBalances.bidderWbtc.sub(bitcoin(0.1)));
+            expect(postBidBalances.bidderWeth).to.eq(preBidBalances.bidderWeth.add(subjectQuoteAssetLimit));
+            expect(postBidBalances.setTokenWbtc).to.eq(preBidBalances.setTokenWbtc.add(bitcoin(0.1)));
+            expect(postBidBalances.setTokenWeth).to.eq(preBidBalances.setTokenWeth.sub(subjectQuoteAssetLimit));
+          });
+
+          it("emits the correct BidExecuted event", async () => {
+            const totalSupply = await subjectSetToken.totalSupply();
+
+            await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
+              subjectSetToken.address,
+              defaultQuoteAsset,
+              subjectComponent,
+              subjectCaller.address,
+              constantPriceAdapter.address,
+              defaultShouldLockSetToken,
+              defaultWbtcPrice,
+              subjectQuoteAssetLimit,
+              bitcoin(0.1),
+              0,
+              totalSupply
+            );
+          });
         });
 
         describe("when there is a protcol fee charged", async () => {
@@ -3354,6 +3493,18 @@ describe("AuctionRebalanceModuleV1", () => {
 
         it("should revert with 'Rebalance must be in progress'", async () => {
           await expect(subject()).to.be.revertedWith("Rebalance must be in progress");
+        });
+      });
+
+      describe("when the component amount is zero", async () => {
+        beforeEach(async () => {
+          await startRebalance();
+
+          subjectComponentAmount = ZERO;
+        });
+
+        it("should revert with 'Component amount must be > 0'", async () => {
+          await expect(subject()).to.be.revertedWith("Component amount must be > 0");
         });
       });
 
