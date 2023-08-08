@@ -1899,17 +1899,6 @@ describe("AuctionRebalanceModuleV1", () => {
           );
         });
 
-        it("should reset the auction start time", async () => {
-          const auctionStartTimeBefore = (await auctionModule.rebalanceInfo(subjectSetToken.address)).rebalanceStartTime;
-
-          const txnTimestamp = await getTransactionTimestamp(subject());
-
-          const auctionStartTimeAfter = (await auctionModule.rebalanceInfo(subjectSetToken.address)).rebalanceStartTime;
-
-          expect(auctionStartTimeAfter).to.gt(auctionStartTimeBefore);
-          expect(auctionStartTimeAfter).to.eq(txnTimestamp);
-        });
-
         describe("when the calling address is not a permissioned address", async () => {
           beforeEach(async () => {
             subjectCaller = await getRandomAccount();

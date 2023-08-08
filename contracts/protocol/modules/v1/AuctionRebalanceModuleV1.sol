@@ -355,7 +355,6 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
     /**
      * @dev ACCESS LIMITED: Increases asset targets uniformly when all target units have been met but there is remaining quote asset.
      * Can be called multiple times if necessary. Targets are increased by the percentage specified by raiseAssetTargetsPercentage set by the manager.
-     * Additionally, the rebalance start time is reset to the current time, effectively restarting the rebalance duration and auction price curves. 
      * This helps in reducing tracking error and providing greater granularity in reaching an equilibrium between the excess quote asset
      * and the components to be purchased. However, excessively raising targets may result in under-allocating to the quote asset as more of
      * it is spent buying components to meet the new targets.
@@ -380,9 +379,6 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
 
         // Update the positionMultiplier in the RebalanceInfo struct
         rebalanceInfo[_setToken].positionMultiplier = newPositionMultiplier;
-
-        // Reset the auction price curves for all components
-        rebalanceInfo[_setToken].rebalanceStartTime = block.timestamp;
 
         // Emit the AssetTargetsRaised event
         emit AssetTargetsRaised(_setToken, newPositionMultiplier);
