@@ -45,6 +45,10 @@ import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
  *
  * @dev Compatible with StreamingFeeModule and BasicIssuanceModule. Review compatibility if used
  * with additional modules.
+ * @dev WARNING: If rebalances don't lock the SetToken, there's potential for bids to be front-run
+ * by sizable issuance/redemption. This could lead to the SetToken not approaching its target allocation
+ * proportionately to the bid size. To counteract this risk, a supply cap can be applied to the SetToken,
+ * allowing regular issuance/redemption while preventing front-running with large issuance/redemption.
  * @dev WARNING: This contract does NOT support ERC-777 component tokens or quote assets.
  * @dev WARNING: Please note that the behavior of block.timestamp varies across different EVM chains. 
  * This contract does not incorporate additional checks for unique behavior or for elements like sequencer uptime. 
@@ -231,6 +235,8 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
      * target units, e.g., in cases where fee accrual affects the positionMultiplier of the SetToken, ensuring proportional
      * allocation among components. If target allocations are not met within the specified duration, the rebalance concludes
      * with the allocations achieved.
+     * 
+     * @dev WARNING: If rebalances don't lock the SetToken, enforce a supply cap on the SetToken to prevent front-running.
      *
      * @param _setToken                     The SetToken to be rebalanced.
      * @param _quoteAsset                   ERC20 token used as the quote asset in auctions.
