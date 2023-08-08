@@ -3540,6 +3540,30 @@ describe("AuctionRebalanceModuleV1", () => {
         });
       });
 
+      describe("when there is a quote asset mismatch", async () => {
+        beforeEach(async () => {
+          await startRebalance();
+
+          subjectQuoteAsset = setup.usdc.address;
+        });
+
+        it("should revert with 'Quote asset mismatch'", async () => {
+          await expect(subject()).to.be.revertedWith("Quote asset mismatch");
+        });
+      });
+
+      describe("when there is an auction direction mismatch", async () => {
+        beforeEach(async () => {
+          await startRebalance();
+
+          subjectIsSellAuction = false;
+        });
+
+        it("should revert with 'Auction direction mismatch'", async () => {
+          await expect(subject()).to.be.revertedWith("Auction direction mismatch");
+        });
+      });
+
       describe("when there are external positions for a component", async () => {
         beforeEach(async () => {
           await startRebalance();
