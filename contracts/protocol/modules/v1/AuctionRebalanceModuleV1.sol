@@ -314,24 +314,28 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
      *
      * @param _setToken          The SetToken to be rebalanced.
      * @param _component         The component for which the auction is to be bid on.
+     * @param _quoteAsset        The ERC20 token expected to be used as the quote asset by the bidder
      * @param _componentAmount   The amount of component in the bid.
      * @param _quoteAssetLimit   The maximum or minimum amount of quote asset that can be spent or received during the bid.
+     * @param _isSellAuction     The direction of the auction expected by the bidder
      */
     function bid(
         ISetToken _setToken,
         IERC20 _component,
+        IERC20 _quoteAsset,
         uint256 _componentAmount,
-        uint256 _quoteAssetLimit
+        uint256 _quoteAssetLimit,
+        bool _isSellAuction
     )
         external
         nonReentrant
         onlyAllowedBidder(_setToken)
     {
         // Validate whether the bid targets are legitimate
-        _validateBidTargets(_setToken, _component, _componentAmount);
+        _validateBidTargets(_setToken, _component, _quoteAsset, _componentAmount);
 
         // Create the bid information structure
-        BidInfo memory bidInfo = _createBidInfo(_setToken, _component, _componentAmount, _quoteAssetLimit);
+        BidInfo memory bidInfo = _createBidInfo(_setToken, _component, _componentAmount, _quoteAssetLimit, _isSellAuction);
 
         // Execute the token transfer specified in the bid information
         _executeBid(bidInfo);
@@ -608,24 +612,28 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
      *
      * @param _setToken             Instance of the SetToken being rebalanced.
      * @param _component            Instance of the component auction to bid on.
+     * @param _quoteAsset           The ERC20 token expected to be used as the quote asset by the bidder
      * @param _componentQuantity    Quantity of the component involved in the bid.
      * @param _quoteQuantityLimit   Maximum or minimum amount of quote asset spent or received during the bid.
+     * @param _isSellAuction     The direction of the auction expected by the bidder
      *
      * @return BidInfo              Struct containing data for the bid.
      */
     function getBidPreview(
         ISetToken _setToken,
         IERC20 _component,
+        IERC20 _quoteAsset,
         uint256 _componentQuantity,
-        uint256 _quoteQuantityLimit
+        uint256 _quoteQuantityLimit,
+        bool _isSellAuction
     )
         external
         view
         onlyValidAndInitializedSet(_setToken)
         returns (BidInfo memory)
     {
-        _validateBidTargets(_setToken, _component, _componentQuantity);
-        BidInfo memory bidInfo = _createBidInfo(_setToken, _component, _componentQuantity, _quoteQuantityLimit);
+        _validateBidTargets(_setToken, _component, _quoteAsset, _componentQuantity);
+        BidInfo memory bidInfo = _createBidInfo(_setToken, _component, _componentQuantity, _quoteQuantityLimit, _isSellAuction);
         
         return bidInfo;
     }
@@ -749,11 +757,13 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
      * 
      * @param _setToken          The SetToken instance involved in the rebalance.
      * @param _component         The component to be validated.
+     * @param _quoteAsset        The ERC20 token expected to be used as the quote asset by the bidder
      * @param _componentAmount   The amount of component in the bid.
      */
     function _validateBidTargets(
         ISetToken _setToken,
         IERC20 _component,
+        IERC20 _quoteAsset,
         uint256 _componentAmount
     )
         internal
@@ -761,6 +771,9 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
     {
         // Ensure that the component is not the quote asset, as it cannot be explicitly bid on.
         require(address(_component) != address(rebalanceInfo[_setToken].quoteAsset), "Cannot bid explicitly on Quote Asset");
+
+        // Ensure that the auction quote asset matches the quote asset expected by the bidder.
+        require(address(_quoteAsset) == address(rebalanceInfo[_setToken].quoteAsset), "Quote asset mismatch");
 
         // Ensure that the component is part of the rebalance.
         require(rebalanceInfo[_setToken].rebalanceComponents.contains(address(_component)), "Component not part of rebalance");
@@ -782,6 +795,7 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
      * @param _component            The component to bid on.
      * @param _componentQuantity    The amount of component in the bid.
      * @param _quoteQuantityLimit   The max/min amount of quote asset to be spent/received during the bid.
+     * @param _isSellAuction     The direction of the auction expected by the bidder
      *
      * @return bidInfo              Struct containing data for the bid.
      */
@@ -789,7 +803,8 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
         ISetToken _setToken,
         IERC20 _component,
         uint256 _componentQuantity,
-        uint256 _quoteQuantityLimit
+        uint256 _quoteQuantityLimit,
+        bool _isSellAuction
     )
         internal
         view
@@ -807,6 +822,9 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
             _component,
             bidInfo.setTotalSupply
         );
+
+        // Ensure that the auction direction matches the direction expected by the bidder.
+        require(bidInfo.isSellAuction == _isSellAuction, "Auction direction mismatch");
 
         // Settle the auction if the component quantity is max uint256.
         // Ensure that the component quantity in the bid does not exceed the available auction quantity.
