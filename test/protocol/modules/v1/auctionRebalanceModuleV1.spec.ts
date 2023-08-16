@@ -346,10 +346,19 @@ describe("AuctionRebalanceModuleV1", () => {
     const bid = async (
       setToken: SetToken,
       component: WETH9 | StandardTokenMock = setup.weth,
+      quoteAsset: WETH9 | StandardTokenMock = setup.dai,
       componentAmount: BigNumber = ether(900),
-      quoteAssetLimit: BigNumber = ether(0.45)
+      quoteAssetLimit: BigNumber = ether(0.45),
+      isSellAuction: boolean = true
     ) => {
-      await auctionModule.connect(bidder.wallet).bid(setToken.address, component.address, componentAmount, quoteAssetLimit);
+      await auctionModule.connect(bidder.wallet).bid(
+        setToken.address,
+        component.address,
+        quoteAsset.address,
+        componentAmount,
+        quoteAssetLimit,
+        isSellAuction
+      );
     };
 
     describe("#startRebalance", async () => {
@@ -986,24 +995,30 @@ describe("AuctionRebalanceModuleV1", () => {
 
     describe("#getBidPreview", async () => {
       let subjectComponent: Address;
+      let subjectQuoteAsset: Address;
       let subjectComponentQuantity: BigNumber;
       let subjectQuoteAssetLimit: BigNumber;
+      let subjectIsSellAuction: boolean;
 
       beforeEach(async () => {
         await startRebalance();
 
         subjectSetToken = indexWithQuoteAsset;
         subjectComponent = setup.dai.address;
+        subjectQuoteAsset = setup.weth.address;
         subjectComponentQuantity = ether(900);
         subjectQuoteAssetLimit = ether(0.45);
+        subjectIsSellAuction = true;
       });
 
       async function subject(): Promise<any> {
         return await auctionModule.getBidPreview(
           subjectSetToken.address,
           subjectComponent,
+          subjectQuoteAsset,
           subjectComponentQuantity,
-          subjectQuoteAssetLimit
+          subjectQuoteAssetLimit,
+          subjectIsSellAuction
         );
       }
 
@@ -1044,6 +1059,7 @@ describe("AuctionRebalanceModuleV1", () => {
           subjectComponent = setup.wbtc.address;
           subjectComponentQuantity = bitcoin(0.1);
           subjectQuoteAssetLimit = ether(1.45);
+          subjectIsSellAuction = false;
         });
 
         it("should return correct bid info", async () => {
@@ -1096,10 +1112,10 @@ describe("AuctionRebalanceModuleV1", () => {
         );
 
         await fundBidder(setup.weth, ether(0.45));
-        await bid(indexWithQuoteAsset, setup.dai, ether(900), ether(0.45));
+        await bid(indexWithQuoteAsset, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
         await fundBidder(setup.wbtc, bitcoin(0.1));
-        await bid(indexWithQuoteAsset, setup.wbtc, bitcoin(0.1), ether(1.45));
+        await bid(indexWithQuoteAsset, setup.wbtc, setup.weth, bitcoin(0.1), ether(1.45), false);
 
         subjectSetToken = indexWithQuoteAsset;
         subjectSetTokenAddress = subjectSetToken.address;
@@ -1169,7 +1185,7 @@ describe("AuctionRebalanceModuleV1", () => {
         await auctionModule.connect(owner.wallet).setRaiseTargetPercentage(subjectSetToken.address, ether(.0025));
 
         await fundBidder(setup.weth, ether(0.45));
-        await bid(subjectSetToken, setup.dai, ether(900), ether(0.45));
+        await bid(subjectSetToken, setup.dai, setup.weth, ether(900), ether(0.45), true);
       });
 
       async function subject(setTokenAddress: Address): Promise<any> {
@@ -1185,7 +1201,7 @@ describe("AuctionRebalanceModuleV1", () => {
       describe("when the asset targets cannot be raised", async () => {
         beforeEach(async () => {
           await fundBidder(setup.wbtc, bitcoin(0.04));
-          await bid(subjectSetToken, setup.wbtc, bitcoin(0.04), ether(0.58));
+          await bid(subjectSetToken, setup.wbtc, setup.weth, bitcoin(0.04), ether(0.58), false);
         });
 
         it("should return true", async () => {
@@ -1203,7 +1219,7 @@ describe("AuctionRebalanceModuleV1", () => {
         await startRebalance();
 
         await fundBidder(setup.weth, ether(0.45));
-        await bid(indexWithQuoteAsset, setup.dai, ether(900), ether(0.45));
+        await bid(indexWithQuoteAsset, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
         subjectSetToken = indexWithQuoteAsset;
         subjectSetTokenAddress = subjectSetToken.address;
@@ -1222,7 +1238,7 @@ describe("AuctionRebalanceModuleV1", () => {
       describe("when the targets are met", async () => {
         beforeEach(async () => {
           await fundBidder(setup.wbtc, bitcoin(0.1));
-          await bid(indexWithQuoteAsset, setup.wbtc, bitcoin(0.1), ether(1.45));
+          await bid(indexWithQuoteAsset, setup.wbtc, setup.weth, bitcoin(0.1), ether(1.45), false);
         });
 
         it("should return true", async () => {
@@ -1256,10 +1272,10 @@ describe("AuctionRebalanceModuleV1", () => {
       describe("when the quote asset is at target", async () => {
         beforeEach(async () => {
           await fundBidder(setup.weth, ether(0.45));
-          await bid(indexWithQuoteAsset, setup.dai, ether(900), ether(0.45));
+          await bid(indexWithQuoteAsset, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.1));
-          await bid(indexWithQuoteAsset, setup.wbtc, bitcoin(0.1), ether(1.45));
+          await bid(indexWithQuoteAsset, setup.wbtc, setup.weth, bitcoin(0.1), ether(1.45), false);
         });
 
         it("should return true", async () => {
@@ -1272,7 +1288,7 @@ describe("AuctionRebalanceModuleV1", () => {
       describe("when the quote asset is under the target", async () => {
         beforeEach(async () => {
           await fundBidder(setup.wbtc, bitcoin(0.1));
-          await bid(indexWithQuoteAsset, setup.wbtc, bitcoin(0.1), ether(1.45));
+          await bid(indexWithQuoteAsset, setup.wbtc, setup.weth, bitcoin(0.1), ether(1.45), false);
         });
 
         it("should return false", async () => {
@@ -1615,10 +1631,10 @@ describe("AuctionRebalanceModuleV1", () => {
           );
 
           await fundBidder(setup.weth, ether(0.45));
-          await bid(indexWithQuoteAsset, setup.dai, ether(900), ether(0.45));
+          await bid(indexWithQuoteAsset, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.1));
-          await bid(indexWithQuoteAsset, setup.wbtc, bitcoin(0.1), ether(1.45));
+          await bid(indexWithQuoteAsset, setup.wbtc, setup.weth, bitcoin(0.1), ether(1.45), false);
 
           subjectIncreaseTime = ONE_HOUR_IN_SECONDS;
         });
@@ -1655,10 +1671,10 @@ describe("AuctionRebalanceModuleV1", () => {
           );
 
           await fundBidder(setup.weth, ether(0.45));
-          await bid(indexWithQuoteAsset, setup.dai, ether(900), ether(0.45));
+          await bid(indexWithQuoteAsset, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.1));
-          await bid(indexWithQuoteAsset, setup.wbtc, bitcoin(0.1), ether(1.45));
+          await bid(indexWithQuoteAsset, setup.wbtc, setup.weth, bitcoin(0.1), ether(1.45), false);
 
           await auctionModule.connect(owner.wallet).setRaiseTargetPercentage(subjectSetToken.address, ether(0.0025));
 
@@ -1684,7 +1700,7 @@ describe("AuctionRebalanceModuleV1", () => {
           );
 
           await fundBidder(setup.wbtc, bitcoin(0.1));
-          await bid(indexWithQuoteAsset, setup.wbtc, bitcoin(0.1), ether(1.45));
+          await bid(indexWithQuoteAsset, setup.wbtc, setup.weth, bitcoin(0.1), ether(1.45), false);
 
           subjectIncreaseTime = ONE_HOUR_IN_SECONDS;
         });
@@ -1708,7 +1724,7 @@ describe("AuctionRebalanceModuleV1", () => {
           );
 
           await fundBidder(setup.weth, ether(0.45));
-          await bid(indexWithQuoteAsset, setup.dai, ether(900), ether(0.45));
+          await bid(indexWithQuoteAsset, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           subjectIncreaseTime = ONE_HOUR_IN_SECONDS;
         });
@@ -1741,10 +1757,10 @@ describe("AuctionRebalanceModuleV1", () => {
           );
 
           await fundBidder(setup.weth, ether(0.45));
-          await bid(indexWithQuoteAsset, setup.dai, ether(900), ether(0.45));
+          await bid(indexWithQuoteAsset, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.1));
-          await bid(indexWithQuoteAsset, setup.wbtc, bitcoin(0.1), ether(1.45));
+          await bid(indexWithQuoteAsset, setup.wbtc, setup.weth, bitcoin(0.1), ether(1.45), false);
 
           subjectIncreaseTime = ONE_HOUR_IN_SECONDS;
         });
@@ -1859,10 +1875,10 @@ describe("AuctionRebalanceModuleV1", () => {
       describe("when all the target units are reached and there is remaining quote asset", async () => {
         beforeEach(async () => {
           await fundBidder(setup.weth, ether(0.45));
-          await bid(subjectSetToken, setup.dai, ether(900), ether(0.45));
+          await bid(subjectSetToken, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.04));
-          await bid(subjectSetToken, setup.wbtc, bitcoin(0.04), ether(0.58));
+          await bid(subjectSetToken, setup.wbtc, setup.weth, bitcoin(0.04), ether(0.58), false);
         });
 
         it("should increase the target units by the raiseTargetPercentage", async () => {
@@ -1916,10 +1932,10 @@ describe("AuctionRebalanceModuleV1", () => {
           await auctionModule.connect(owner.wallet).setRaiseTargetPercentage(subjectSetToken.address, subjectRaiseTargetPercentage);
 
           await fundBidder(setup.weth, ether(0.45));
-          await bid(subjectSetToken, setup.dai, ether(900), ether(0.45));
+          await bid(subjectSetToken, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.04));
-          await bid(subjectSetToken, setup.wbtc, bitcoin(0.04), ether(0.58));
+          await bid(subjectSetToken, setup.wbtc, setup.weth, bitcoin(0.04), ether(0.58), false);
         });
 
         afterEach(() => {
@@ -1948,10 +1964,10 @@ describe("AuctionRebalanceModuleV1", () => {
           await auctionModule.connect(owner.wallet).setRaiseTargetPercentage(subjectSetToken.address, subjectRaiseTargetPercentage);
 
           await fundBidder(setup.weth, ether(0.45));
-          await bid(subjectSetToken, setup.dai, ether(900), ether(0.45));
+          await bid(subjectSetToken, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.04));
-          await bid(subjectSetToken, setup.wbtc, bitcoin(0.04), ether(0.58));
+          await bid(subjectSetToken, setup.wbtc, setup.weth, bitcoin(0.04), ether(0.58), false);
         });
 
         afterEach(() => {
@@ -1974,10 +1990,10 @@ describe("AuctionRebalanceModuleV1", () => {
           );
 
           await fundBidder(setup.weth, ether(0.45));
-          await bid(subjectSetToken, setup.dai, ether(900), ether(0.45));
+          await bid(subjectSetToken, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.040201));
-          await bid(subjectSetToken, setup.wbtc, bitcoin(0.040201), ether(0.5829145));
+          await bid(subjectSetToken, setup.wbtc, setup.weth, bitcoin(0.040201), ether(0.5829145), false);
         });
 
         it("should increase the target units by the raiseTargetPercentage", async () => {
@@ -2037,10 +2053,10 @@ describe("AuctionRebalanceModuleV1", () => {
           );
 
           await fundBidder(setup.weth, ether(5));
-          await bid(subjectSetToken, setup.dai, ether(10000), ether(5));
+          await bid(subjectSetToken, setup.dai, setup.weth, ether(10000), ether(5), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.04));
-          await bid(subjectSetToken, setup.wbtc, bitcoin(0.04), ether(0.58));
+          await bid(subjectSetToken, setup.wbtc, setup.weth, bitcoin(0.04), ether(0.58), false);
         });
 
         it("the position units should be set as expected and the unit should be zeroed out", async () => {
@@ -2079,7 +2095,7 @@ describe("AuctionRebalanceModuleV1", () => {
       describe("when a buy auction target has not been met", async () => {
         beforeEach(async () => {
           await fundBidder(setup.weth, ether(0.45));
-          await bid(subjectSetToken, setup.dai, ether(900), ether(0.45));
+          await bid(subjectSetToken, setup.dai, setup.weth, ether(900), ether(0.45), true);
         });
 
         it("should revert with 'Targets not met or quote asset =~ 0'", async () => {
@@ -2090,7 +2106,7 @@ describe("AuctionRebalanceModuleV1", () => {
       describe("when a sell auction target has not been met", async () => {
         beforeEach(async () => {
           await fundBidder(setup.wbtc, bitcoin(0.04));
-          await bid(subjectSetToken, setup.wbtc, bitcoin(0.04), ether(0.58));
+          await bid(subjectSetToken, setup.wbtc, setup.weth, bitcoin(0.04), ether(0.58), false);
         });
 
         it("should revert with Targets not met or quote asset =~ 0", async () => {
@@ -2130,10 +2146,10 @@ describe("AuctionRebalanceModuleV1", () => {
           );
 
           await fundBidder(setup.weth, ether(0.45));
-          await bid(subjectSetToken, setup.dai, ether(900), ether(0.45));
+          await bid(subjectSetToken, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.04));
-          await bid(subjectSetToken, setup.wbtc, bitcoin(0.04), ether(0.58));
+          await bid(subjectSetToken, setup.wbtc, setup.weth, bitcoin(0.04), ether(0.58), false);
         });
 
         it("should revert with Targets not met or quote asset =~ 0", async () => {
@@ -2173,10 +2189,10 @@ describe("AuctionRebalanceModuleV1", () => {
           );
 
           await fundBidder(setup.weth, ether(0.45));
-          await bid(subjectSetToken, setup.dai, ether(900), ether(0.45));
+          await bid(subjectSetToken, setup.dai, setup.weth, ether(900), ether(0.45), true);
 
           await fundBidder(setup.wbtc, bitcoin(0.04));
-          await bid(subjectSetToken, setup.wbtc, bitcoin(0.04), ether(0.58));
+          await bid(subjectSetToken, setup.wbtc, setup.weth, bitcoin(0.04), ether(0.58), false);
         });
 
         it("should revert with 'Targets not met or quote asset =~ 0'", async () => {
@@ -2264,8 +2280,10 @@ describe("AuctionRebalanceModuleV1", () => {
 
     describe("#bid", async () => {
       let subjectComponent: Address;
+      let subjectQuoteAsset: Address;
       let subjectComponentAmount: BigNumber;
       let subjectQuoteAssetLimit: BigNumber;
+      let subjectIsSellAuction: boolean;
 
       let subjectIncreaseTime: BigNumber;
 
@@ -2273,8 +2291,10 @@ describe("AuctionRebalanceModuleV1", () => {
         subjectSetToken = indexWithQuoteAsset;
         subjectCaller = bidder;
         subjectComponent = setup.dai.address;
+        subjectQuoteAsset = setup.weth.address;
         subjectComponentAmount = ether(900);
         subjectQuoteAssetLimit = ether(0.45);
+        subjectIsSellAuction = true;
         subjectIncreaseTime = ONE_HOUR_IN_SECONDS;
       });
 
@@ -2283,8 +2303,10 @@ describe("AuctionRebalanceModuleV1", () => {
         return await auctionModule.connect(subjectCaller.wallet).bid(
           subjectSetToken.address,
           subjectComponent,
+          subjectQuoteAsset,
           subjectComponentAmount,
-          subjectQuoteAssetLimit
+          subjectQuoteAssetLimit,
+          subjectIsSellAuction
         );
       }
 
@@ -2333,10 +2355,10 @@ describe("AuctionRebalanceModuleV1", () => {
           await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
             subjectSetToken.address,
             subjectComponent,
-            defaultQuoteAsset,
+            subjectQuoteAsset,
             subjectCaller.address,
             constantPriceAdapter.address,
-            true,
+            subjectIsSellAuction,
             ether(0.0005),
             subjectComponentAmount,
             subjectQuoteAssetLimit,
@@ -2565,8 +2587,10 @@ describe("AuctionRebalanceModuleV1", () => {
           await fundBidder(setup.wbtc, bitcoin(0.1));
 
           subjectComponent = setup.wbtc.address;
+          subjectQuoteAsset = setup.weth.address;
           subjectComponentAmount = bitcoin(0.1);
           subjectQuoteAssetLimit = ether(1.45);
+          subjectIsSellAuction = false;
         });
 
         it("updates position units and transfers tokens correctly on a component buy auction with ConstantPriceAdapter", async () => {
@@ -2607,11 +2631,11 @@ describe("AuctionRebalanceModuleV1", () => {
 
           await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
             subjectSetToken.address,
-            defaultQuoteAsset,
+            subjectQuoteAsset,
             subjectComponent,
             subjectCaller.address,
             constantPriceAdapter.address,
-            defaultShouldLockSetToken,
+            subjectIsSellAuction,
             defaultWbtcPrice,
             subjectQuoteAssetLimit,
             subjectComponentAmount,
@@ -2663,11 +2687,11 @@ describe("AuctionRebalanceModuleV1", () => {
 
             await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
               subjectSetToken.address,
-              defaultQuoteAsset,
+              subjectQuoteAsset,
               subjectComponent,
               subjectCaller.address,
               constantPriceAdapter.address,
-              defaultShouldLockSetToken,
+              subjectIsSellAuction,
               defaultWbtcPrice,
               subjectQuoteAssetLimit,
               bitcoin(0.1),
@@ -2747,11 +2771,11 @@ describe("AuctionRebalanceModuleV1", () => {
 
             await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
               subjectSetToken.address,
-              defaultQuoteAsset,
+              subjectQuoteAsset,
               subjectComponent,
               subjectCaller.address,
               constantPriceAdapter.address,
-              false,
+              subjectIsSellAuction,
               defaultWbtcPrice,
               subjectQuoteAssetLimit,
               subjectComponentAmount.sub(protocolFee),
@@ -2814,8 +2838,10 @@ describe("AuctionRebalanceModuleV1", () => {
               auctionModule.connect(subjectCaller.wallet).bid(
                 indexWithoutQuoteAsset.address,
                 setup.dai.address,
+                setup.weth.address,
                 ether(290),
-                ether(0.145)
+                ether(0.145),
+                true
               );
             });
 
@@ -3035,10 +3061,10 @@ describe("AuctionRebalanceModuleV1", () => {
             await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
               subjectSetToken.address,
               subjectComponent,
-              defaultQuoteAsset,
+              subjectQuoteAsset,
               subjectCaller.address,
               boundedStepwiseLinearPriceAdapter.address,
-              true,
+              subjectIsSellAuction,
               defaultDaiPrice,
               subjectComponentAmount,
               subjectQuoteAssetLimit,
@@ -3053,8 +3079,10 @@ describe("AuctionRebalanceModuleV1", () => {
             await fundBidder(setup.wbtc, bitcoin(0.1));
 
             subjectComponent = setup.wbtc.address;
+            subjectQuoteAsset = setup.weth.address;
             subjectComponentAmount = bitcoin(0.1);
             subjectQuoteAssetLimit = ether(1.45);
+            subjectIsSellAuction = false;
           });
 
           it("updates position units and transfers tokens correctly on a component buy auction with BoundedStepwiseLinearPriceAdapter", async () => {
@@ -3095,11 +3123,11 @@ describe("AuctionRebalanceModuleV1", () => {
 
             await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
               subjectSetToken.address,
-              defaultQuoteAsset,
+              subjectQuoteAsset,
               subjectComponent,
               subjectCaller.address,
               boundedStepwiseLinearPriceAdapter.address,
-              defaultShouldLockSetToken,
+              subjectIsSellAuction,
               defaultWbtcPrice,
               subjectQuoteAssetLimit,
               subjectComponentAmount,
@@ -3222,10 +3250,10 @@ describe("AuctionRebalanceModuleV1", () => {
             await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
               subjectSetToken.address,
               subjectComponent,
-              defaultQuoteAsset,
+              subjectQuoteAsset,
               subjectCaller.address,
               boundedStepwiseExponentialPriceAdapter.address,
-              true,
+              subjectIsSellAuction,
               defaultDaiPrice,
               subjectComponentAmount,
               subjectQuoteAssetLimit,
@@ -3240,8 +3268,10 @@ describe("AuctionRebalanceModuleV1", () => {
             await fundBidder(setup.wbtc, bitcoin(0.1));
 
             subjectComponent = setup.wbtc.address;
+            subjectQuoteAsset = setup.weth.address;
             subjectComponentAmount = bitcoin(0.1);
             subjectQuoteAssetLimit = ether(1.45);
+            subjectIsSellAuction = false;
           });
 
           it("updates position units and transfers tokens correctly on a buy auction with BoundedStepwiseExponentialPriceAdapter", async () => {
@@ -3282,11 +3312,11 @@ describe("AuctionRebalanceModuleV1", () => {
 
             await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
               subjectSetToken.address,
-              defaultQuoteAsset,
+              subjectQuoteAsset,
               subjectComponent,
               subjectCaller.address,
               boundedStepwiseExponentialPriceAdapter.address,
-              defaultShouldLockSetToken,
+              subjectIsSellAuction,
               defaultWbtcPrice,
               subjectQuoteAssetLimit,
               subjectComponentAmount,
@@ -3409,10 +3439,10 @@ describe("AuctionRebalanceModuleV1", () => {
             await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
               subjectSetToken.address,
               subjectComponent,
-              defaultQuoteAsset,
+              subjectQuoteAsset,
               subjectCaller.address,
               boundedStepwiseLogarithmicPriceAdapter.address,
-              true,
+              subjectIsSellAuction,
               defaultDaiPrice,
               subjectComponentAmount,
               subjectQuoteAssetLimit,
@@ -3427,8 +3457,10 @@ describe("AuctionRebalanceModuleV1", () => {
             await fundBidder(setup.wbtc, bitcoin(0.1));
 
             subjectComponent = setup.wbtc.address;
+            subjectQuoteAsset = setup.weth.address;
             subjectComponentAmount = bitcoin(0.1);
             subjectQuoteAssetLimit = ether(1.45);
+            subjectIsSellAuction = false;
           });
 
           it("updates position units and transfers tokens correctly on a buy auction with BoundedStepwiseLogarithmicPriceAdapter", async () => {
@@ -3469,11 +3501,11 @@ describe("AuctionRebalanceModuleV1", () => {
 
             await expect(subject()).to.emit(auctionModule, "BidExecuted").withArgs(
               subjectSetToken.address,
-              defaultQuoteAsset,
+              subjectQuoteAsset,
               subjectComponent,
               subjectCaller.address,
               boundedStepwiseLogarithmicPriceAdapter.address,
-              defaultShouldLockSetToken,
+              subjectIsSellAuction,
               defaultWbtcPrice,
               subjectQuoteAssetLimit,
               subjectComponentAmount,
@@ -3505,6 +3537,30 @@ describe("AuctionRebalanceModuleV1", () => {
 
         it("should revert with 'Component amount must be > 0'", async () => {
           await expect(subject()).to.be.revertedWith("Component amount must be > 0");
+        });
+      });
+
+      describe("when there is a quote asset mismatch", async () => {
+        beforeEach(async () => {
+          await startRebalance();
+
+          subjectQuoteAsset = setup.usdc.address;
+        });
+
+        it("should revert with 'Quote asset mismatch'", async () => {
+          await expect(subject()).to.be.revertedWith("Quote asset mismatch");
+        });
+      });
+
+      describe("when there is an auction direction mismatch", async () => {
+        beforeEach(async () => {
+          await startRebalance();
+
+          subjectIsSellAuction = false;
+        });
+
+        it("should revert with 'Auction direction mismatch'", async () => {
+          await expect(subject()).to.be.revertedWith("Auction direction mismatch");
         });
       });
 
