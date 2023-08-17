@@ -34,10 +34,11 @@ import {
 } from "@utils/test/index";
 import { SystemFixture } from "@utils/fixtures";
 import { ContractTransaction } from "ethers";
+import { ethers } from "hardhat";
 
 const expect = getWaffleExpect();
 
-describe("AuctionRebalanceModuleV1", () => {
+describe.only("AuctionRebalanceModuleV1", () => {
   let owner: Account;
   let bidder: Account;
   let positionModule: Account;
@@ -2365,6 +2366,14 @@ describe("AuctionRebalanceModuleV1", () => {
             0,
             totalSupply
           );
+        });
+
+        it.only("should cost less than 213012 amount of gas ", async () => {
+          const tx = await subject();
+          const txReceipt = await tx.wait();
+          const actualGas = txReceipt.gasUsed;
+          const expectedGas = ethers.BigNumber.from(213012);
+          expect(actualGas).to.lt(expectedGas);
         });
 
         describe("when the component amount is the max uint256", async () => {
