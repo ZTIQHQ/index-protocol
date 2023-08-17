@@ -1,5 +1,5 @@
 import "module-alias/register";
-import { BigNumber } from "ethers";
+import { BigNumber, ContractTransaction } from "ethers";
 
 import { Address, AuctionExecutionParams, StreamingFeeState } from "@utils/types";
 import { Account } from "@utils/test/types";
@@ -33,8 +33,6 @@ import {
   getRandomAddress,
 } from "@utils/test/index";
 import { SystemFixture } from "@utils/fixtures";
-import { ContractTransaction } from "ethers";
-import { ethers } from "hardhat";
 
 const expect = getWaffleExpect();
 
@@ -2368,11 +2366,11 @@ describe.only("AuctionRebalanceModuleV1", () => {
           );
         });
 
-        it.only("should cost less than 213012 amount of gas ", async () => {
+        it("should cost less than 213012 amount of gas ", async () => {
           const tx = await subject();
           const txReceipt = await tx.wait();
           const actualGas = txReceipt.gasUsed;
-          const expectedGas = ethers.BigNumber.from(213012);
+          const expectedGas = BigNumber.from(213012);
           expect(actualGas).to.lt(expectedGas);
         });
 
