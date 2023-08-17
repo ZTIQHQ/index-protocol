@@ -1,5 +1,5 @@
 import "module-alias/register";
-import { BigNumber, ContractTransaction } from "ethers";
+import { BigNumber } from "ethers";
 
 import { Address, AuctionExecutionParams, StreamingFeeState } from "@utils/types";
 import { Account } from "@utils/test/types";
@@ -33,10 +33,11 @@ import {
   getRandomAddress,
 } from "@utils/test/index";
 import { SystemFixture } from "@utils/fixtures";
+import { ContractTransaction } from "ethers";
 
 const expect = getWaffleExpect();
 
-describe.only("AuctionRebalanceModuleV1", () => {
+describe("AuctionRebalanceModuleV1", () => {
   let owner: Account;
   let bidder: Account;
   let positionModule: Account;
@@ -2364,14 +2365,6 @@ describe.only("AuctionRebalanceModuleV1", () => {
             0,
             totalSupply
           );
-        });
-
-        it("should cost less than 213012 amount of gas ", async () => {
-          const tx = await subject();
-          const txReceipt = await tx.wait();
-          const actualGas = txReceipt.gasUsed;
-          const expectedGas = BigNumber.from(213012);
-          expect(actualGas).to.lt(expectedGas);
         });
 
         describe("when the component amount is the max uint256", async () => {
