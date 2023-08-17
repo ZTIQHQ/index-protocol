@@ -769,11 +769,12 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
         internal
         view
     {
+        IERC20 quoteAsset = rebalanceInfo[_setToken].quoteAsset;
         // Ensure that the component is not the quote asset, as it cannot be explicitly bid on.
-        require(address(_component) != address(rebalanceInfo[_setToken].quoteAsset), "Cannot bid explicitly on Quote Asset");
+        require(_component != quoteAsset, "Cannot bid explicitly on Quote Asset");
 
         // Ensure that the auction quote asset matches the quote asset expected by the bidder.
-        require(address(_quoteAsset) == address(rebalanceInfo[_setToken].quoteAsset), "Quote asset mismatch");
+        require(_quoteAsset == quoteAsset, "Quote asset mismatch");
 
         // Ensure that the component is part of the rebalance.
         require(rebalanceInfo[_setToken].rebalanceComponents.contains(address(_component)), "Component not part of rebalance");
