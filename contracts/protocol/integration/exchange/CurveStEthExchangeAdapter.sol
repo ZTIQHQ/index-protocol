@@ -16,7 +16,7 @@ pragma solidity 0.8.21;
 
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { IStableSwapPool } from "../../../interfaces/external/IStableSwapPool.sol";
 import { IWETH } from "../../../interfaces/external/IWETH.sol";

@@ -14,7 +14,7 @@
 pragma solidity 0.5.12;
 
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 interface PoolInterface {

@@ -29,9 +29,9 @@ import { Invoke } from "./Invoke.sol";
 import { Position } from "./Position.sol";
 import { PreciseUnitMath } from "../../lib/PreciseUnitMath.sol";
 import { ResourceIdentifier } from "./ResourceIdentifier.sol";
-import { SafeCast } from "@openzeppelin/contracts/utils/SafeCast.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { SignedSafeMath } from "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
 
 /**
  * @title ModuleBase

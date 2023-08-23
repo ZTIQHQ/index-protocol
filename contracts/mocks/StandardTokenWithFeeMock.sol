@@ -18,7 +18,7 @@
 pragma solidity 0.8.21;
 
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
 // mock class using BasicToken

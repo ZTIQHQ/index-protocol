@@ -1,6 +1,6 @@
 pragma solidity 0.8.21;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract ERC20ReturnFalseMock is ERC20 {
     constructor(

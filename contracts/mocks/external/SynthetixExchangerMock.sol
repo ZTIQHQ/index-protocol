@@ -18,7 +18,7 @@
 
 pragma solidity 0.8.21;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { SynthMock } from "./SynthMock.sol";
 
 contract SynthetixExchangerMock {

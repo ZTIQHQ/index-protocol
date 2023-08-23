@@ -19,7 +19,7 @@
 pragma solidity 0.8.21;
 
 
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import { IController } from "../../../interfaces/IController.sol";
 import { IGovernanceAdapter } from "../../../interfaces/IGovernanceAdapter.sol";
