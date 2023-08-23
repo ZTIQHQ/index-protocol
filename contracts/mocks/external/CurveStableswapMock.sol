@@ -23,6 +23,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 // Minimal Curve Stableswap Pool
 contract CurveStableswapMock is ReentrancyGuard {
@@ -31,7 +32,9 @@ contract CurveStableswapMock is ReentrancyGuard {
 
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
+    using SafeCast for uint256;
     using SafeMath for int128;
+    using SafeCast for int128;
     using Address for address;
 
     address[] tokens;
@@ -66,16 +69,16 @@ contract CurveStableswapMock is ReentrancyGuard {
         require(_i != _j);
         require(_dx == _min_dy);
 
-        if (tokens[uint256(_i)] == ETH_TOKEN_ADDRESS) {
+        if (tokens[_i.toUint256()] == ETH_TOKEN_ADDRESS) {
             require(_dx == msg.value);
         } else {
-            IERC20(tokens[uint256(_i)]).transferFrom(msg.sender, address(this), _dx);
+            IERC20(tokens[_i.toUint256()]).transferFrom(msg.sender, address(this), _dx);
         }
 
-        if (tokens[uint256(_j)] == ETH_TOKEN_ADDRESS) {
+        if (tokens[_j.toUint256()] == ETH_TOKEN_ADDRESS) {
             Address.sendValue(payable(msg.sender), _min_dy);
         } else {
-            IERC20(tokens[uint256(_j)]).transfer(msg.sender, _min_dy);
+            IERC20(tokens[_j.toUint256()]).transfer(msg.sender, _min_dy);
         }
         return _min_dy;
     }

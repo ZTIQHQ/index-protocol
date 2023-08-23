@@ -95,7 +95,7 @@ contract AxieInfinityMigrationWrapAdapter {
         oldToken = _oldToken;
         newToken = _newToken;
         
-        IERC20(_oldToken).safeApprove(_tokenSwap, uint256(-1));
+        IERC20(_oldToken).safeApprove(_tokenSwap, type(uint256).max);
     }
 
     /* ============ External Functions ============ */

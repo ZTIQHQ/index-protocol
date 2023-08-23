@@ -266,7 +266,7 @@ contract LendingPool is ReentrancyGuard, VersionedInitializable {
         _;
     }
 
-    uint256 public constant UINT_MAX_VALUE = uint256(-1);
+    uint256 public constant UINT_MAX_VALUE = type(uint256).max;
 
     uint256 public constant LENDINGPOOL_REVISION = 0x2;
 
@@ -511,11 +511,11 @@ contract LendingPool is ReentrancyGuard, VersionedInitializable {
     }
 
     /**
-    * @notice repays a borrow on the specific reserve, for the specified amount (or for the whole amount, if uint256(-1) is specified).
+    * @notice repays a borrow on the specific reserve, for the specified amount (or for the whole amount, if type(uint256).max is specified).
     * @dev the target user is defined by _onBehalfOf. If there is no repayment on behalf of another account,
     * _onBehalfOf must be equal to msg.sender.
     * @param _reserve the address of the reserve on which the user borrowed
-    * @param _amount the amount to repay, or uint256(-1) if the user wants to repay everything
+    * @param _amount the amount to repay, or type(uint256).max if the user wants to repay everything
     * @param _onBehalfOf the address for which msg.sender is repaying.
     **/
 

@@ -599,7 +599,7 @@ contract SetToken is ERC20 {
      */
     function _getPositionsAbsMinimumVirtualUnit() internal view returns(int256) {
         // Additional assignment happens in the loop below
-        uint256 minimumUnit = uint256(-1);
+        uint256 minimumUnit = type(uint256).max;
 
         for (uint256 i = 0; i < components.length; i++) {
             address component = components[i];

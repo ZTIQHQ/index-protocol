@@ -429,7 +429,7 @@ contract AMMSplitter {
         if (_isExactInput) {
             return _router.swapExactTokensForTokens(_size, 0, _path, _to, _deadline)[_path.length.sub(1)];
         } else {
-            return _router.swapTokensForExactTokens(_size, uint256(-1), _path, _to, _deadline)[0];
+            return _router.swapTokensForExactTokens(_size, type(uint256).max, _path, _to, _deadline)[0];
         }
     }
 

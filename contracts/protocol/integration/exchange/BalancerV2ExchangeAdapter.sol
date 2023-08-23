@@ -95,7 +95,7 @@ contract BalancerV2ExchangeAdapter is IExchangeAdapter {
       swap,
       fm,
       _minToQuantity,
-      uint256(-1)
+      type(uint256).max
     );
     return (vault, 0, callData);
   }

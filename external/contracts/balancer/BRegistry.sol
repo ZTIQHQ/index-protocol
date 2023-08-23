@@ -292,7 +292,7 @@ contract BRegistry {
         internal pure returns(bytes32)
     {
         uint256 result = 0;
-        uint256 prevEffectiveLiquidity = uint256(-1);
+        uint256 prevEffectiveLiquidity = type(uint256).max;
         for (uint i = 0; i < Math.min(effectiveLiquidity.length, 32); i++) {
             uint256 bestIndex = 0;
             for (uint j = 0; j < effectiveLiquidity.length; j++) {

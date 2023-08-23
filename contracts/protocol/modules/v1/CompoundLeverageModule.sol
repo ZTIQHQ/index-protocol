@@ -350,7 +350,7 @@ contract CompoundLeverageModule is ModuleBase, ReentrancyGuard, Ownable {
 
         _executeTrade(deleverInfo, _collateralAsset, _repayAsset, _tradeData);
 
-        // We use notionalRepayQuantity vs. Compound's max value uint256(-1) to handle WETH properly
+        // We use notionalRepayQuantity vs. Compound's max value type(uint256).max to handle WETH properly
         _repayBorrow(deleverInfo.setToken, deleverInfo.borrowCTokenAsset, _repayAsset, notionalRepayQuantity);
 
         // Update default position first to save gas on editing borrow position

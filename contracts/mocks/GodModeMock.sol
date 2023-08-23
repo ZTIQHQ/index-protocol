@@ -18,12 +18,15 @@
 
 pragma solidity 0.8.21;
 
+import { Invoke } from "../protocol/lib/Invoke.sol";
 import { IController } from "../interfaces/IController.sol";
 import { ISetToken } from "../interfaces/ISetToken.sol";
 import { ModuleBase } from "../protocol/lib/ModuleBase.sol";
 
 
 contract GodModeMock is ModuleBase {
+
+    using Invoke for ISetToken;
 
     constructor(IController _controller) public ModuleBase(_controller) {}
 

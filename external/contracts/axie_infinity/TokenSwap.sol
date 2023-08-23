@@ -27,7 +27,7 @@ contract TokenSwap is HasAdmin {
     }
 
     mainchainGateway = _mainchainGateway;
-    require(newToken.approve(address(mainchainGateway), uint256(-1)));
+    require(newToken.approve(address(mainchainGateway), type(uint256).max));
   }
 
   function swapToken() external {

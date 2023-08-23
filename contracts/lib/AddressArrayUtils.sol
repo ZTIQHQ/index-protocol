@@ -43,7 +43,7 @@ library AddressArrayUtils {
                 return (i, true);
             }
         }
-        return (uint256(-1), false);
+        return (type(uint256).max, false);
     }
 
     /**

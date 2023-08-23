@@ -106,7 +106,7 @@ contract UniswapV2AmmAdapter is IAmmAdapter {
         uint256 totalSupply = pair.totalSupply();
         (uint256 reserveA, uint256 reserveB) = _getReserves(pair, components[0]);
 
-        uint256 liquidityExpectedFromSuppliedTokens = SafeMath.min(
+        uint256 liquidityExpectedFromSuppliedTokens = Math.min(
             maxTokensIn[0].mul(totalSupply).div(reserveA),
             maxTokensIn[1].mul(totalSupply).div(reserveB)
         );

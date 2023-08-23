@@ -18,7 +18,7 @@ import "../libraries/WadRayMath.sol";
 contract AToken is ERC20, ERC20Detailed {
     using WadRayMath for uint256;
 
-    uint256 public constant UINT_MAX_VALUE = uint256(-1);
+    uint256 public constant UINT_MAX_VALUE = type(uint256).max;
 
     /**
     * @dev emitted after the redeem action

@@ -56,7 +56,7 @@ contract WrapV2AdapterMock is ERC20 {
     function withdraw(address _underlyingToken, uint256 _underlyingQuantity) external {
         // Transfer the underlying to the sender
         if (_underlyingToken == ETH_TOKEN_ADDRESS) {
-            msg.sender.transfer(_underlyingQuantity);
+            payable(msg.sender).transfer(_underlyingQuantity);
         } else {
             IERC20(_underlyingToken).transfer(msg.sender, _underlyingQuantity);
         }

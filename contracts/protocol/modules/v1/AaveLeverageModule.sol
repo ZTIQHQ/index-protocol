@@ -22,6 +22,7 @@ pragma solidity 0.8.21;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { AaveV2 } from "../../integration/lib/AaveV2.sol";
 import { IAToken } from "../../../interfaces/external/aave-v2/IAToken.sol";
@@ -35,6 +36,7 @@ import { IProtocolDataProvider } from "../../../interfaces/external/aave-v2/IPro
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { IVariableDebtToken } from "../../../interfaces/external/aave-v2/IVariableDebtToken.sol";
 import { ModuleBase } from "../../lib/ModuleBase.sol";
+import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
 
 /**
  * @title AaveLeverageModule
@@ -45,6 +47,8 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
  */
 contract AaveLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssuanceHook {
     using AaveV2 for ISetToken;
+    using SafeMath for uint256;
+    using PreciseUnitMath for uint256;
 
     /* ============ Structs ============ */
 
