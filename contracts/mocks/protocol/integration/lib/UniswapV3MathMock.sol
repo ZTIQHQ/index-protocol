@@ -16,7 +16,7 @@
     SPDX-License-Identifier: Apache License, Version 2.0
 */
 
-pragma solidity 0.8.21;
+pragma solidity >=0.7.6 <=0.8.21;
 
 
 import { UniswapV3Math } from "../../../../protocol/integration/lib/UniswapV3Math.sol";
