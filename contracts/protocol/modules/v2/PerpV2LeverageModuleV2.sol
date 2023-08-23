@@ -13,10 +13,10 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity >=0.7.6 <=0.8.21;
+pragma solidity 0.8.21;
 
 
 import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
@@ -612,7 +612,7 @@ contract PerpV2LeverageModuleV2 is ModuleBaseV2, ReentrancyGuard, Ownable, SetTo
         external
         virtual
         override
-        returns (int256[] memory, int256[] memory _)
+        returns (int256[] memory, int256[] memory)
     {
         int256 newExternalPositionUnit = positions[_setToken].length > 0
             ? _executePositionTrades(_setToken, _setTokenQuantity, false, true)

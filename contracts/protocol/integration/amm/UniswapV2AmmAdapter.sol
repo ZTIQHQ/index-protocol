@@ -13,16 +13,18 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
 pragma solidity 0.8.21;
+
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "../../../interfaces/external/IUniswapV2Router.sol";
 import "../../../interfaces/external/IUniswapV2Pair.sol";
 import "../../../interfaces/external/IUniswapV2Factory.sol";
 import "../../../interfaces/IAmmAdapter.sol";
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @title UniswapV2AmmAdapter
@@ -104,7 +106,7 @@ contract UniswapV2AmmAdapter is IAmmAdapter {
         uint256 totalSupply = pair.totalSupply();
         (uint256 reserveA, uint256 reserveB) = _getReserves(pair, components[0]);
 
-        uint256 liquidityExpectedFromSuppliedTokens = Math.min(
+        uint256 liquidityExpectedFromSuppliedTokens = SafeMath.min(
             maxTokensIn[0].mul(totalSupply).div(reserveA),
             maxTokensIn[1].mul(totalSupply).div(reserveB)
         );

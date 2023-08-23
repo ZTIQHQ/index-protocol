@@ -13,7 +13,7 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
 pragma solidity 0.8.21;
@@ -33,7 +33,7 @@ contract StandardTokenMock is ERC20 {
         ERC20(_name, _symbol)
     {
         _mint(_initialAccount, _initialBalance);
-        _setupDecimals(_decimals);
+        decimals = _decimals;
     }
 
    function mint(address to, uint amount) external {

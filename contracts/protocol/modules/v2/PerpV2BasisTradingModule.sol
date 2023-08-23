@@ -13,7 +13,7 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
 pragma solidity >=0.7.6 <=0.8.21;
@@ -423,7 +423,7 @@ contract PerpV2BasisTradingModule is PerpV2LeverageModuleV2 {
     )
         external
         override(PerpV2LeverageModuleV2)
-        returns (int256[] memory, int256[] memory _)
+        returns (int256[] memory, int256[] memory)
     {
         int256 newExternalPositionUnitNetFees = 0;
 

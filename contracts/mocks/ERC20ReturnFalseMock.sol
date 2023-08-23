@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity 0.8.21;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -11,7 +12,7 @@ contract ERC20ReturnFalseMock is ERC20 {
         public
         ERC20(_name, _symbol)
     {
-        _setupDecimals(_decimals);
+        decimals = _decimals;
     }
 
     function transfer(address, uint256) public override returns (bool) {
