@@ -1,4 +1,4 @@
-pragma solidity 0.6.10;
+pragma solidity 0.8.21;
 
 interface IPoolAddressesProvider {
     event ACLAdminUpdated(address indexed oldAddress, address indexed newAddress);

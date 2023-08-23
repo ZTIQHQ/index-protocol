@@ -17,7 +17,7 @@
 
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.21;
 
 /**
  * @title AddressArrayUtils

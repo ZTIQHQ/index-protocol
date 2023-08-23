@@ -16,8 +16,8 @@
     SPDX-License-Identifier: Apache License, Version 2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.21;
+
 
 import { IComptroller } from "../../../interfaces/external/IComptroller.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";

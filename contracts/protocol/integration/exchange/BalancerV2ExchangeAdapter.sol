@@ -12,8 +12,8 @@
     SPDX-License-Identifier: Apache License, Version 2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.21;
+
 
 import {IVault} from "../../../interfaces/external/balancer-v2/IVault.sol";
 import {IExchangeAdapter} from "../../../interfaces/IExchangeAdapter.sol";

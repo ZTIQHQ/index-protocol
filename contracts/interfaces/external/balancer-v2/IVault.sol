@@ -13,7 +13,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity >=0.6.10 <0.9.0;
-pragma experimental ABIEncoderV2;
+
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 

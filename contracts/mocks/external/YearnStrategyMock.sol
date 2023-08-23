@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.6.10;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.21;
+
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BaseStrategyInitializable, StrategyParams, VaultAPI} from "../../../external/contracts/yearn/BaseStrategy.sol";

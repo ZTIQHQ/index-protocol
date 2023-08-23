@@ -16,7 +16,7 @@
     SPDX-License-Identifier: Apache License, Version 2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.21;
 
 interface IAaveLendingPoolCore {
     function getReserveATokenAddress(address _reserve) external view returns (address);

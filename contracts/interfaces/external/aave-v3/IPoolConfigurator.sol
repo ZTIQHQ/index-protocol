@@ -1,5 +1,5 @@
-pragma solidity 0.6.10;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.21;
+
 import {ConfiguratorInputTypes} from "./ConfigurationInputTypes.sol";
 
 interface IPoolConfigurator {

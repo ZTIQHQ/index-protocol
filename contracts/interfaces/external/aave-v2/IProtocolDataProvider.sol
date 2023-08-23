@@ -15,8 +15,8 @@
 
   SPDX-License-Identifier: Apache License, Version 2.0
 */
-pragma solidity 0.6.10;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.21;
+
 
 import { ILendingPoolAddressesProvider } from "./ILendingPoolAddressesProvider.sol";
 

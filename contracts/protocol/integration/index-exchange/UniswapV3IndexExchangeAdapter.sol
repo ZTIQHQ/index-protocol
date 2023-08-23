@@ -16,8 +16,8 @@
     SPDX-License-Identifier: Apache License, Version 2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.21;
+
 
 import { ISwapRouter } from  "contracts/interfaces/external/ISwapRouter.sol";
 import { BytesLib } from "external/contracts/uniswap/v3/lib/BytesLib.sol";

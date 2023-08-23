@@ -22,8 +22,8 @@
  *
  * Governance adapter for Snapshot delegation that returns data delegating and revoking delegations
  */
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.21;
+
 
 
 contract SnapshotGovernanceAdapter {

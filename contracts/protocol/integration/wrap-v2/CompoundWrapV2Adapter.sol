@@ -16,8 +16,8 @@
     SPDX-License-Identifier: Apache License, Version 2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.21;
+
 
 import { ICErc20 } from "../../../interfaces/external/ICErc20.sol";
 import { Compound } from "../lib/Compound.sol";

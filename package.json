@@ -55,8 +55,8 @@
     "chain": "npx hardhat node",
     "chain:fork": "FORK=true npx hardhat node",
     "clean": "./scripts/clean.sh",
-    "compile": "npx hardhat compile && npx hardhat index:compile:all",
-    "compile:latest": "SKIP_ABI_GAS_MODS=true npx hardhat compile && npx hardhat index:compile:all",
+    "compile": "npx hardhat compile",
+    "compile:latest": "SKIP_ABI_GAS_MODS=true npx hardhat compile",
     "coverage": "yarn clean && yarn build && yarn cov:command",
     "cov:command": "COVERAGE=true node ./node_modules/.bin/hardhat coverage",
     "etherscan:verify": "hardhat --network kovan etherscan-verify --solc-input --license 'None'",
@@ -142,6 +142,7 @@
     "web3": "^1.2.9"
   },
   "dependencies": {
+    "@openzeppelin-upgradeable/contracts": "npm:@openzeppelin/contracts-upgradeable@4.5.2",
     "@uniswap/v3-core": "1.0.1",
     "@uniswap/v3-sdk": "^3.5.1",
     "ethers": "^5.5.2",
@@ -149,7 +150,6 @@
     "jsbi": "^3.2.5",
     "module-alias": "^2.2.2",
     "notional-solidity-sdk": "https://github.com/ckoopmann/notional-solidity-sdk.git#77aa2f8fd8a72b8f5865e561f2d39d4606c3740c",
-    "@openzeppelin-upgradeable/contracts": "npm:@openzeppelin/contracts-upgradeable@4.5.2",
     "replace-in-file": "^6.1.0"
   },
   "peerDependencies": {
