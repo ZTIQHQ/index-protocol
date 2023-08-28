@@ -131,7 +131,7 @@
     "lodash": "^4.17.4",
     "semantic-release": "^19.0.2",
     "solady": "^0.0.107",
-    "solc": "^0.6.10",
+    "solc": "0.8.21",
     "solhint": "^3.1.0",
     "solidity-coverage": "^0.8.3",
     "ts-generator": "^0.1.1",
