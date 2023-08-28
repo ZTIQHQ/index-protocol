@@ -58,9 +58,7 @@ contract YearnVaultOracle is IOracle
         IOracle _underlyingOracle,
         uint256 _underlyingFullUnit,
         string memory _dataDescription
-    )
-        public
-    {
+    ) {
         vault = _vault;
         underlyingFullUnit = _underlyingFullUnit;
         underlyingOracle = _underlyingOracle;

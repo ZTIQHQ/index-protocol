@@ -50,7 +50,7 @@ contract UniswapV3ExchangeAdapter {
      *
      * @param _swapRouter    Address of Uniswap V3 SwapRouter
      */
-    constructor(address _swapRouter) public {
+    constructor(address _swapRouter) {
         swapRouter = _swapRouter;
     }
 

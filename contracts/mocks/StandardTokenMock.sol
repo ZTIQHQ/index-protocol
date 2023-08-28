@@ -30,7 +30,6 @@ contract StandardTokenMock is ERC20 {
         string memory _symbol,
         uint8 _decimals
     )
-        public
         ERC20(_name, _symbol)
     {
         _mint(_initialAccount, _initialBalance);

@@ -60,9 +60,7 @@ contract KyberExchangeAdapter {
      */
     constructor(
         address _kyberNetworkProxyAddress
-    )
-        public
-    {
+    ) {
         kyberNetworkProxyAddress = _kyberNetworkProxyAddress;
     }
 

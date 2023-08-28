@@ -16,6 +16,7 @@ pragma solidity 0.8.21;
 
 
 import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -62,6 +63,7 @@ contract PerpV2LeverageModule is ModuleBase, ReentrancyGuard, Ownable, SetTokenA
     using PerpV2 for ISetToken;
     using PreciseUnitMath for int256;
     using SignedSafeMath for int256;
+    using SafeCast for int256;
     using UnitConversionUtils for int256;
     using UniswapV3Math for uint160;
     using UniswapV3Math for uint256;

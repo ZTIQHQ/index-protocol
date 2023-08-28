@@ -23,6 +23,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import { AaveV2 } from "../../integration/lib/AaveV2.sol";
 import { IAToken } from "../../../interfaces/external/aave-v2/IAToken.sol";
@@ -37,6 +39,9 @@ import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { IVariableDebtToken } from "../../../interfaces/external/aave-v2/IVariableDebtToken.sol";
 import { ModuleBase } from "../../lib/ModuleBase.sol";
 import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
+import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
+import { Invoke } from "../../lib/Invoke.sol";
+import { PositionV2 } from "../../lib/PositionV2.sol";
 
 /**
  * @title AaveLeverageModule
@@ -47,8 +52,14 @@ import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
  */
 contract AaveLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssuanceHook {
     using AaveV2 for ISetToken;
+    using Invoke for ISetToken;
+    using PositionV2 for ISetToken;
     using SafeMath for uint256;
+    using SignedSafeMath for int256;
+    using SafeCast for uint256;
+    using SafeCast for int256;
     using PreciseUnitMath for uint256;
+    using AddressArrayUtils for address[];
 
     /* ============ Structs ============ */
 
@@ -220,10 +231,7 @@ contract AaveLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssu
     constructor(
         IController _controller,
         ILendingPoolAddressesProvider _lendingPoolAddressesProvider
-    )
-        public
-        ModuleBase(_controller)
-    {
+    ) ModuleBase(_controller) {
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
         IProtocolDataProvider _protocolDataProvider = IProtocolDataProvider(
             // Use the raw input vs bytes32() conversion. This is to ensure the input is an uint and not a string.

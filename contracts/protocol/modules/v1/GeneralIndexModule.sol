@@ -35,6 +35,7 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
 import { Position } from "../../lib/Position.sol";
 import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
 import { Uint256ArrayUtils } from "../../../lib/Uint256ArrayUtils.sol";
+import { ResourceIdentifier } from "../../lib/ResourceIdentifier.sol";
 
 
 /**
@@ -55,16 +56,18 @@ import { Uint256ArrayUtils } from "../../../lib/Uint256ArrayUtils.sol";
  *    this module need to be examined separately)
  */
 contract GeneralIndexModule is ModuleBase, ReentrancyGuard {
-    using SafeCast for int256;
     using SafeCast for uint256;
     using SafeMath for uint256;
     using Position for uint256;
+    using PreciseUnitMath for uint256;
     using Math for uint256;
+    using SafeCast for int256;
     using Position for ISetToken;
     using Invoke for ISetToken;
     using AddressArrayUtils for address[];
     using AddressArrayUtils for IERC20[];
     using Uint256ArrayUtils for uint256[];
+    using ResourceIdentifier for IController;
 
     /* ============ Struct ============ */
 
@@ -159,7 +162,7 @@ contract GeneralIndexModule is ModuleBase, ReentrancyGuard {
 
     /* ============ Constructor ============ */
 
-    constructor(IController _controller, IWETH _weth) public ModuleBase(_controller) {
+    constructor(IController _controller, IWETH _weth) ModuleBase(_controller) {
         weth = _weth;
     }
 

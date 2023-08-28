@@ -52,7 +52,7 @@ contract SynthetixExchangeAdapter {
      *
      * @param _synthetixExchangerAddress    Address of Synthetix's Exchanger contract
      */
-    constructor(address _synthetixExchangerAddress) public {
+    constructor(address _synthetixExchangerAddress) {
         synthetixExchangerAddress = _synthetixExchangerAddress;
     }
 

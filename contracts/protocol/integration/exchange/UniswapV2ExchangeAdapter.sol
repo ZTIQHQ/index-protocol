@@ -39,7 +39,7 @@ contract UniswapV2ExchangeAdapter {
      *
      * @param _router       Address of Uniswap V2 Router02 contract
      */
-    constructor(address _router) public {
+    constructor(address _router) {
         router = _router;
     }
 

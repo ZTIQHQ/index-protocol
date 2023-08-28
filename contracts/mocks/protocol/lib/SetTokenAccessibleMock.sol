@@ -24,7 +24,7 @@ import { SetTokenAccessible } from "../../../protocol/lib/SetTokenAccessible.sol
 
 contract SetTokenAccessibleMock is SetTokenAccessible {
 
-    constructor(IController _controller) public SetTokenAccessible(_controller) {}
+    constructor(IController _controller) SetTokenAccessible(_controller) {}
 
     /* ============ External Functions ============ */
 

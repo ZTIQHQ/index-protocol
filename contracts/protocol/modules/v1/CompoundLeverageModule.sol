@@ -22,6 +22,9 @@ pragma solidity 0.8.21;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import { Compound } from "../../integration/lib/Compound.sol";
 import { ICErc20 } from "../../../interfaces/external/ICErc20.sol";
@@ -31,6 +34,10 @@ import { IDebtIssuanceModule } from "../../../interfaces/IDebtIssuanceModule.sol
 import { IExchangeAdapter } from "../../../interfaces/IExchangeAdapter.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { ModuleBase } from "../../lib/ModuleBase.sol";
+import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
+import { PositionV2 } from "../../lib/PositionV2.sol";
+import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
+import { Invoke } from "../../lib/Invoke.sol";
 
 /**
  * @title CompoundLeverageModule
@@ -46,6 +53,14 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
  */
 contract CompoundLeverageModule is ModuleBase, ReentrancyGuard, Ownable {
     using Compound for ISetToken;
+    using PositionV2 for ISetToken;
+    using Invoke for ISetToken;
+    using SafeMath for uint256;
+    using SafeCast for uint256;
+    using PreciseUnitMath for uint256;
+    using SignedSafeMath for int256;
+    using SafeCast for int256;
+    using AddressArrayUtils for address[];
 
     /* ============ Structs ============ */
 
@@ -169,7 +184,6 @@ contract CompoundLeverageModule is ModuleBase, ReentrancyGuard, Ownable {
         ICErc20 _cEther,
         IERC20 _weth
     )
-        public
         ModuleBase(_controller)
     {
         compToken = _compToken;

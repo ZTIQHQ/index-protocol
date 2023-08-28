@@ -17,6 +17,7 @@ pragma solidity 0.8.21;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import { IStableSwapPool } from "../../../interfaces/external/IStableSwapPool.sol";
 import { IWETH } from "../../../interfaces/external/IWETH.sol";
@@ -36,6 +37,7 @@ import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
 contract CurveExchangeAdapter {
 
     using SafeMath for uint256;
+    using SafeCast for int128;
     using PreciseUnitMath for uint256;
 
     /* ========= State Variables ========= */
@@ -68,11 +70,9 @@ contract CurveExchangeAdapter {
         int128 _tokenAIndex,
         int128 _tokenBIndex,
         IStableSwapPool _stableswap
-    )
-        public
-    {
-        require(_stableswap.coins(uint256(_tokenAIndex)) == address(_tokenA), "Stableswap pool has invalid index for tokenA");
-        require(_stableswap.coins(uint256(_tokenBIndex)) == address(_tokenB), "Stableswap pool has invalid index for tokenB");
+    ) {
+        require(_stableswap.coins(_tokenAIndex.toUint256()) == address(_tokenA), "Stableswap pool has invalid index for tokenA");
+        require(_stableswap.coins(_tokenBIndex.toUint256()) == address(_tokenB), "Stableswap pool has invalid index for tokenB");
 
         tokenA = _tokenA;
         tokenB = _tokenB;

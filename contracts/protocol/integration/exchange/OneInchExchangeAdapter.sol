@@ -52,9 +52,7 @@ contract OneInchExchangeAdapter {
         address _oneInchApprovalAddress,
         address _oneInchExchangeAddress,
         bytes4 _oneInchFunctionSignature
-    )
-        public
-    {
+    ) {
         oneInchApprovalAddress = _oneInchApprovalAddress;
         oneInchExchangeAddress = _oneInchExchangeAddress;
         oneInchFunctionSignature = _oneInchFunctionSignature;

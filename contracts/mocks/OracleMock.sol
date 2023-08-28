@@ -21,7 +21,7 @@ pragma solidity 0.8.21;
 contract OracleMock {
     uint256 public price;
 
-    constructor(uint256 _startingPrice) public {
+    constructor(uint256 _startingPrice) {
         price = _startingPrice;
     }
 

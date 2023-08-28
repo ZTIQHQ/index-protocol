@@ -49,11 +49,12 @@ import { Uint256ArrayUtils } from "../../../lib/Uint256ArrayUtils.sol";
       this module need to be examined separately)
  */
 contract SingleIndexModule is ModuleBase, ReentrancyGuard {
-    using SafeCast for int256;
     using SafeCast for uint256;
     using SafeMath for uint256;
     using Position for uint256;
     using Math for uint256;
+    using PreciseUnitMath for uint256;
+    using SafeCast for int256;
     using Position for ISetToken;
     using Invoke for ISetToken;
     using AddressArrayUtils for address[];
@@ -140,7 +141,6 @@ contract SingleIndexModule is ModuleBase, ReentrancyGuard {
         address _sushiswapRouter,
         address _balancerProxy
     )
-        public
         ModuleBase(_controller)
     {
         weth = _weth;
@@ -599,7 +599,7 @@ contract SingleIndexModule is ModuleBase, ReentrancyGuard {
             limit,
             path,
             address(index),
-            now.add(180)
+            block.timestamp.add(180)
         );
 
         return (exchangeAddress, tradeCallData);

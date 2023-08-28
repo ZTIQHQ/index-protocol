@@ -9,10 +9,7 @@ contract ERC20ReturnFalseMock is ERC20 {
         string memory _name,
         string memory _symbol,
         uint8 _decimals
-    )
-        public
-        ERC20(_name, _symbol)
-    {
+    ) ERC20(_name, _symbol) {
         numDecimals = _decimals;
     }
 

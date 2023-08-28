@@ -54,7 +54,7 @@ contract UniswapV3IndexExchangeAdapter is IIndexExchangeAdapter {
      *
      * @param _router       Address of Uniswap V3 SwapRouter contract
      */
-    constructor(address _router) public {
+    constructor(address _router) {
         router = _router;
     }
 

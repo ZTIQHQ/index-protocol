@@ -23,6 +23,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { IController } from "../../../interfaces/IController.sol";
 import { IDebtIssuanceModule } from "../../../interfaces/IDebtIssuanceModule.sol";
@@ -44,6 +45,8 @@ import { Position } from "../../lib/Position.sol";
  */
 contract NotionalTradeModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssuanceHook {
     using Address for address;
+    using Position for ISetToken;
+    using SafeMath for uint256;
 
     /* ============ Events ============ */
 
@@ -143,7 +146,6 @@ contract NotionalTradeModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIss
         INotionalV2 _notionalV2,
         uint256 _decodedIdGasLimit
     )
-        public
         ModuleBase(_controller)
     {
         require(address(_wrappedfCashFactory) != address(0), "WrappedfCashFactory address cannot be zero");

@@ -41,7 +41,7 @@ contract YearnWrapV2Adapter {
 
     /* ============ Constructor ============ */
 
-    constructor() public { }
+    constructor() { }
 
     /* ============ External Getter Functions ============ */
 

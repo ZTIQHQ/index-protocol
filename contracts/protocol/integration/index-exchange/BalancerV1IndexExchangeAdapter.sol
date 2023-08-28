@@ -51,7 +51,7 @@ contract BalancerV1IndexExchangeAdapter is IIndexExchangeAdapter {
      *
      * @param _balancerProxy       Balancer exchange proxy address
      */
-    constructor(address _balancerProxy) public {
+    constructor(address _balancerProxy) {
         balancerProxy = _balancerProxy;
     }
 

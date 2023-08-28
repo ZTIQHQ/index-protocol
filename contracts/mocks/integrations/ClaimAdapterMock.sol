@@ -30,7 +30,7 @@ contract ClaimAdapterMock is ERC20  {
     uint256 public rewards;
 
     /* ============ Constructor ============ */
-    constructor() public ERC20("ClaimAdapter", "CLAIM") {}
+    constructor() ERC20("ClaimAdapter", "CLAIM") {}
 
     /* ============ External Functions ============ */
 

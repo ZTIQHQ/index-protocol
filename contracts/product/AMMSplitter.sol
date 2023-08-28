@@ -98,9 +98,7 @@ contract AMMSplitter {
         IUniswapV2Router _sushiRouter,
         IUniswapV2Factory _uniFactory,
         IUniswapV2Factory _sushiFactory
-    )
-        public
-    {
+    ) {
         uniRouter = _uniRouter;
         sushiRouter = _sushiRouter;
         uniFactory = _uniFactory;

@@ -37,7 +37,7 @@ contract TribePegExchangerMock {
     address public immutable rgt;
     address public immutable tribe;
 
-    constructor(address _rgt, address _tribe) public {
+    constructor(address _rgt, address _tribe) {
         rgt = _rgt;
         tribe = _tribe;
     }

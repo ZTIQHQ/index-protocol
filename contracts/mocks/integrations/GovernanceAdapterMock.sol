@@ -35,7 +35,7 @@ contract GovernanceAdapterMock {
 
     /* ============ Constructor ============ */
 
-    constructor(uint256 _initialProposal) public {
+    constructor(uint256 _initialProposal) {
         proposalCreated[_initialProposal] = true;
     }
 

@@ -28,7 +28,7 @@ contract ComptrollerMock {
     ICErc20[] public allMarkets;
     mapping(address => uint) public compAccrued;
 
-    constructor(address _comp, uint256 _compAmount, address _collateralCToken) public {
+    constructor(address _comp, uint256 _compAmount, address _collateralCToken) {
         comp = _comp;
         compAmount = _compAmount;
         allMarkets.push(ICErc20(_collateralCToken));

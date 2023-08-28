@@ -36,7 +36,7 @@ contract AmmAdapterMock is ERC20 {
     address public approvedToken;
 
     /* ============ Constructor ============ */
-    constructor(IERC20[] memory _poolTokens) public ERC20("AMMAdapter", "AMM") {
+    constructor(IERC20[] memory _poolTokens) ERC20("AMMAdapter", "AMM") {
         poolTokens = _poolTokens;
     }
 

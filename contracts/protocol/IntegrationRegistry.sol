@@ -56,7 +56,7 @@ contract IntegrationRegistry is Ownable {
      *
      * @param _controller          Instance of the controller
      */
-    constructor(IController _controller) public {
+    constructor(IController _controller) {
         controller = _controller;
     }
 

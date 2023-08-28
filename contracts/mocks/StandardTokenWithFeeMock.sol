@@ -53,9 +53,7 @@ contract StandardTokenWithFeeMock {
         string memory _name,
         string memory _symbol,
         uint256 _fee
-    )
-        public
-    {
+    ) {
         _balances[_initialAccount] = _initialBalance;
         _totalSupply = _initialBalance;
         name = _name;

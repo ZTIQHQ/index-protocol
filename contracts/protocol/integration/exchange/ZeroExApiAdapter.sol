@@ -71,7 +71,7 @@ contract ZeroExApiAdapter {
 
     /* ============ constructor ============ */
 
-    constructor(address _zeroExAddress, address _wethAddress) public {
+    constructor(address _zeroExAddress, address _wethAddress) {
         zeroExAddress = _zeroExAddress;
         wethAddress = _wethAddress;
         getSpender = _zeroExAddress;

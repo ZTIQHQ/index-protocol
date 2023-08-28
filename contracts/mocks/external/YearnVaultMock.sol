@@ -21,7 +21,7 @@ pragma solidity 0.8.21;
 contract YearnVaultMock {
     uint256 public pricePerShare;
 
-    constructor(uint256 _pricePerShare) public {
+    constructor(uint256 _pricePerShare) {
         pricePerShare = _pricePerShare;
     }
 

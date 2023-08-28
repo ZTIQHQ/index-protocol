@@ -39,7 +39,7 @@ contract KyberNetworkProxyMock {
 
     constructor(
         address _mockWethAddress
-    ) public {
+    ) {
         mockWethAddress = _mockWethAddress;
         owner = msg.sender;
     }

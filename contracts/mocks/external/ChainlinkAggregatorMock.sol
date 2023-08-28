@@ -32,7 +32,7 @@ contract ChainlinkAggregatorMock {
     uint8 public decimals;
 
     // Perp sets this to `6` in their fixtures...
-    constructor(uint8 _decimals) public {
+    constructor(uint8 _decimals) {
         decimals = _decimals;
     }
 

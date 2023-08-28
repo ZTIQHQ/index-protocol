@@ -39,9 +39,7 @@ contract SynthetixExchangerMock {
         uint256 _ethsPerUsdRate,
         uint256 _usdPerBtcRate,
         uint256 _btcPerUsdRate
-    )
-        public
-    {
+    ) {
         sUsdCurrencyKey = _sUsdCurrencyKey;
 
         coins[_sUsdCurrencyKey] = _sUsd;

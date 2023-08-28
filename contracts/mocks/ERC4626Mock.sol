@@ -29,10 +29,7 @@ contract ERC4626Mock is ERC20 {
         string memory _name,
         string memory _symbol,
         address _asset
-    ) 
-        public 
-        ERC20(_name, _symbol)
-    {
+    ) ERC20(_name, _symbol) {
         underlying_asset = _asset;
     }
 

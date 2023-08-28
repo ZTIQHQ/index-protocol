@@ -41,7 +41,7 @@ contract AssetLimitHook is INAVIssuanceHook, Ownable {
 
     /* ============ Constructor ============ */
 
-    constructor(address[] memory _assets, uint256[] memory _limits) public {
+    constructor(address[] memory _assets, uint256[] memory _limits) {
         require(_assets.length == _limits.length, "Arrays must be equal");
         require(_assets.length != 0, "Array must not be empty");
         

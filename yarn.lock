@@ -1846,6 +1846,11 @@
   resolved "https://registry.yarnpkg.com/@uniswap/v3-core/-/v3-core-1.0.0.tgz#6c24adacc4c25dceee0ba3ca142b35adbd7e359d"
   integrity sha512-kSC4djMGKMHj7sLMYVnn61k9nu+lHjMIxgg9CDQT+s2QYLoA56GbSK9Oxr+qJXzzygbkrmuY6cwgP6cW2JXPFA==
 
+"@uniswap/v3-core@1.0.2-solc-0.8-simulate":
+  version "1.0.2-solc-0.8-simulate"
+  resolved "https://registry.yarnpkg.com/@uniswap/v3-core/-/v3-core-1.0.2-solc-0.8-simulate.tgz#77fb42f2b502b4fec81844736d039fc059e8688c"
+  integrity sha512-ALAZbsb3wvUrRzeAjrTKjv1fH7UrueJ/+D8uX4yintXHxxzbnnp78Kis2pa4D26cFQ72rwM3DrZpUES9rhsEuQ==
+
 "@uniswap/v3-periphery@1.4.1":
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/@uniswap/v3-periphery/-/v3-periphery-1.4.1.tgz#b90f08b7386163c0abfd7258831caef6339c7862"

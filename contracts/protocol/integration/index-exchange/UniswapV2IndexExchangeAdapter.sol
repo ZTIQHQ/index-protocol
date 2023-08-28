@@ -53,7 +53,7 @@ contract UniswapV2IndexExchangeAdapter is IIndexExchangeAdapter {
      *
      * @param _router       Address of Uniswap V2 Router02 contract
      */
-    constructor(address _router) public {
+    constructor(address _router) {
         router = _router;
     }
 

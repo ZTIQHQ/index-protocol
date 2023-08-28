@@ -54,7 +54,7 @@ contract AaveGovernanceV2Adapter {
      *
      * @param _aaveGovernanceV2    Address of AAVE Governance V2 contract
      */
-    constructor(address _aaveGovernanceV2, address _aaveToken) public {
+    constructor(address _aaveGovernanceV2, address _aaveToken) {
         aaveGovernanceV2 =  _aaveGovernanceV2;
         aaveToken = _aaveToken;
     }

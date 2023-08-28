@@ -82,7 +82,7 @@ abstract contract SetTokenAccessible is Ownable {
      *
      * @param _controller             Address of controller contract
      */
-    constructor(IController _controller) public {
+    constructor(IController _controller) {
         controller = _controller;
     }
 

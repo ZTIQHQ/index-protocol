@@ -65,9 +65,7 @@ contract CurveStEthExchangeAdapter {
         IWETH _weth,
         IERC20 _stETH,
         IStableSwapPool _stableswap
-    )
-        public
-    {
+    ) {
         weth = _weth;
         stETH = _stETH;
         stableswap = _stableswap;

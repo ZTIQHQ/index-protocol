@@ -163,10 +163,7 @@ contract SetToken is ERC20 {
         address _manager,
         string memory _name,
         string memory _symbol
-    )
-        public
-        ERC20(_name, _symbol)
-    {
+    ) ERC20(_name, _symbol) {
         controller = _controller;
         manager = _manager;
         positionMultiplier = PreciseUnitMath.preciseUnitInt();

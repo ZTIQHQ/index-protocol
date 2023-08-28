@@ -40,7 +40,7 @@ contract CurveStakingAdapter {
      *
      * @param _gaugeController     Address of Gauge Controller
      */
-    constructor(IGaugeController _gaugeController) public {
+    constructor(IGaugeController _gaugeController) {
         gaugeController = _gaugeController;
     }
 

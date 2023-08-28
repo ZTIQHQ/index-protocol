@@ -37,7 +37,7 @@ contract BalancerV2ExchangeAdapter is IExchangeAdapter {
    *
    * @param _vault        balancer vault address
    */
-  constructor(address _vault) public {
+  constructor(address _vault) {
     vault = _vault;
   }
 

@@ -55,7 +55,7 @@ contract UniswapV2AmmAdapter is IAmmAdapter {
      *
      * @param _router          Address of Uniswap V2 Router contract
      */
-    constructor(address _router) public {
+    constructor(address _router) {
         router = _router;
         factory = IUniswapV2Factory(IUniswapV2Router(_router).factory());
     }

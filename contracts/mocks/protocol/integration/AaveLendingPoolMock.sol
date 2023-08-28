@@ -22,7 +22,7 @@ contract AaveLendingPoolMock {
 
     address public core;
 
-    constructor(address _core) public {
+    constructor(address _core) {
         core = _core;
     }
 }

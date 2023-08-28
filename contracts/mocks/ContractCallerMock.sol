@@ -24,7 +24,7 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 contract ContractCallerMock {
     using Address for address;
 
-    constructor() public {}
+    constructor() {}
 
     function invoke(
         address _target,

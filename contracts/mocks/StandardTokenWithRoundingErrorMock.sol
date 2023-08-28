@@ -58,10 +58,7 @@ contract StandardTokenWithRoundingErrorMock {
         string memory _name,
         string memory _symbol,
         uint8 /* _decimals */
-    )
-        public
-
-    {
+    ) {
         _balances[_initialAccount] = _initialBalance;
         _totalSupply = _initialBalance;
         name = _name;

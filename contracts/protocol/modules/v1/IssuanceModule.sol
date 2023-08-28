@@ -37,5 +37,5 @@ contract IssuanceModule is DebtIssuanceModuleV2 {
     /**
      * Set state controller state variable
      */
-    constructor(IController _controller) public DebtIssuanceModuleV2(_controller) {}
+    constructor(IController _controller) DebtIssuanceModuleV2(_controller) {}
 }

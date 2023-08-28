@@ -34,7 +34,7 @@ contract WrapAdapterMock is ERC20 {
     address public constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /* ============ Constructor ============ */
-    constructor() public ERC20("WrapAdapter", "WRAP") {}
+    constructor() ERC20("WrapAdapter", "WRAP") {}
 
     /* ============ External Functions ============ */
 

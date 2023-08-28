@@ -22,6 +22,9 @@ pragma solidity 0.8.21;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import { AaveV3 } from "../../integration/lib/AaveV3.sol";
 import { IAToken } from "../../../interfaces/external/aave-v2/IAToken.sol";
@@ -35,6 +38,10 @@ import { IAaveProtocolDataProvider } from "../../../interfaces/external/aave-v3/
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { IVariableDebtToken } from "../../../interfaces/external/aave-v2/IVariableDebtToken.sol";
 import { ModuleBase } from "../../lib/ModuleBase.sol";
+import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
+import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
+import { PositionV2 } from "../../lib/PositionV2.sol";
+import { Invoke } from "../../lib/Invoke.sol";
 
 /**
  * @title AaveV3LeverageModule
@@ -45,6 +52,14 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
  */
 contract AaveV3LeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssuanceHook {
     using AaveV3 for ISetToken;
+    using PositionV2 for ISetToken;
+    using Invoke for ISetToken;
+    using SafeMath for uint256;
+    using SignedSafeMath for int256;
+    using SafeCast for int256;
+    using SafeCast for uint256;
+    using PreciseUnitMath for uint256;
+    using AddressArrayUtils for address[];
 
     /* ============ Structs ============ */
 
@@ -218,10 +233,7 @@ contract AaveV3LeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     constructor(
         IController _controller,
         IPoolAddressesProvider _poolAddressesProvider
-    )
-        public
-        ModuleBase(_controller)
-    {
+    ) ModuleBase(_controller) {
         lendingPoolAddressesProvider = _poolAddressesProvider;
         IAaveProtocolDataProvider _protocolDataProvider = IAaveProtocolDataProvider(
             // Use the raw input vs bytes32() conversion. This is to ensure the input is an uint and not a string.

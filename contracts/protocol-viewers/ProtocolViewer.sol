@@ -35,5 +35,5 @@ contract ProtocolViewer is
     SetTokenViewer,
     StreamingFeeModuleViewer
 {
-    constructor() public {}
+    constructor() {}
 }

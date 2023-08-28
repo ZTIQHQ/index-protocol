@@ -82,7 +82,7 @@ contract PerpV2LeverageModuleViewer {
         IAccountBalance _perpAccountBalance,
         IClearingHouseConfig _perpClearingHouseConfig,
         ERC20 _vQuoteToken
-    ) public {
+    ) {
         perpModule = _perpModule;
         perpAccountBalance = _perpAccountBalance;
         perpClearingHouseConfig = _perpClearingHouseConfig;

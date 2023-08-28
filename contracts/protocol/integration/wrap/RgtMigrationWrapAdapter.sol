@@ -41,9 +41,7 @@ contract RgtMigrationWrapAdapter {
      */
     constructor(
         address _pegExchanger
-    )
-        public
-    {
+    ) {
         pegExchanger = _pegExchanger;
     } 
 

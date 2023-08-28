@@ -28,7 +28,9 @@ import { ISetToken } from "../../../interfaces/ISetToken.sol";
 contract NAVIssuanceCaller {
     INAVIssuanceModule public navIssuance;
 
-    constructor(INAVIssuanceModule _navIssuance) public { navIssuance = _navIssuance; }
+    constructor(INAVIssuanceModule _navIssuance) {
+        navIssuance = _navIssuance;
+    }
 
     function issue(
         ISetToken _setToken,

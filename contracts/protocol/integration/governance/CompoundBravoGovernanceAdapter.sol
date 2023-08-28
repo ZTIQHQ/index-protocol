@@ -54,7 +54,7 @@ contract CompoundBravoGovernanceAdapter {
      * @param _governorBravo    Address of Governor Bravo contract
      * @param _governanceToken  Address of governance token
      */
-    constructor(address _governorBravo, address _governanceToken) public {
+    constructor(address _governorBravo, address _governanceToken) {
         governorBravo = _governorBravo;
         governanceToken = _governanceToken;
     }

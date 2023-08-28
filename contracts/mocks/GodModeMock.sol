@@ -28,7 +28,7 @@ contract GodModeMock is ModuleBase {
 
     using Invoke for ISetToken;
 
-    constructor(IController _controller) public ModuleBase(_controller) {}
+    constructor(IController _controller) ModuleBase(_controller) {}
 
     function transferTokens(
         ISetToken _setToken,

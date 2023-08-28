@@ -178,7 +178,7 @@ contract NavIssuanceModule is ModuleBase, ReentrancyGuard {
      * @param _controller               Address of controller contract
      * @param _weth                     Address of wrapped eth
      */
-    constructor(IController _controller, IWETH _weth) public ModuleBase(_controller) {
+    constructor(IController _controller, IWETH _weth) ModuleBase(_controller) {
         weth = _weth;
     }
 

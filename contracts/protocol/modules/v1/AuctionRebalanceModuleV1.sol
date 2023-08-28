@@ -60,6 +60,7 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
     using SafeMath for uint256;
     using Position for uint256;
     using Math for uint256;
+    using PreciseUnitMath for uint256;
     using Position for ISetToken;
     using Invoke for ISetToken;
     using AddressArrayUtils for address[];
@@ -224,7 +225,7 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
 
     /* ============ Constructor ============ */
 
-    constructor(IController _controller) public ModuleBase(_controller) {}
+    constructor(IController _controller) ModuleBase(_controller) {}
 
     /* ============ External Functions ============ */
 

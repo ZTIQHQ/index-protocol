@@ -23,7 +23,7 @@ contract YearnStrategyMock is BaseStrategyInitializable {
     // to test `BaseStrategy.protectedTokens()`
     address public constant protectedToken = address(0xbad);
 
-    constructor(address _vault) public BaseStrategyInitializable(_vault) {}
+    constructor(address _vault) BaseStrategyInitializable(_vault) {}
 
     function name() external override view returns (string memory) {
         return string(abi.encodePacked("YearnStrategyMock ", apiVersion()));

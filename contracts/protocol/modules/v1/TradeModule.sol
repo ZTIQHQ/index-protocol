@@ -81,7 +81,7 @@ contract TradeModule is ModuleBase, ReentrancyGuard {
 
     /* ============ Constructor ============ */
 
-    constructor(IController _controller) public ModuleBase(_controller) {}
+    constructor(IController _controller) ModuleBase(_controller) {}
 
     /* ============ External Functions ============ */
 

@@ -25,9 +25,7 @@ import { PositionV2 } from "../protocol/lib/PositionV2.sol";
 
 // Mock contract implementation of PositionV2 functions
 contract PositionV2Mock {
-    constructor()
-        public
-    {}
+    constructor() {}
 
     function initialize(ISetToken _setToken) external {
         _setToken.initializeModule();

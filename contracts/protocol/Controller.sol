@@ -100,7 +100,7 @@ contract Controller is Ownable {
      *
      * @param _feeRecipient          Address of the initial protocol fee recipient
      */
-    constructor(address _feeRecipient) public {
+    constructor(address _feeRecipient) {
         feeRecipient = _feeRecipient;
     }
 

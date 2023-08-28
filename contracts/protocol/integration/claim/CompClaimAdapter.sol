@@ -43,7 +43,7 @@ contract CompClaimAdapter {
      *
      * @param _comptroller    Address of the Compound Comptroller contract with a claimComp function
      */
-    constructor(IComptroller _comptroller) public {
+    constructor(IComptroller _comptroller) {
         comptroller = _comptroller;
     }
 

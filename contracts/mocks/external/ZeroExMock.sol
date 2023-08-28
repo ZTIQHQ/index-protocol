@@ -72,7 +72,7 @@ contract ZeroExMock {
         address _mockReceiveToken,
         uint256 _mockSendAmount,
         uint256 _mockReceiveAmount
-    ) public {
+    ) {
         mockSendToken = _mockSendToken;
         mockReceiveToken = _mockReceiveToken;
         mockSendAmount = _mockSendAmount;

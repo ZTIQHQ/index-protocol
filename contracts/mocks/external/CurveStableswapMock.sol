@@ -39,7 +39,7 @@ contract CurveStableswapMock is ReentrancyGuard {
 
     address[] tokens;
 
-    constructor(address[] memory _tokens) public {
+    constructor(address[] memory _tokens) {
         for (uint i = 0; i < _tokens.length; i++) {
             require(_tokens[i] != address(0));
         }

@@ -31,9 +31,7 @@ contract SynthMock is StandardTokenMock {
         string memory _symbol,
         uint8 _decimals,
         bytes32 _currencyKey
-    )
-        public
-        StandardTokenMock(
+    ) StandardTokenMock(
             _initialAccount,
             _initialBalance,
             _name,

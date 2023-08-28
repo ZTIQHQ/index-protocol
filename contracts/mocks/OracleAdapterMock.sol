@@ -28,9 +28,9 @@ contract OracleAdapterMock {
     uint256 public dummyPrice;
     address public asset;
 
-    constructor(address _asset, uint256 _dummyPrice)
-        public
-    { dummyPrice = _dummyPrice; asset = _asset; }
+    constructor(address _asset, uint256 _dummyPrice) {
+        dummyPrice = _dummyPrice; asset = _asset;
+    }
 
     function getPrice(address _assetOne, address _assetTwo)
         external

@@ -55,7 +55,7 @@ contract KyberV3IndexExchangeAdapter is IIndexExchangeAdapter {
      * @param _dmmRouter       Address of Kyber V3 DMM Router
      * @param _dmmFactory      Address of Kyber V3 DMM Factory
      */
-    constructor(address _dmmRouter, IDMMFactory _dmmFactory) public {
+    constructor(address _dmmRouter, IDMMFactory _dmmFactory) {
         dmmRouter = _dmmRouter;
         dmmFactory = _dmmFactory;        
     }

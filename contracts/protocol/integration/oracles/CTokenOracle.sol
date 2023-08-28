@@ -61,9 +61,7 @@ contract CTokenOracle is IOracle {
         uint256 _cTokenFullUnit,
         uint256 _underlyingFullUnit,
         string memory _dataDescription
-    )
-        public
-    {
+    ) {
         cToken = _cToken;
         cTokenFullUnit = _cTokenFullUnit;
         underlyingFullUnit = _underlyingFullUnit;

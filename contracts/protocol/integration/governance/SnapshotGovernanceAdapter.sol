@@ -50,7 +50,7 @@ contract SnapshotGovernanceAdapter {
      *
      * @param _delegateRegistry    Address of the Snapshot DelegateRegistry
      */
-    constructor(address _delegateRegistry) public {
+    constructor(address _delegateRegistry) {
         delegateRegistry = _delegateRegistry;
     }
 

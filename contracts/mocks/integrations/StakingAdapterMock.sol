@@ -39,7 +39,7 @@ contract StakingAdapterMock {
     IERC20 public stakingAsset;
 
     /* ============ Constructor ============ */
-    constructor(IERC20 _stakingAsset) public {
+    constructor(IERC20 _stakingAsset) {
         stakingAsset = _stakingAsset;
     }
 

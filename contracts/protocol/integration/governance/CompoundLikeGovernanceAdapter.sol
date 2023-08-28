@@ -54,7 +54,7 @@ contract CompoundLikeGovernanceAdapter {
      * @param _governorAlpha    Address of Governor Alpha contract
      * @param _governanceToken  Address of governance token
      */
-    constructor(address _governorAlpha, address _governanceToken) public {
+    constructor(address _governorAlpha, address _governanceToken) {
         governorAlpha = _governorAlpha;
         governanceToken = _governanceToken;
     }

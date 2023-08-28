@@ -48,7 +48,7 @@ contract AaveV2WrapV2Adapter {
 
     /* ============ Constructor ============ */
 
-    constructor(ILendingPool _lendingPool) public {
+    constructor(ILendingPool _lendingPool) {
         lendingPool = _lendingPool;
     }
 

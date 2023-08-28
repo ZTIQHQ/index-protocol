@@ -28,7 +28,7 @@ contract ModuleBaseMock is ModuleBase {
 
     bool public removed;
 
-    constructor(IController _controller) public ModuleBase(_controller) {}
+    constructor(IController _controller) ModuleBase(_controller) {}
 
     /* ============ External Functions ============ */
 
