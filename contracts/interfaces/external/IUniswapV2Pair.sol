@@ -12,7 +12,7 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.19;
 
 interface IUniswapV2Pair {
     event Approval(address indexed owner, address indexed spender, uint value);

@@ -20,7 +20,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { ISetToken } from "../interfaces/ISetToken.sol";
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.19;
 
 /**
  * @title IClaimAdapter

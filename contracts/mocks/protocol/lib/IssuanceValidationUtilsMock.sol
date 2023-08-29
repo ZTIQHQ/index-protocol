@@ -16,7 +16,7 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.19;
 
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { IssuanceValidationUtils } from "../../../protocol/lib/IssuanceValidationUtils.sol";

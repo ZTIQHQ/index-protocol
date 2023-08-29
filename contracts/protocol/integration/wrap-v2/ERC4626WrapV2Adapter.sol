@@ -14,7 +14,7 @@
     SPDX-License-Identifier: Apache-2.0	
 */
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.19;
 
 import { IERC4626 } from "../../../interfaces/external/IERC4626.sol";
 

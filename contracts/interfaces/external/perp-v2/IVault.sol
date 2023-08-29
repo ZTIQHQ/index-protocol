@@ -16,7 +16,7 @@
   SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.19;
 
 interface IVault {
     function getBalance(address account) external view returns (int256);

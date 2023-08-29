@@ -16,7 +16,7 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.19;
 
 import { ICErc20 } from "../../../../interfaces/external/ICErc20.sol";
 import { IComptroller } from "../../../../interfaces/external/IComptroller.sol";

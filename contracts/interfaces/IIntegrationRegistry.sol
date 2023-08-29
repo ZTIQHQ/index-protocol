@@ -15,7 +15,7 @@
 
     SPDX-License-Identifier: Apache-2.0
 */
-pragma solidity 0.8.21;
+pragma solidity 0.8.19;
 
 interface IIntegrationRegistry {
     function addIntegration(address _module, string memory _id, address _wrapper) external;

@@ -16,7 +16,7 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.19;
 
 interface IGaugeController {
     function gauge_types(address _gauge) external view returns (int128);
