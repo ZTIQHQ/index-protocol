@@ -48,7 +48,9 @@ const config: HardhatUserConfig = {
     compilers: [
       {
         version: "0.8.19",
-        settings: { optimizer: { enabled: true, runs: 200 } },
+        settings: {
+          optimizer: { enabled: true, runs: 200 }
+        },
       },
     ],
   },
@@ -59,6 +61,7 @@ const config: HardhatUserConfig = {
       accounts: getHardhatPrivateKeys(),
       gas: 12000000,
       blockGasLimit: 12000000,
+      loggingEnabled: true,
     },
     localhost: {
       url: "http://127.0.0.1:8545",
