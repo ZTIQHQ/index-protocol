@@ -3,7 +3,7 @@ version: 2.1
 default_env: &default_env
   working_directory: ~/index-protocol
   docker:
-    - image: circleci/node:18.17.1
+    - image: cimg/node:18.17.1
       environment:
           NODE_OPTIONS: --max_old_space_size=8192
 
