@@ -99,8 +99,6 @@
   },
   "devDependencies": {
     "@0x/utils": "^6.4.3",
-    "@nomiclabs/hardhat-ethers": "^2.0.2",
-    "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "^4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.9.3",
     "@semantic-release/git": "^10.0.1",
@@ -122,7 +120,7 @@
     "eslint-plugin-jsdoc": "46.5.0",
     "eslint-plugin-no-null": "^1.0.2",
     "ethereum-waffle": "^3.4.0",
-    "hardhat": "^2.11.0",
+    "hardhat": "2.17.2",
     "hardhat-contract-sizer": "^2.5.0",
     "hardhat-deploy": "^0.11.15",
     "husky": "^4.2.5",
@@ -151,11 +149,6 @@
     "module-alias": "^2.2.2",
     "notional-solidity-sdk": "https://github.com/ckoopmann/notional-solidity-sdk.git#77aa2f8fd8a72b8f5865e561f2d39d4606c3740c",
     "replace-in-file": "^6.1.0"
-  },
-  "peerDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.1",
-    "ethereum-waffle": "^3.2.1",
-    "hardhat": "^2.2.1"
   },
   "_moduleAliases": {
     "@utils": "utils",

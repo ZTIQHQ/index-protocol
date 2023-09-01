@@ -72,7 +72,6 @@ export { NAVIssuanceHookMock } from "../../typechain/NAVIssuanceHookMock";
 export { NotionalTradeModule } from "../../typechain/NotionalTradeModule";
 export { NotionalV2Mock } from "../../typechain/NotionalV2Mock";
 export { OneInchExchangeAdapter } from "../../typechain/OneInchExchangeAdapter";
-export { OneInchExchangeMock } from "../../typechain/OneInchExchangeMock";
 export { OracleAdapterMock } from "../../typechain/OracleAdapterMock";
 export { OracleMock } from "../../typechain/OracleMock";
 export { CTokenOracle } from "../../typechain/CTokenOracle";
