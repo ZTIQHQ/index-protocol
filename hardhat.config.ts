@@ -9,6 +9,7 @@ import "@typechain/hardhat";
 import "solidity-coverage";
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-waffle";
 
 import "./tasks";
 
