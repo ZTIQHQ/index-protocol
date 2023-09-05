@@ -1,14 +1,15 @@
 import { ethers, network } from "hardhat";
 import { BigNumber } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+
 import { Address } from "../types";
 import { Account, ForkedTokens } from "./types";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import dependencies from "../deploys/dependencies";
 import { IERC20__factory } from "../../typechain";
 import { ether } from "../common";
 import type DeployHelper  from "../deploys";
 
-const provider = ethers.provider;
+const provider = new ethers.providers.JsonRpcProvider();
 
 export const getAccounts = async (): Promise<Account[]> => {
   const accounts: Account[] = [];

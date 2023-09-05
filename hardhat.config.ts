@@ -8,6 +8,7 @@ import { privateKeys } from "./utils/wallets";
 import "@typechain/hardhat";
 import "solidity-coverage";
 import "hardhat-deploy";
+import "@nomiclabs/hardhat-ethers";
 
 import "./tasks";
 
@@ -18,7 +19,7 @@ export const forkingConfig = {
 
 const mochaConfig = {
   grep: "@forked-mainnet",
-  invert: process.env.FORK ? false : true,
+  invert: !process.env.FORK,
   timeout: 200000,
 } as Mocha.MochaOptions;
 

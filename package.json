@@ -99,6 +99,7 @@
   },
   "devDependencies": {
     "@0x/utils": "^6.4.3",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@openzeppelin/contracts": "^4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.9.3",
     "@semantic-release/git": "^10.0.1",
@@ -109,6 +110,7 @@
     "@types/lodash": "^4.14.86",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.5",
+    "@types/sinon-chai": "^3.2.3",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/eslint-plugin-tslint": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",

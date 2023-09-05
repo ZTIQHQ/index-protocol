@@ -1,7 +1,7 @@
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
 import { SetToken } from "@utils/contracts";
-import { Contract} from "ethers";
+import { Contract } from "ethers";
 
 chai.use(solidity);
 
@@ -10,12 +10,12 @@ import { ethers, network } from "hardhat";
 import { BigNumber, providers, Signer } from "ethers";
 import { Blockchain } from "../common";
 
-const provider = ethers.provider;
+const provider = new ethers.providers.JsonRpcProvider();
 // const blockchain = new Blockchain(provider);
 
 // HARDHAT-SPECIFIC Provider
 export const getProvider = (): providers.JsonRpcProvider => {
-  return ethers.provider;
+  return new ethers.providers.JsonRpcProvider();
 };
 
 // HARDHAT / WAFFLE
@@ -106,7 +106,7 @@ export async function impersonateAccount(address: string): Promise<Signer> {
     method: "hardhat_impersonateAccount",
     params: [address],
   });
-  return await ethers.getSigner(address);
+  return provider.getSigner(address);
 }
 
 export async function waitForEvent(contract: Contract, event: string): Promise<any> {
