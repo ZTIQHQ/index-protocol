@@ -56,7 +56,7 @@ const underlyingTokens: Record<string, string> = {
 
 const wrappedFCashFactoryAddress = "0x5D051DeB5db151C2172dCdCCD42e6A2953E27261";
 
-describe("Notional trade module integration [ @forked-mainnet ]", () => {
+describe("NotionalTradeModule integration [ @forked-mainnet ]", () => {
   let owner: Account;
   let manager: Account;
   let tokens: ForkedTokens;
