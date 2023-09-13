@@ -1,4 +1,5 @@
 import "module-alias/register";
+import Web3 from "web3";
 import { BigNumber } from "ethers";
 import { utils } from "ethers";
 import { ethers } from "hardhat";
@@ -10,6 +11,7 @@ import {
   KyberNetworkProxyMock,
   ManagerIssuanceHookMock,
   OneInchExchangeAdapter,
+  OneInchExchangeMock,
   SetToken,
   StandardTokenMock,
   StandardTokenWithFeeMock,
@@ -41,6 +43,7 @@ import {
 
 import { SystemFixture, UniswapFixture, UniswapV3Fixture } from "@utils/fixtures";
 
+const web3 = new Web3();
 const expect = getWaffleExpect();
 
 describe("TradeModule", () => {
@@ -54,6 +57,7 @@ describe("TradeModule", () => {
   let kyberExchangeAdapter: KyberExchangeAdapter;
   let kyberAdapterName: string;
 
+  let oneInchExchangeMock: OneInchExchangeMock;
   let oneInchExchangeAdapter: OneInchExchangeAdapter;
   let oneInchAdapterName: string;
 
@@ -99,6 +103,24 @@ describe("TradeModule", () => {
       8
     );
     kyberExchangeAdapter = await deployer.adapters.deployKyberExchangeAdapter(kyberNetworkProxy.address);
+
+    // Mock OneInch exchange that allows for only fixed exchange amounts
+    oneInchExchangeMock = await deployer.mocks.deployOneInchExchangeMock(
+      setup.wbtc.address,
+      setup.weth.address,
+      BigNumber.from(100000000), // 1 WBTC
+      wbtcRate, // Trades for 33 WETH
+    );
+
+    // 1inch function signature
+    const oneInchFunctionSignature = web3.eth.abi.encodeFunctionSignature(
+      "swap(address,address,uint256,uint256,uint256,address,address[],bytes,uint256[],uint256[])"
+    );
+    oneInchExchangeAdapter = await deployer.adapters.deployOneInchExchangeAdapter(
+      oneInchExchangeMock.address,
+      oneInchExchangeMock.address,
+      oneInchFunctionSignature
+    );
 
     uniswapSetup = getUniswapFixture(owner.address);
     await uniswapSetup.initialize(

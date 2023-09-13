@@ -146,14 +146,15 @@ describe("CompoundUniswapLeverageDebtIssuance", () => {
     await setup.controller.addModule(debtIssuanceModule.address);
 
     compoundLibrary = await deployer.libraries.deployCompound();
+    const positionV2Lib = await deployer.libraries.deployPositionV2();
     compoundLeverageModule = await deployer.modules.deployCompoundLeverageModule(
       setup.controller.address,
       compoundSetup.comp.address,
       compoundSetup.comptroller.address,
       cEther.address,
       setup.weth.address,
-      "contracts/protocol/integration/lib/Compound.sol:Compound",
       compoundLibrary.address,
+      positionV2Lib.address,
     );
     await setup.controller.addModule(compoundLeverageModule.address);
 

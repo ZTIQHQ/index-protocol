@@ -7,8 +7,8 @@ import {
   CompoundLeverageModule,
   DebtIssuanceMock,
   OneInchExchangeAdapter,
-  OneInchExchangeMock,
-  SetToken
+  OneInchExchangeMock, PositionV2,
+  SetToken,
 } from "@utils/contracts";
 import { CEther, CERc20 } from "@utils/contracts/compound";
 import DeployHelper from "@utils/deploys";
@@ -41,6 +41,7 @@ describe("CompoundLeverageModule", () => {
   let compoundSetup: CompoundFixture;
 
   let compoundLibrary: Compound;
+  let positionV2Library: PositionV2;
   let compoundLeverageModule: CompoundLeverageModule;
   let debtIssuanceMock: DebtIssuanceMock;
   let cEther: CEther;
@@ -114,14 +115,15 @@ describe("CompoundLeverageModule", () => {
     await setup.controller.addModule(debtIssuanceMock.address);
 
     compoundLibrary = await deployer.libraries.deployCompound();
+    positionV2Library = await deployer.libraries.deployPositionV2();
     compoundLeverageModule = await deployer.modules.deployCompoundLeverageModule(
       setup.controller.address,
       compoundSetup.comp.address,
       compoundSetup.comptroller.address,
       cEther.address,
       setup.weth.address,
-      "contracts/protocol/integration/lib/Compound.sol:Compound",
       compoundLibrary.address,
+      positionV2Library.address,
     );
     await setup.controller.addModule(compoundLeverageModule.address);
 
@@ -237,8 +239,8 @@ describe("CompoundLeverageModule", () => {
         subjectComptroller,
         subjectCEther,
         subjectWeth,
-        "contracts/protocol/integration/lib/Compound.sol:Compound",
         compoundLibrary.address,
+        positionV2Library.address,
       );
     }
 
