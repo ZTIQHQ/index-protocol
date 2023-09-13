@@ -15,7 +15,7 @@ const provider = new ethers.providers.JsonRpcProvider();
 
 // HARDHAT-SPECIFIC Provider
 export const getProvider = (): providers.JsonRpcProvider => {
-  return new ethers.providers.JsonRpcProvider();
+  return ethers.provider;
 };
 
 // HARDHAT / WAFFLE
@@ -106,7 +106,7 @@ export async function impersonateAccount(address: string): Promise<Signer> {
     method: "hardhat_impersonateAccount",
     params: [address],
   });
-  return provider.getSigner(address);
+  return await ethers.getSigner(address);
 }
 
 export async function waitForEvent(contract: Contract, event: string): Promise<any> {

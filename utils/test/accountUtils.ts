@@ -9,7 +9,7 @@ import { IERC20__factory } from "../../typechain";
 import { ether } from "../common";
 import type DeployHelper  from "../deploys";
 
-const provider = new ethers.providers.JsonRpcProvider();
+const provider = ethers.provider;
 
 export const getAccounts = async (): Promise<Account[]> => {
   const accounts: Account[] = [];
@@ -37,10 +37,10 @@ export const getEthBalance = async (account: Address): Promise<BigNumber> => {
 
 // NOTE ethers.signers may be a hardhat specific function
 export const getWallets = async (): Promise<SignerWithAddress[]> => {
-  return (await ethers.getSigners() as SignerWithAddress[]);
+  return await ethers.getSigners();
 };
 
-const getForkedDependencyAddresses = (): any => {
+const getForkedDependencyAddresses = () => {
   return {
     whales: [
       dependencies.DAI_WHALE,

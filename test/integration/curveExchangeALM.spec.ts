@@ -114,8 +114,10 @@ describe("CurveExchangeAdapter AaveLeverageModule integration [ @forked-mainnet 
 
     // Create liquidity
     const ape = await getRandomAccount(); // The wallet adding initial liquidity
+
     await weth.transfer(ape.address, ether(10000));
     await weth.connect(ape.wallet).approve(aaveSetup.lendingPool.address, MAX_UINT_256);
+
     await aaveSetup.lendingPool
       .connect(ape.wallet)
       .deposit(weth.address, ether(10000), ape.address, ZERO);
