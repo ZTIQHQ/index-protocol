@@ -535,7 +535,7 @@ describe("PreciseUnitMath", () => {
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("SafeMath: multiplication overflow");
+        await expect(subject()).to.be.revertedWith("panic code 17");
       });
     });
 
