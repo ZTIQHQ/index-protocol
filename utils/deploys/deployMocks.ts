@@ -33,6 +33,7 @@ import {
   NAVIssuanceCaller,
   NAVIssuanceHookMock,
   NotionalV2Mock,
+  OneInchExchangeMock,
   OracleAdapterMock,
   OracleMock,
   YearnVaultMock,
@@ -99,6 +100,7 @@ import { ModuleIssuanceHookMock__factory } from "../../typechain/factories/Modul
 import { NAVIssuanceCaller__factory } from "../../typechain/factories/NAVIssuanceCaller__factory";
 import { NAVIssuanceHookMock__factory } from "../../typechain/factories/NAVIssuanceHookMock__factory";
 import { NotionalV2Mock__factory } from "../../typechain/factories/NotionalV2Mock__factory";
+import { OneInchExchangeMock__factory } from "../../typechain/factories/OneInchExchangeMock__factory";
 import { OracleAdapterMock__factory } from "../../typechain/factories/OracleAdapterMock__factory";
 import { OracleMock__factory } from "../../typechain/factories/OracleMock__factory";
 import { YearnVaultMock__factory } from "../../typechain/factories/YearnVaultMock__factory";
@@ -199,6 +201,20 @@ export default class DeployMocks {
 
   public async deployCurveStableswapMock(coins: Address[]): Promise<CurveStableswapMock> {
     return await new CurveStableswapMock__factory(this._deployerSigner).deploy(coins);
+  }
+
+  public async deployOneInchExchangeMock(
+    sendToken: Address,
+    receiveToken: Address,
+    sendQuantity: BigNumber,
+    receiveQuantity: BigNumber,
+  ): Promise<OneInchExchangeMock> {
+    return await new OneInchExchangeMock__factory(this._deployerSigner).deploy(
+      sendToken,
+      receiveToken,
+      sendQuantity,
+      receiveQuantity,
+    );
   }
 
   public async deployZeroExMock(
