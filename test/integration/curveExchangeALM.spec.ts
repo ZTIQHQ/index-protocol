@@ -133,11 +133,12 @@ describe("CurveExchangeAdapter AaveLeverageModule integration [ @forked-mainnet 
 
     // Deploy AaveLeverageModule
     const aaveV2Library = await deployer.libraries.deployAaveV2();
+    const positionV2Library = await deployer.libraries.deployPositionV2();
     aaveLeverageModule = await deployer.modules.deployAaveLeverageModule(
       setup.controller.address,
       aaveSetup.lendingPoolAddressesProvider.address,
-      "contracts/protocol/integration/lib/AaveV2.sol:AaveV2",
       aaveV2Library.address,
+      positionV2Library.address,
     );
     await setup.controller.addModule(aaveLeverageModule.address);
 

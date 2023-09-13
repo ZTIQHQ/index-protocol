@@ -7,7 +7,7 @@ import {
   AaveLeverageModule,
   DebtIssuanceModuleV2,
   SetToken,
-  UniswapV2ExchangeAdapter,
+  UniswapV2ExchangeAdapter, PositionV2,
 } from "@utils/contracts";
 import {
   AaveV2AToken,
@@ -67,6 +67,7 @@ describe("AaveUniswapLeverageDebtIssuance", () => {
   let uniswapSetup: UniswapFixture;
 
   let aaveV2Library: AaveV2;
+  let positionV2Library: PositionV2;
   let aaveLeverageModule: AaveLeverageModule;
   let debtIssuanceModule: DebtIssuanceModuleV2;
   let uniswapExchangeAdapter: UniswapV2ExchangeAdapter;
@@ -180,11 +181,12 @@ describe("AaveUniswapLeverageDebtIssuance", () => {
     await setup.controller.addModule(debtIssuanceModule.address);
 
     aaveV2Library = await deployer.libraries.deployAaveV2();
+    positionV2Library = await deployer.libraries.deployPositionV2();
     aaveLeverageModule = await deployer.modules.deployAaveLeverageModule(
       setup.controller.address,
       aaveV2Setup.lendingPoolAddressesProvider.address,
-      "contracts/protocol/integration/lib/AaveV2.sol:AaveV2",
       aaveV2Library.address,
+      positionV2Library.address,
     );
     await setup.controller.addModule(aaveLeverageModule.address);
 

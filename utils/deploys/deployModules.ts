@@ -173,13 +173,13 @@ export default class DeployModules {
   public async deployAaveLeverageModule(
     controller: Address,
     lendingPoolAddressesProvider: Address,
-    libraryName: string,
-    libraryAddress: Address,
+    aaveV2Lib: Address,
+    positionV2Lib: Address,
   ): Promise<AaveLeverageModule> {
     return await new AaveLeverageModule__factory(
-      // @ts-ignore
       {
-        [libraryName]: libraryAddress,
+        ["contracts/protocol/integration/lib/AaveV2.sol:AaveV2"]: aaveV2Lib,
+        ["contracts/protocol/lib/PositionV2.sol:PositionV2"]: positionV2Lib,
       },
       this._deployerSigner,
     ).deploy(controller, lendingPoolAddressesProvider);
