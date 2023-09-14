@@ -88,7 +88,7 @@ describe("BytesArrayUtils", () => {
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("toBool_overflow");
+        await expect(subject()).to.be.revertedWith("panic code 17");
       });
     });
 
@@ -99,7 +99,7 @@ describe("BytesArrayUtils", () => {
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("toBool_outOfBounds");
+        await expect(subject()).to.be.revertedWith("panic code 17");
       });
     });
   });

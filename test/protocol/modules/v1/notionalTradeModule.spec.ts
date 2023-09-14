@@ -1245,7 +1245,7 @@ describe("NotionalTradeModule", () => {
                                               tokenType == "assetToken"
                                                 ? "WrappedfCashMock: Transfer failed"
                                                 : underlyingTokenName == "dai"
-                                                  ? "ERC20: transfer amount exceeds allowance"
+                                                  ? "ERC20: insufficient allowance"
                                                   : "Address: low-level call with value failed";
                                             await expect(subject()).to.be.revertedWith(
                                               revertMessage,
