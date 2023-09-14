@@ -10,7 +10,7 @@ import { ethers, network } from "hardhat";
 import { BigNumber, providers, Signer } from "ethers";
 import { Blockchain } from "../common";
 
-const provider = new ethers.providers.JsonRpcProvider();
+const provider = ethers.provider;
 // const blockchain = new Blockchain(provider);
 
 // HARDHAT-SPECIFIC Provider

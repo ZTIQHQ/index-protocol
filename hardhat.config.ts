@@ -20,7 +20,7 @@ export const forkingConfig = {
 
 const mochaConfig = {
   grep: "@forked-mainnet",
-  invert: !process.env.FORK,
+  invert: process.env.FORK ? false : true,
   timeout: 200000,
 } as Mocha.MochaOptions;
 
@@ -62,7 +62,6 @@ const config: HardhatUserConfig = {
       accounts: getHardhatPrivateKeys(),
       gas: 12000000,
       blockGasLimit: 12000000,
-      loggingEnabled: true,
     },
     localhost: {
       url: "http://127.0.0.1:8545",
