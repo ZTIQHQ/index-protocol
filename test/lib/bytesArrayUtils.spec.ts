@@ -99,7 +99,7 @@ describe("BytesArrayUtils", () => {
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("panic code 17");
+        await expect(subject()).to.be.revertedWith("toBool_outOfBounds");
       });
     });
   });
