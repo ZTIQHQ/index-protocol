@@ -13,17 +13,17 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { SafeCast } from "@openzeppelin/contracts/utils/SafeCast.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { SignedSafeMath } from "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
 
 import { IController } from "../interfaces/IController.sol";
 import { IModule } from "../interfaces/IModule.sol";
@@ -163,10 +163,7 @@ contract SetToken is ERC20 {
         address _manager,
         string memory _name,
         string memory _symbol
-    )
-        public
-        ERC20(_name, _symbol)
-    {
+    ) ERC20(_name, _symbol) {
         controller = _controller;
         manager = _manager;
         positionMultiplier = PreciseUnitMath.preciseUnitInt();
@@ -599,7 +596,7 @@ contract SetToken is ERC20 {
      */
     function _getPositionsAbsMinimumVirtualUnit() internal view returns(int256) {
         // Additional assignment happens in the loop below
-        uint256 minimumUnit = uint256(-1);
+        uint256 minimumUnit = type(uint256).max;
 
         for (uint256 i = 0; i < components.length; i++) {
             address component = components[i];

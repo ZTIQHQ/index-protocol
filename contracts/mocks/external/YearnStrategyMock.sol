@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.6.10;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 import {BaseStrategyInitializable, StrategyParams, VaultAPI} from "../../../external/contracts/yearn/BaseStrategy.sol";
 
 /*
@@ -11,6 +13,8 @@ import {BaseStrategyInitializable, StrategyParams, VaultAPI} from "../../../exte
  */
 
 contract YearnStrategyMock is BaseStrategyInitializable {
+    using SafeMath for uint256;
+
     bool public doReentrancy;
     bool public delegateEverything;
 
@@ -19,7 +23,7 @@ contract YearnStrategyMock is BaseStrategyInitializable {
     // to test `BaseStrategy.protectedTokens()`
     address public constant protectedToken = address(0xbad);
 
-    constructor(address _vault) public BaseStrategyInitializable(_vault) {}
+    constructor(address _vault) BaseStrategyInitializable(_vault) {}
 
     function name() external override view returns (string memory) {
         return string(abi.encodePacked("YearnStrategyMock ", apiVersion()));
@@ -40,7 +44,7 @@ contract YearnStrategyMock is BaseStrategyInitializable {
 
     // NOTE: This is a test-only function to simulate losses
     function _takeFunds(uint256 amount) public {
-        want.safeTransfer(msg.sender, amount);
+        want.transfer(msg.sender, amount);
     }
 
     // NOTE: This is a test-only function to enable reentrancy on withdraw
@@ -120,5 +124,13 @@ contract YearnStrategyMock is BaseStrategyInitializable {
         address[] memory protected = new address[](1);
         protected[0] = protectedToken;
         return protected;
+    }
+
+    function ethToWant(uint256 _amtInWei) public override view virtual returns (uint256) {
+        return _amtInWei;
+    }
+
+    function liquidateAllPositions() internal override virtual returns (uint256 _amountFreed) {
+        return 0;
     }
 }

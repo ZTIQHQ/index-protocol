@@ -13,10 +13,10 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -30,7 +30,7 @@ contract ClaimAdapterMock is ERC20  {
     uint256 public rewards;
 
     /* ============ Constructor ============ */
-    constructor() public ERC20("ClaimAdapter", "CLAIM") {}
+    constructor() ERC20("ClaimAdapter", "CLAIM") {}
 
     /* ============ External Functions ============ */
 

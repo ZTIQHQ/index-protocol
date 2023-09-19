@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { ISetToken } from "../interfaces/ISetToken.sol";
 import { PositionV2 } from "../protocol/lib/PositionV2.sol";
@@ -25,9 +25,7 @@ import { PositionV2 } from "../protocol/lib/PositionV2.sol";
 
 // Mock contract implementation of PositionV2 functions
 contract PositionV2Mock {
-    constructor()
-        public
-    {}
+    constructor() {}
 
     function initialize(ISetToken _setToken) external {
         _setToken.initializeModule();

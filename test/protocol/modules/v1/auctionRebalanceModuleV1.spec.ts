@@ -1975,7 +1975,8 @@ describe("AuctionRebalanceModuleV1", () => {
         });
 
         it("should revert with 'addition overflow'", async () => {
-          await expect(subject()).to.be.revertedWith("addition overflow");
+          await expect(subject()).to.be.revertedWith("panic code 0x11 (Arithmetic operation " +
+            "underflowed or overflowed outside of an unchecked block)");
         });
       });
 

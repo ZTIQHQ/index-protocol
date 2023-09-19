@@ -13,15 +13,15 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { IUniswapV2Factory } from "../interfaces/external/IUniswapV2Factory.sol";
 import { IUniswapV2Router } from "../interfaces/external/IUniswapV2Router.sol";
@@ -98,9 +98,7 @@ contract AMMSplitter {
         IUniswapV2Router _sushiRouter,
         IUniswapV2Factory _uniFactory,
         IUniswapV2Factory _sushiFactory
-    )
-        public
-    {
+    ) {
         uniRouter = _uniRouter;
         sushiRouter = _sushiRouter;
         uniFactory = _uniFactory;
@@ -429,7 +427,7 @@ contract AMMSplitter {
         if (_isExactInput) {
             return _router.swapExactTokensForTokens(_size, 0, _path, _to, _deadline)[_path.length.sub(1)];
         } else {
-            return _router.swapTokensForExactTokens(_size, uint256(-1), _path, _to, _deadline)[0];
+            return _router.swapTokensForExactTokens(_size, type(uint256).max, _path, _to, _deadline)[0];
         }
     }
 

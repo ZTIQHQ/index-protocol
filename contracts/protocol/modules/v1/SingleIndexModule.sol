@@ -13,17 +13,17 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Math } from "@openzeppelin/contracts/math/Math.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { SafeCast } from "@openzeppelin/contracts/utils/SafeCast.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
 import { IController } from "../../../interfaces/IController.sol";
@@ -49,11 +49,12 @@ import { Uint256ArrayUtils } from "../../../lib/Uint256ArrayUtils.sol";
       this module need to be examined separately)
  */
 contract SingleIndexModule is ModuleBase, ReentrancyGuard {
-    using SafeCast for int256;
     using SafeCast for uint256;
     using SafeMath for uint256;
     using Position for uint256;
     using Math for uint256;
+    using PreciseUnitMath for uint256;
+    using SafeCast for int256;
     using Position for ISetToken;
     using Invoke for ISetToken;
     using AddressArrayUtils for address[];
@@ -140,7 +141,6 @@ contract SingleIndexModule is ModuleBase, ReentrancyGuard {
         address _sushiswapRouter,
         address _balancerProxy
     )
-        public
         ModuleBase(_controller)
     {
         weth = _weth;
@@ -599,7 +599,7 @@ contract SingleIndexModule is ModuleBase, ReentrancyGuard {
             limit,
             path,
             address(index),
-            now.add(180)
+            block.timestamp.add(180)
         );
 
         return (exchangeAddress, tradeCallData);

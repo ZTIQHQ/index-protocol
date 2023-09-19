@@ -3,7 +3,7 @@
 */
 
 pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+
 
 contract Comp {
     /// @notice EIP-20 token name for this token

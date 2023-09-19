@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { BytesLib } from "external/contracts/uniswap/v3/lib/BytesLib.sol";
 import { IDMMFactory } from "../../../interfaces/external/IDMMFactory.sol";
@@ -55,7 +55,7 @@ contract KyberV3IndexExchangeAdapter is IIndexExchangeAdapter {
      * @param _dmmRouter       Address of Kyber V3 DMM Router
      * @param _dmmFactory      Address of Kyber V3 DMM Factory
      */
-    constructor(address _dmmRouter, IDMMFactory _dmmFactory) public {
+    constructor(address _dmmRouter, IDMMFactory _dmmFactory) {
         dmmRouter = _dmmRouter;
         dmmFactory = _dmmFactory;        
     }

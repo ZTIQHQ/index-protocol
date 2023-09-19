@@ -13,17 +13,18 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 import { PerpV2LibraryV2 } from "../../integration/lib/PerpV2LibraryV2.sol";
@@ -42,6 +43,8 @@ import { IDebtIssuanceModule } from "../../../interfaces/IDebtIssuanceModule.sol
 import { IModuleIssuanceHookV2 } from "../../../interfaces/IModuleIssuanceHookV2.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { ModuleBaseV2 } from "../../lib/ModuleBaseV2.sol";
+import { PositionV2 } from "../../lib/PositionV2.sol";
+import { Invoke } from "../../lib/Invoke.sol";
 import { SetTokenAccessible } from "../../lib/SetTokenAccessible.sol";
 import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
 import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
@@ -71,11 +74,16 @@ import { UnitConversionUtils } from "../../../lib/UnitConversionUtils.sol";
  */
 contract PerpV2LeverageModuleV2 is ModuleBaseV2, ReentrancyGuard, Ownable, SetTokenAccessible, IModuleIssuanceHookV2 {
     using PerpV2LibraryV2 for ISetToken;
+    using PositionV2 for ISetToken;
+    using Invoke for ISetToken;
     using PreciseUnitMath for int256;
     using SignedSafeMath for int256;
+    using SafeCast for int256;
     using UnitConversionUtils for int256;
     using UniswapV3Math for uint160;
     using UniswapV3Math for uint256;
+    using SafeCast for uint256;
+    using PreciseUnitMath for uint256;
     using UnitConversionUtils for uint256;
     using AddressArrayUtils for address[];
 
@@ -196,7 +204,6 @@ contract PerpV2LeverageModuleV2 is ModuleBaseV2, ReentrancyGuard, Ownable, SetTo
         IMarketRegistry _perpMarketRegistry,
         uint256 _maxPerpPositionsPerSet
     )
-        public
         ModuleBaseV2(_controller)
         SetTokenAccessible(_controller)
     {
@@ -590,7 +597,7 @@ contract PerpV2LeverageModuleV2 is ModuleBaseV2, ReentrancyGuard, Ownable, SetTo
     {
         int256 newExternalPositionUnit = positions[_setToken].length > 0
             ? _executePositionTrades(_setToken, _setTokenQuantity, true, true)
-            : 0;
+            : int256(0);
 
         return _formatAdjustments(_setToken, newExternalPositionUnit);
     }
@@ -612,11 +619,11 @@ contract PerpV2LeverageModuleV2 is ModuleBaseV2, ReentrancyGuard, Ownable, SetTo
         external
         virtual
         override
-        returns (int256[] memory, int256[] memory _)
+        returns (int256[] memory, int256[] memory)
     {
         int256 newExternalPositionUnit = positions[_setToken].length > 0
             ? _executePositionTrades(_setToken, _setTokenQuantity, false, true)
-            : 0;
+            : int256(0);
 
         return _formatAdjustments(_setToken, newExternalPositionUnit);
     }

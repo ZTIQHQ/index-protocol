@@ -13,10 +13,10 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -28,7 +28,7 @@ contract ModuleBaseV2Mock is ModuleBaseV2 {
 
     bool public removed;
 
-    constructor(IController _controller) public ModuleBaseV2(_controller) {}
+    constructor(IController _controller) ModuleBaseV2(_controller) {}
 
     /* ============ External Functions ============ */
 

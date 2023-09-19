@@ -1,4 +1,5 @@
-pragma solidity 0.6.10;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity 0.8.19;
 
 interface IPoolAddressesProvider {
     event ACLAdminUpdated(address indexed oldAddress, address indexed newAddress);

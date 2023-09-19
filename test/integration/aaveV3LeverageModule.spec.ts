@@ -219,12 +219,13 @@ describe("AaveV3LeverageModule integration", () => {
 
     deployer = new DeployHelper(owner.wallet);
     const aaveV3Library = await deployer.libraries.deployAaveV3();
+    const positionV2Library = await deployer.libraries.deployPositionV2();
 
     aaveLeverageModule = await deployer.modules.deployAaveV3LeverageModule(
       controller.address,
       poolAddressesProvider.address,
-      "contracts/protocol/integration/lib/AaveV3.sol:AaveV3",
       aaveV3Library.address,
+      positionV2Library.address,
     );
     await controller.addModule(aaveLeverageModule.address);
 

@@ -13,13 +13,13 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { IOracle } from "../interfaces/IOracle.sol";
 
@@ -28,9 +28,9 @@ contract OracleAdapterMock {
     uint256 public dummyPrice;
     address public asset;
 
-    constructor(address _asset, uint256 _dummyPrice)
-        public
-    { dummyPrice = _dummyPrice; asset = _asset; }
+    constructor(address _asset, uint256 _dummyPrice) {
+        dummyPrice = _dummyPrice; asset = _asset;
+    }
 
     function getPrice(address _assetOne, address _assetTwo)
         external

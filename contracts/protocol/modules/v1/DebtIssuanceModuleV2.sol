@@ -13,14 +13,17 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
 
 import { DebtIssuanceModule } from "./DebtIssuanceModule.sol";
 import { IController } from "../../../interfaces/IController.sol";
@@ -28,6 +31,7 @@ import { Invoke } from "../../lib/Invoke.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { IssuanceValidationUtils } from "../../lib/IssuanceValidationUtils.sol";
 import { Position } from "../../lib/Position.sol";
+import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
 
 /**
  * @title DebtIssuanceModuleV2
@@ -51,11 +55,17 @@ import { Position } from "../../lib/Position.sol";
  * and redemption. If token balances are not being synced it will over-estimate the amount of tokens required to issue a Set.
  */
 contract DebtIssuanceModuleV2 is DebtIssuanceModule {
+    using Invoke for ISetToken;
     using Position for uint256;
+    using SafeMath for uint256;
+    using PreciseUnitMath for uint256;
+    using SafeCast for uint256;
+    using SafeCast for int256;
+    using SignedSafeMath for int256;
 
     /* ============ Constructor ============ */
 
-    constructor(IController _controller) public DebtIssuanceModule(_controller) {}
+    constructor(IController _controller) DebtIssuanceModule(_controller) {}
 
     /* ============ External Functions ============ */
 

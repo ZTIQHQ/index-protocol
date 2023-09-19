@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { ISwapRouter } from  "contracts/interfaces/external/ISwapRouter.sol";
 import { BytesLib } from "external/contracts/uniswap/v3/lib/BytesLib.sol";
@@ -54,7 +54,7 @@ contract UniswapV3IndexExchangeAdapter is IIndexExchangeAdapter {
      *
      * @param _router       Address of Uniswap V3 SwapRouter contract
      */
-    constructor(address _router) public {
+    constructor(address _router) {
         router = _router;
     }
 

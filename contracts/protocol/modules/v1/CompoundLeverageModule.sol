@@ -13,15 +13,18 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import { Compound } from "../../integration/lib/Compound.sol";
 import { ICErc20 } from "../../../interfaces/external/ICErc20.sol";
@@ -31,6 +34,10 @@ import { IDebtIssuanceModule } from "../../../interfaces/IDebtIssuanceModule.sol
 import { IExchangeAdapter } from "../../../interfaces/IExchangeAdapter.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { ModuleBase } from "../../lib/ModuleBase.sol";
+import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
+import { PositionV2 } from "../../lib/PositionV2.sol";
+import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
+import { Invoke } from "../../lib/Invoke.sol";
 
 /**
  * @title CompoundLeverageModule
@@ -46,6 +53,14 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
  */
 contract CompoundLeverageModule is ModuleBase, ReentrancyGuard, Ownable {
     using Compound for ISetToken;
+    using PositionV2 for ISetToken;
+    using Invoke for ISetToken;
+    using SafeMath for uint256;
+    using SafeCast for uint256;
+    using PreciseUnitMath for uint256;
+    using SignedSafeMath for int256;
+    using SafeCast for int256;
+    using AddressArrayUtils for address[];
 
     /* ============ Structs ============ */
 
@@ -169,7 +184,6 @@ contract CompoundLeverageModule is ModuleBase, ReentrancyGuard, Ownable {
         ICErc20 _cEther,
         IERC20 _weth
     )
-        public
         ModuleBase(_controller)
     {
         compToken = _compToken;
@@ -350,7 +364,7 @@ contract CompoundLeverageModule is ModuleBase, ReentrancyGuard, Ownable {
 
         _executeTrade(deleverInfo, _collateralAsset, _repayAsset, _tradeData);
 
-        // We use notionalRepayQuantity vs. Compound's max value uint256(-1) to handle WETH properly
+        // We use notionalRepayQuantity vs. Compound's max value type(uint256).max to handle WETH properly
         _repayBorrow(deleverInfo.setToken, deleverInfo.borrowCTokenAsset, _repayAsset, notionalRepayQuantity);
 
         // Update default position first to save gas on editing borrow position

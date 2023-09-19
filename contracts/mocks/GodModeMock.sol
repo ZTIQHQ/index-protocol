@@ -13,11 +13,12 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
+import { Invoke } from "../protocol/lib/Invoke.sol";
 import { IController } from "../interfaces/IController.sol";
 import { ISetToken } from "../interfaces/ISetToken.sol";
 import { ModuleBase } from "../protocol/lib/ModuleBase.sol";
@@ -25,7 +26,9 @@ import { ModuleBase } from "../protocol/lib/ModuleBase.sol";
 
 contract GodModeMock is ModuleBase {
 
-    constructor(IController _controller) public ModuleBase(_controller) {}
+    using Invoke for ISetToken;
+
+    constructor(IController _controller) ModuleBase(_controller) {}
 
     function transferTokens(
         ISetToken _setToken,

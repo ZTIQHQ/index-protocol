@@ -13,10 +13,10 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -82,7 +82,7 @@ abstract contract SetTokenAccessible is Ownable {
      *
      * @param _controller             Address of controller contract
      */
-    constructor(IController _controller) public {
+    constructor(IController _controller) {
         controller = _controller;
     }
 

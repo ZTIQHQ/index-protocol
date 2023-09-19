@@ -13,14 +13,14 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract ERC4626Mock is ERC20 {
     address public underlying_asset;
@@ -29,10 +29,7 @@ contract ERC4626Mock is ERC20 {
         string memory _name,
         string memory _symbol,
         address _asset
-    ) 
-        public 
-        ERC20(_name, _symbol)
-    {
+    ) ERC20(_name, _symbol) {
         underlying_asset = _asset;
     }
 

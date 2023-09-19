@@ -13,18 +13,39 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 // Mock contract implementation of 1Inch
 contract OneInchExchangeMock {
 
     using SafeMath for uint256;
+
+    struct SwapDescription {
+        IERC20 srcToken;
+        IERC20 dstToken;
+        address srcReceiver;
+        address dstReceiver;
+        uint256 amount;
+        uint256 minReturnAmount;
+        uint256 guaranteedAmount;
+        uint256 flags;
+        address referrer;
+        bytes permit;
+    }
+
+    struct CallDescription {
+        uint256 targetWithMandatory;
+        uint256 gasLimit;
+        uint256 value;
+        bytes data;
+    }
 
     address public mockReceiveToken;
     address public mockSendToken;
@@ -38,7 +59,7 @@ contract OneInchExchangeMock {
         address _mockReceiveToken,
         uint256 _mockSendAmount,
         uint256 _mockReceiveAmount
-    ) public {
+    ) {
         mockSendToken = _mockSendToken;
         mockReceiveToken = _mockReceiveToken;
         mockSendAmount = _mockSendAmount;
@@ -60,35 +81,16 @@ contract OneInchExchangeMock {
 
     // Conform to 1Inch Swap interface
     function swap(
-        address _fromToken,
-        address _toToken,
-        uint256 _fromTokenAmount,
-        uint256 _minReturnAmount,
-        uint256 _guaranteedAmount,
-        address payable _referrer,
-        address[] calldata _callAddresses,
-        bytes calldata _callDataConcat,
-        uint256[] calldata _starts,
-        uint256[] calldata _gasLimitsAndValues
+        address /* caller */,
+        SwapDescription calldata /* desc */,
+        CallDescription[] calldata /* calls */
     )
         external
         payable
-        returns (uint256 returnAmount)
+        returns (uint256)
     {
         require(ERC20(mockSendToken).transferFrom(setTokenAddress, address(this), mockSendAmount), "ERC20 TransferFrom failed");
         require(ERC20(mockReceiveToken).transfer(setTokenAddress, mockReceiveAmount), "ERC20 transfer failed");
-
-        // Used to silence compiler warnings
-        _fromToken;
-        _toToken;
-        _fromTokenAmount;
-        _minReturnAmount;
-        _guaranteedAmount;
-        _referrer;
-        _callAddresses;
-        _callDataConcat;
-        _starts;
-        _gasLimitsAndValues;
 
         return mockReceiveAmount;
     }

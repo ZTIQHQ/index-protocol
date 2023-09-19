@@ -13,10 +13,10 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-  SPDX-License-Identifier: Apache License, Version 2.0
+  SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 interface IVault {
     function getBalance(address account) external view returns (int256);

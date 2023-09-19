@@ -1,5 +1,6 @@
-pragma solidity 0.6.10;
-pragma experimental ABIEncoderV2;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity 0.8.19;
+
 import {ConfiguratorInputTypes} from "./ConfigurationInputTypes.sol";
 
 interface IPoolConfigurator {

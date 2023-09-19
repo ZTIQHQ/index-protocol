@@ -13,10 +13,10 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 import { IGaugeController } from "../../../interfaces/external/IGaugeController.sol";
 
@@ -40,7 +40,7 @@ contract CurveStakingAdapter {
      *
      * @param _gaugeController     Address of Gauge Controller
      */
-    constructor(IGaugeController _gaugeController) public {
+    constructor(IGaugeController _gaugeController) {
         gaugeController = _gaugeController;
     }
 

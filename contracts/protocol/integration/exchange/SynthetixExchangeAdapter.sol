@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { ISynth } from "../../../interfaces/external/ISynth.sol";
 import { ISynthetixExchanger } from "../../../interfaces/external/ISynthetixExchanger.sol";
@@ -52,7 +52,7 @@ contract SynthetixExchangeAdapter {
      *
      * @param _synthetixExchangerAddress    Address of Synthetix's Exchanger contract
      */
-    constructor(address _synthetixExchangerAddress) public {
+    constructor(address _synthetixExchangerAddress) {
         synthetixExchangerAddress = _synthetixExchangerAddress;
     }
 

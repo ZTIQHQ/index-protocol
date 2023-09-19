@@ -13,10 +13,10 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
@@ -24,7 +24,7 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 contract ContractCallerMock {
     using Address for address;
 
-    constructor() public {}
+    constructor() {}
 
     function invoke(
         address _target,

@@ -13,10 +13,10 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -34,7 +34,7 @@ contract WrapAdapterMock is ERC20 {
     address public constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /* ============ Constructor ============ */
-    constructor() public ERC20("WrapAdapter", "WRAP") {}
+    constructor() ERC20("WrapAdapter", "WRAP") {}
 
     /* ============ External Functions ============ */
 
@@ -56,7 +56,7 @@ contract WrapAdapterMock is ERC20 {
     function withdraw(address _underlyingToken, uint256 _underlyingQuantity) external {
         // Transfer the underlying to the sender
         if (_underlyingToken == ETH_TOKEN_ADDRESS) {
-            msg.sender.transfer(_underlyingQuantity);
+            payable(msg.sender).transfer(_underlyingQuantity);
         } else {
             IERC20(_underlyingToken).transfer(msg.sender, _underlyingQuantity);
         }

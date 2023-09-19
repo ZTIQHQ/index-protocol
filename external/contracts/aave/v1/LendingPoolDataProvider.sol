@@ -325,7 +325,7 @@ contract LendingPoolDataProvider is VersionedInitializable {
         uint256 totalFeesETH,
         uint256 liquidationThreshold
     ) internal pure returns (uint256) {
-        if (borrowBalanceETH == 0) return uint256(-1);
+        if (borrowBalanceETH == 0) return type(uint256).max;
 
         return
         (collateralBalanceETH.mul(liquidationThreshold).div(100)).wadDiv(

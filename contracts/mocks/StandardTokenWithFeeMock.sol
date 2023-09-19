@@ -13,12 +13,12 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
 // mock class using BasicToken
@@ -53,9 +53,7 @@ contract StandardTokenWithFeeMock {
         string memory _name,
         string memory _symbol,
         uint256 _fee
-    )
-        public
-    {
+    ) {
         _balances[_initialAccount] = _initialBalance;
         _totalSupply = _initialBalance;
         name = _name;

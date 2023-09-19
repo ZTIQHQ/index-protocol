@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 /**
  * @title UniswapV2TransferFeeExchangeAdapter
@@ -39,7 +39,7 @@ contract UniswapV2TransferFeeExchangeAdapter {
      *
      * @param _router       Address of Uniswap V2 Router02 contract
      */
-    constructor(address _router) public {
+    constructor(address _router) {
         router = _router;
     }
 

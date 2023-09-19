@@ -13,17 +13,17 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { SafeCast } from "@openzeppelin/contracts/utils/SafeCast.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { SignedSafeMath } from "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
 
 import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
 import { IController } from "../../../interfaces/IController.sol";
@@ -46,6 +46,14 @@ import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
  * in the manager hook, as well as specify issue and redeem fees.
  */
 contract DebtIssuanceModule is ModuleBase, ReentrancyGuard {
+    using Invoke for ISetToken;
+    using Position for ISetToken;
+    using SafeMath for uint256;
+    using SafeCast for int256;
+    using SignedSafeMath for int256;
+    using PreciseUnitMath for ISetToken;
+    using PreciseUnitMath for uint256;
+    using AddressArrayUtils for address[];
 
     /* ============ Structs ============ */
 
@@ -93,7 +101,7 @@ contract DebtIssuanceModule is ModuleBase, ReentrancyGuard {
 
     /* ============ Constructor ============ */
 
-    constructor(IController _controller) public ModuleBase(_controller) {}
+    constructor(IController _controller) ModuleBase(_controller) {}
 
     /* ============ External Functions ============ */
 
@@ -317,14 +325,12 @@ contract DebtIssuanceModule is ModuleBase, ReentrancyGuard {
         require(_managerIssueFee <= _maxManagerFee, "Issue fee can't exceed maximum fee");
         require(_managerRedeemFee <= _maxManagerFee, "Redeem fee can't exceed maximum fee");
 
-        issuanceSettings[_setToken] = IssuanceSettings({
-            maxManagerFee: _maxManagerFee,
-            managerIssueFee: _managerIssueFee,
-            managerRedeemFee: _managerRedeemFee,
-            feeRecipient: _feeRecipient,
-            managerIssuanceHook: _managerIssuanceHook,
-            moduleIssuanceHooks: new address[](0)
-        });
+        issuanceSettings[_setToken].maxManagerFee = _maxManagerFee;
+        issuanceSettings[_setToken].managerIssueFee = _managerIssueFee;
+        issuanceSettings[_setToken].managerRedeemFee = _managerRedeemFee;
+        issuanceSettings[_setToken].feeRecipient = _feeRecipient;
+        issuanceSettings[_setToken].managerIssuanceHook = _managerIssuanceHook;
+        issuanceSettings[_setToken].moduleIssuanceHooks = new address[](0);
 
         _setToken.initializeModule();
     }
@@ -362,7 +368,7 @@ contract DebtIssuanceModule is ModuleBase, ReentrancyGuard {
         view
         returns (uint256 totalQuantity, uint256 managerFee, uint256 protocolFee)
     {
-        IssuanceSettings memory setIssuanceSettings = issuanceSettings[_setToken];
+        IssuanceSettings storage setIssuanceSettings = issuanceSettings[_setToken];
         uint256 protocolFeeSplit = controller.getModuleFee(address(this), ISSUANCE_MODULE_PROTOCOL_FEE_SPLIT_INDEX);
         uint256 totalFeeRate = _isIssue ? setIssuanceSettings.managerIssueFee : setIssuanceSettings.managerRedeemFee;
 

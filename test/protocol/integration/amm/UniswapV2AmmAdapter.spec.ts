@@ -294,7 +294,7 @@ describe("UniswapV2AmmAdapter", () => {
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("SafeMath: division by zero");
+        await expect(subject()).to.be.revertedWith("panic code 18");
       });
     });
 

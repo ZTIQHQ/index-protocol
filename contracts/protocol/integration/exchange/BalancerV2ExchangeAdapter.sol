@@ -9,11 +9,11 @@
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import {IVault} from "../../../interfaces/external/balancer-v2/IVault.sol";
 import {IExchangeAdapter} from "../../../interfaces/IExchangeAdapter.sol";
@@ -37,7 +37,7 @@ contract BalancerV2ExchangeAdapter is IExchangeAdapter {
    *
    * @param _vault        balancer vault address
    */
-  constructor(address _vault) public {
+  constructor(address _vault) {
     vault = _vault;
   }
 
@@ -95,7 +95,7 @@ contract BalancerV2ExchangeAdapter is IExchangeAdapter {
       swap,
       fm,
       _minToQuantity,
-      uint256(-1)
+      type(uint256).max
     );
     return (vault, 0, callData);
   }

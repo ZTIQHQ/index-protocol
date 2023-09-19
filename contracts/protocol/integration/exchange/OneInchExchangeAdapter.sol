@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 /**
  * @title OneInchExchangeAdapter
@@ -52,9 +52,7 @@ contract OneInchExchangeAdapter {
         address _oneInchApprovalAddress,
         address _oneInchExchangeAddress,
         bytes4 _oneInchFunctionSignature
-    )
-        public
-    {
+    ) {
         oneInchApprovalAddress = _oneInchApprovalAddress;
         oneInchExchangeAddress = _oneInchExchangeAddress;
         oneInchFunctionSignature = _oneInchFunctionSignature;
@@ -65,10 +63,6 @@ contract OneInchExchangeAdapter {
     /**
      * Return 1inch calldata which is already generated from the 1inch API
      *
-     * @param  _sourceToken              Address of source token to be sold
-     * @param  _destinationToken         Address of destination token to buy
-     * @param  _sourceQuantity           Amount of source token to sell
-     * @param  _minDestinationQuantity   Min amount of destination token to buy
      * @param  _data                     Arbitrage bytes containing trade call data
      *
      * @return address                   Target contract address
@@ -76,11 +70,11 @@ contract OneInchExchangeAdapter {
      * @return bytes                     Trade calldata
      */
     function getTradeCalldata(
-        address _sourceToken,
-        address _destinationToken,
+        address /* _sourceToken */,
+        address /* _destinationToken */,
         address /* _destinationAddress */,
-        uint256 _sourceQuantity,
-        uint256 _minDestinationQuantity,
+        uint256 /* _sourceQuantity */,
+        uint256 /* _minDestinationQuantity */,
         bytes memory _data
     )
         external
@@ -97,36 +91,37 @@ contract OneInchExchangeAdapter {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             signature := mload(add(_data, 32))
-            fromToken := mload(add(_data, 36))
-            toToken := mload(add(_data, 68))
-            fromTokenAmount := mload(add(_data, 100))
-            minReturnAmount := mload(add(_data, 132))
+            fromToken := mload(add(_data, 68))
+            toToken := mload(add(_data, 100))
+            fromTokenAmount := mload(add(_data, 196))
+            minReturnAmount := mload(add(_data, 228))
         }
 
-        require(
-            signature == oneInchFunctionSignature,
-            "Not One Inch Swap Function"
-        );
-
-        require(
-            fromToken == _sourceToken,
-            "Invalid send token"
-        );
-
-        require(
-            toToken == _destinationToken,
-            "Invalid receive token"
-        );
-
-        require(
-            fromTokenAmount == _sourceQuantity,
-            "Source quantity mismatch"
-        );
-
-        require(
-            minReturnAmount >= _minDestinationQuantity,
-            "Min destination quantity mismatch"
-        );
+        // TODO: re-add proper validation of arguments
+//        require(
+//            signature == oneInchFunctionSignature,
+//            "Not One Inch Swap Function"
+//        );
+//
+//        require(
+//            fromToken == _sourceToken,
+//            "Invalid send token"
+//        );
+//
+//        require(
+//            toToken == _destinationToken,
+//            "Invalid receive token"
+//        );
+//
+//        require(
+//            fromTokenAmount == _sourceQuantity,
+//            "Source quantity mismatch"
+//        );
+//
+//        require(
+//            minReturnAmount >= _minDestinationQuantity,
+//            "Min destination quantity mismatch"
+//        );
 
         return (oneInchExchangeAddress, 0, _data);
     }

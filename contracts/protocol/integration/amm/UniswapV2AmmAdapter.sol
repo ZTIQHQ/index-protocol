@@ -13,17 +13,18 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
+
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "../../../interfaces/external/IUniswapV2Router.sol";
 import "../../../interfaces/external/IUniswapV2Pair.sol";
 import "../../../interfaces/external/IUniswapV2Factory.sol";
 import "../../../interfaces/IAmmAdapter.sol";
-import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /**
  * @title UniswapV2AmmAdapter
@@ -54,7 +55,7 @@ contract UniswapV2AmmAdapter is IAmmAdapter {
      *
      * @param _router          Address of Uniswap V2 Router contract
      */
-    constructor(address _router) public {
+    constructor(address _router) {
         router = _router;
         factory = IUniswapV2Factory(IUniswapV2Router(_router).factory());
     }

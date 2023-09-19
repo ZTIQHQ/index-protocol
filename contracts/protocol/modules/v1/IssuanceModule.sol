@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { DebtIssuanceModuleV2 } from "./DebtIssuanceModuleV2.sol";
 import { IController } from "../../../interfaces/IController.sol";
@@ -37,5 +37,5 @@ contract IssuanceModule is DebtIssuanceModuleV2 {
     /**
      * Set state controller state variable
      */
-    constructor(IController _controller) public DebtIssuanceModuleV2(_controller) {}
+    constructor(IController _controller) DebtIssuanceModuleV2(_controller) {}
 }

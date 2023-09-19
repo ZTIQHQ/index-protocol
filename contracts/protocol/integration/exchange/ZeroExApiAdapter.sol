@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 /**
  * @title ZeroExApiAdapter
@@ -71,7 +71,7 @@ contract ZeroExApiAdapter {
 
     /* ============ constructor ============ */
 
-    constructor(address _zeroExAddress, address _wethAddress) public {
+    constructor(address _zeroExAddress, address _wethAddress) {
         zeroExAddress = _zeroExAddress;
         wethAddress = _wethAddress;
         getSpender = _zeroExAddress;

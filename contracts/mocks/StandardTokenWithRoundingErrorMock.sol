@@ -13,15 +13,15 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 import "./StandardTokenMock.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/SafeCast.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 contract StandardTokenWithRoundingErrorMock {
     using SignedSafeMath for int256;
@@ -58,10 +58,7 @@ contract StandardTokenWithRoundingErrorMock {
         string memory _name,
         string memory _symbol,
         uint8 /* _decimals */
-    )
-        public
-
-    {
+    ) {
         _balances[_initialAccount] = _initialBalance;
         _totalSupply = _initialBalance;
         name = _name;

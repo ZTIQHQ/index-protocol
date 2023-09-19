@@ -13,17 +13,17 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Math } from "@openzeppelin/contracts/math/Math.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { SafeCast } from "@openzeppelin/contracts/utils/SafeCast.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
 import { IAuctionPriceAdapterV1 } from "../../../interfaces/IAuctionPriceAdapterV1.sol";
@@ -60,6 +60,7 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
     using SafeMath for uint256;
     using Position for uint256;
     using Math for uint256;
+    using PreciseUnitMath for uint256;
     using Position for ISetToken;
     using Invoke for ISetToken;
     using AddressArrayUtils for address[];
@@ -224,7 +225,7 @@ contract AuctionRebalanceModuleV1 is ModuleBase, ReentrancyGuard {
 
     /* ============ Constructor ============ */
 
-    constructor(IController _controller) public ModuleBase(_controller) {}
+    constructor(IController _controller) ModuleBase(_controller) {}
 
     /* ============ External Functions ============ */
 

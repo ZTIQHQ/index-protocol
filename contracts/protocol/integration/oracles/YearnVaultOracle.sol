@@ -13,12 +13,12 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
 import { IYearnVault } from "../../../interfaces/external/IYearnVault.sol";
@@ -58,9 +58,7 @@ contract YearnVaultOracle is IOracle
         IOracle _underlyingOracle,
         uint256 _underlyingFullUnit,
         string memory _dataDescription
-    )
-        public
-    {
+    ) {
         vault = _vault;
         underlyingFullUnit = _underlyingFullUnit;
         underlyingOracle = _underlyingOracle;

@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -41,7 +41,7 @@ contract AssetLimitHook is INAVIssuanceHook, Ownable {
 
     /* ============ Constructor ============ */
 
-    constructor(address[] memory _assets, uint256[] memory _limits) public {
+    constructor(address[] memory _assets, uint256[] memory _limits) {
         require(_assets.length == _limits.length, "Arrays must be equal");
         require(_assets.length != 0, "Array must not be empty");
         

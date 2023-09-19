@@ -2565,7 +2565,7 @@ describe("GeneralIndexModule", () => {
         });
 
         it("it should revert", async () => {
-          await expect(subject()).to.be.revertedWith("addition overflow");
+          await expect(subject()).to.be.revertedWith("panic code 0x11");
         });
       });
 

@@ -3,7 +3,7 @@ import "module-alias/register";
 import { Address } from "@utils/types";
 import { Account } from "@utils/test/types";
 import {
-  AaveV2,
+  AaveV2, PositionV2,
 } from "@utils/contracts";
 import {
   AaveV2LendingPoolAddressesProvider,
@@ -31,6 +31,7 @@ describe("AaveLeverageModule Deployment Integration [ @forked-mainnet ]", () => 
   let aaveSetup: AaveV2Fixture;
 
   let aaveV2Library: AaveV2;
+  let positionV2Library: PositionV2;
   let lendingPoolAddressesProvider: AaveV2LendingPoolAddressesProvider;
   let protocolDataProvider: AaveV2ProtocolDataProvider;
 
@@ -47,6 +48,7 @@ describe("AaveLeverageModule Deployment Integration [ @forked-mainnet ]", () => 
     aaveSetup = getAaveV2Fixture(owner.address);
 
     aaveV2Library = await deployer.libraries.deployAaveV2();
+    positionV2Library = await deployer.libraries.deployPositionV2();
     lendingPoolAddressesProvider = aaveSetup.getForkedAaveLendingPoolAddressesProvider();
     protocolDataProvider = aaveSetup.getForkedAaveV2ProtocolDataProvider();
   });
@@ -65,8 +67,8 @@ describe("AaveLeverageModule Deployment Integration [ @forked-mainnet ]", () => 
         return await deployer.modules.deployAaveLeverageModule(
           subjectController,
           subjectLendingPoolAddressesProvider,
-          "contracts/protocol/integration/lib/AaveV2.sol:AaveV2",
           aaveV2Library.address,
+          positionV2Library.address,
         );
       }
 

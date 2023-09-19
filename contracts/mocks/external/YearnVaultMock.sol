@@ -13,15 +13,15 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
 contract YearnVaultMock {
     uint256 public pricePerShare;
 
-    constructor(uint256 _pricePerShare) public {
+    constructor(uint256 _pricePerShare) {
         pricePerShare = _pricePerShare;
     }
 

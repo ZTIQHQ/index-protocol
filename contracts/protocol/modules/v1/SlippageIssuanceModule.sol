@@ -13,16 +13,20 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import { DebtIssuanceModule } from "./DebtIssuanceModule.sol";
 import { IController } from "../../../interfaces/IController.sol";
 import { IModuleIssuanceHookV2 } from "../../../interfaces/IModuleIssuanceHookV2.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
+import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
+import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
 
 /**
  * @title SlippageIssuanceModule
@@ -37,8 +41,13 @@ import { ISetToken } from "../../../interfaces/ISetToken.sol";
  * require slippage just by calling the issue and redeem endpoints.
  */
 contract SlippageIssuanceModule is DebtIssuanceModule {
+    using PreciseUnitMath for uint256;
+    using SafeCast for uint256;
+    using SignedSafeMath for int256;
+    using SafeCast for int256;
+    using AddressArrayUtils for address[];
 
-    constructor(IController _controller) public DebtIssuanceModule(_controller) {}
+    constructor(IController _controller) DebtIssuanceModule(_controller) {}
 
     /* ============ External Functions ============ */
 

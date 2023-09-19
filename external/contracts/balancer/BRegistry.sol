@@ -1,7 +1,7 @@
 pragma solidity 0.5.12;
 
-import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 
 interface IBPool {
@@ -292,7 +292,7 @@ contract BRegistry {
         internal pure returns(bytes32)
     {
         uint256 result = 0;
-        uint256 prevEffectiveLiquidity = uint256(-1);
+        uint256 prevEffectiveLiquidity = type(uint256).max;
         for (uint i = 0; i < Math.min(effectiveLiquidity.length, 32); i++) {
             uint256 bestIndex = 0;
             for (uint j = 0; j < effectiveLiquidity.length; j++) {

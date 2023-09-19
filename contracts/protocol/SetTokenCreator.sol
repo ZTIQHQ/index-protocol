@@ -13,11 +13,11 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { IController } from "../interfaces/IController.sol";
 import { SetToken } from "./SetToken.sol";
@@ -47,7 +47,7 @@ contract SetTokenCreator {
     /**
      * @param _controller          Instance of the controller
      */
-    constructor(IController _controller) public {
+    constructor(IController _controller) {
         controller = _controller;
     }
 

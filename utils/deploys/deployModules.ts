@@ -158,13 +158,13 @@ export default class DeployModules {
     comptroller: Address,
     cEth: Address,
     weth: Address,
-    libraryName: string,
-    libraryAddress: Address,
+    compoundLibAddress: Address,
+    positionV2Lib: Address,
   ): Promise<CompoundLeverageModule> {
     return await new CompoundLeverageModule__factory(
-      // @ts-ignore
       {
-        [libraryName]: libraryAddress,
+        ["contracts/protocol/integration/lib/Compound.sol:Compound"]: compoundLibAddress,
+        ["contracts/protocol/lib/PositionV2.sol:PositionV2"]: positionV2Lib,
       },
       this._deployerSigner,
     ).deploy(controller, compToken, comptroller, cEth, weth);
@@ -173,13 +173,13 @@ export default class DeployModules {
   public async deployAaveLeverageModule(
     controller: Address,
     lendingPoolAddressesProvider: Address,
-    libraryName: string,
-    libraryAddress: Address,
+    aaveV2Lib: Address,
+    positionV2Lib: Address,
   ): Promise<AaveLeverageModule> {
     return await new AaveLeverageModule__factory(
-      // @ts-ignore
       {
-        [libraryName]: libraryAddress,
+        ["contracts/protocol/integration/lib/AaveV2.sol:AaveV2"]: aaveV2Lib,
+        ["contracts/protocol/lib/PositionV2.sol:PositionV2"]: positionV2Lib,
       },
       this._deployerSigner,
     ).deploy(controller, lendingPoolAddressesProvider);
@@ -188,13 +188,13 @@ export default class DeployModules {
   public async deployAaveV3LeverageModule(
     controller: Address,
     lendingPoolAddressesProvider: Address,
-    libraryName: string,
-    libraryAddress: Address,
+    aaveV3Lib: Address,
+    positionV2Lib: Address,
   ): Promise<AaveV3LeverageModule> {
     return await new AaveV3LeverageModule__factory(
-      // @ts-ignore
       {
-        [libraryName]: libraryAddress,
+        ["contracts/protocol/integration/lib/AaveV3.sol:AaveV3"]: aaveV3Lib,
+        ["contracts/protocol/lib/PositionV2.sol:PositionV2"]: positionV2Lib,
       },
       this._deployerSigner,
     ).deploy(controller, lendingPoolAddressesProvider);

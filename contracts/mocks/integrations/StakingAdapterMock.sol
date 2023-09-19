@@ -13,12 +13,12 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
+pragma solidity 0.8.19;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -39,7 +39,7 @@ contract StakingAdapterMock {
     IERC20 public stakingAsset;
 
     /* ============ Constructor ============ */
-    constructor(IERC20 _stakingAsset) public {
+    constructor(IERC20 _stakingAsset) {
         stakingAsset = _stakingAsset;
     }
 

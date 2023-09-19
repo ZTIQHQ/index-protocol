@@ -7,8 +7,8 @@ import {
   CompoundLeverageModule,
   DebtIssuanceMock,
   OneInchExchangeAdapter,
-  OneInchExchangeMock,
-  SetToken
+  OneInchExchangeMock, PositionV2,
+  SetToken,
 } from "@utils/contracts";
 import { CEther, CERc20 } from "@utils/contracts/compound";
 import DeployHelper from "@utils/deploys";
@@ -27,11 +27,36 @@ import {
   getRandomAddress
 } from "@utils/test/index";
 import { CompoundFixture, SystemFixture } from "@utils/fixtures";
-import { BigNumber } from "ethers";
+import { BigNumber, BigNumberish } from "ethers";
 import { ADDRESS_ZERO, ZERO, EMPTY_BYTES } from "@utils/constants";
+import { CallDescriptionStruct, SwapDescriptionStruct } from "@typechain/OneInchExchangeMock";
 
 const expect = getWaffleExpect();
 const web3 = new Web3();
+
+function getOneInchSwapArgs(
+  sendToken: Address,
+  receiveToken: Address,
+  sendQuantity: BigNumberish,
+  minReceiveQuantity: BigNumberish,
+):  [string, SwapDescriptionStruct, CallDescriptionStruct[]] {
+  return [
+    ADDRESS_ZERO,
+    {
+      srcToken: sendToken, // Send token
+      dstToken: receiveToken, // Receive token
+      srcReceiver: ADDRESS_ZERO,
+      dstReceiver: ADDRESS_ZERO,
+      amount: sendQuantity, // Send quantity
+      minReturnAmount: minReceiveQuantity, // Min receive quantity
+      guaranteedAmount: minReceiveQuantity, // Min receive quantity
+      flags: ZERO,
+      referrer: ADDRESS_ZERO,
+      permit: EMPTY_BYTES,
+    },
+    []
+  ];
+}
 
 describe("CompoundLeverageModule", () => {
   let owner: Account;
@@ -41,6 +66,7 @@ describe("CompoundLeverageModule", () => {
   let compoundSetup: CompoundFixture;
 
   let compoundLibrary: Compound;
+  let positionV2Library: PositionV2;
   let compoundLeverageModule: CompoundLeverageModule;
   let debtIssuanceMock: DebtIssuanceMock;
   let cEther: CEther;
@@ -114,14 +140,15 @@ describe("CompoundLeverageModule", () => {
     await setup.controller.addModule(debtIssuanceMock.address);
 
     compoundLibrary = await deployer.libraries.deployCompound();
+    positionV2Library = await deployer.libraries.deployPositionV2();
     compoundLeverageModule = await deployer.modules.deployCompoundLeverageModule(
       setup.controller.address,
       compoundSetup.comp.address,
       compoundSetup.comptroller.address,
       cEther.address,
       setup.weth.address,
-      "contracts/protocol/integration/lib/Compound.sol:Compound",
       compoundLibrary.address,
+      positionV2Library.address,
     );
     await setup.controller.addModule(compoundLeverageModule.address);
 
@@ -129,7 +156,7 @@ describe("CompoundLeverageModule", () => {
 
     // 1inch function signature
     oneInchFunctionSignature = web3.eth.abi.encodeFunctionSignature(
-      "swap(address,address,uint256,uint256,uint256,address,address[],bytes,uint256[],uint256[])"
+      "swap(address,(address,address,address,address,uint256,uint256,uint256,uint256,address,bytes),(uint256,uint256,uint256,bytes)[])"
     );
 
     // Mock OneInch exchange that allows for fixed exchange amounts. So we need to setup separate exchange adapters
@@ -237,8 +264,8 @@ describe("CompoundLeverageModule", () => {
         subjectComptroller,
         subjectCEther,
         subjectWeth,
-        "contracts/protocol/integration/lib/Compound.sol:Compound",
         compoundLibrary.address,
+        positionV2Library.address,
       );
     }
 
@@ -568,18 +595,12 @@ describe("CompoundLeverageModule", () => {
         subjectBorrowQuantity = ether(590);
         subjectMinCollateralQuantity = destinationTokenQuantity;
         subjectTradeAdapterName = "ONEINCHTOWETH";
-        subjectTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+        subjectTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
           setup.dai.address, // Send token
           setup.weth.address, // Receive token
           subjectBorrowQuantity, // Send quantity
           subjectMinCollateralQuantity, // Min receive quantity
-          ZERO,
-          ADDRESS_ZERO,
-          [ADDRESS_ZERO],
-          EMPTY_BYTES,
-          [ZERO],
-          [ZERO],
-        ]);
+        ));
         subjectCaller = owner;
       };
 
@@ -848,18 +869,12 @@ describe("CompoundLeverageModule", () => {
 
             // Set to other mock exchange adapter with slippage
             subjectTradeAdapterName = "ONEINCHSLIPPAGE";
-            subjectTradeData = oneInchExchangeMockWithSlippage.interface.encodeFunctionData("swap", [
+            subjectTradeData = oneInchExchangeMockWithSlippage.interface.encodeFunctionData("swap", getOneInchSwapArgs(
               setup.dai.address, // Send token
               setup.weth.address, // Receive token
               subjectBorrowQuantity, // Send quantity
               subjectMinCollateralQuantity, // Min receive quantity
-              ZERO,
-              ADDRESS_ZERO,
-              [ADDRESS_ZERO],
-              EMPTY_BYTES,
-              [ZERO],
-              [ZERO],
-            ]);
+            ));
           });
 
           it("should revert", async () => {
@@ -1022,18 +1037,12 @@ describe("CompoundLeverageModule", () => {
         subjectBorrowQuantity = ether(1);
         subjectMinCollateralQuantity = destinationTokenQuantity;
         subjectTradeAdapterName = "ONEINCHFROMWETH";
-        subjectTradeData = oneInchExchangeMockFromWeth.interface.encodeFunctionData("swap", [
+        subjectTradeData = oneInchExchangeMockFromWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
           setup.weth.address, // Send token
           setup.dai.address, // Receive token
           subjectBorrowQuantity, // Send quantity
           subjectMinCollateralQuantity, // Min receive quantity
-          ZERO,
-          ADDRESS_ZERO,
-          [ADDRESS_ZERO],
-          EMPTY_BYTES,
-          [ZERO],
-          [ZERO],
-        ]);
+        ));
         subjectCaller = owner;
       });
 
@@ -1191,18 +1200,12 @@ describe("CompoundLeverageModule", () => {
         subjectBorrowQuantity = ether(590);
         subjectMinCollateralQuantity = destinationTokenQuantity;
         subjectTradeAdapterName = "ONEINCHTOWETH";
-        subjectTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+        subjectTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
           setup.dai.address, // Send token
           setup.weth.address, // Receive token
           subjectBorrowQuantity, // Send quantity
           subjectMinCollateralQuantity, // Min receive quantity
-          ZERO,
-          ADDRESS_ZERO,
-          [ADDRESS_ZERO],
-          EMPTY_BYTES,
-          [ZERO],
-          [ZERO],
-        ]);
+        ));
         subjectCaller = owner;
       });
 
@@ -1330,18 +1333,12 @@ describe("CompoundLeverageModule", () => {
 
         // Lever SetToken
         if (isInitialized) {
-          const leverTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+          const leverTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.dai.address, // Send token
             setup.weth.address, // Receive token
             ether(590), // Send quantity
             ether(1), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,
@@ -1364,18 +1361,12 @@ describe("CompoundLeverageModule", () => {
         subjectRedeemQuantity = ether(1);
         subjectMinRepayQuantity = destinationTokenQuantity;
         subjectTradeAdapterName = "ONEINCHFROMWETH";
-        subjectTradeData = oneInchExchangeMockFromWeth.interface.encodeFunctionData("swap", [
+        subjectTradeData = oneInchExchangeMockFromWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
           setup.weth.address, // Send token
           setup.dai.address, // Receive token
           subjectRedeemQuantity, // Send quantity
           subjectMinRepayQuantity, // Min receive quantity
-          ZERO,
-          ADDRESS_ZERO,
-          [ADDRESS_ZERO],
-          EMPTY_BYTES,
-          [ZERO],
-          [ZERO],
-        ]);
+        ));
         subjectCaller = owner;
       };
 
@@ -1719,18 +1710,12 @@ describe("CompoundLeverageModule", () => {
 
         // Lever SetToken
         if (isInitialized) {
-          const leverTradeData = oneInchExchangeMockFromWeth.interface.encodeFunctionData("swap", [
+          const leverTradeData = oneInchExchangeMockFromWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.weth.address, // Send token
             setup.dai.address, // Receive token
             ether(1), // Send quantity
             ether(590), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,
@@ -1753,18 +1738,12 @@ describe("CompoundLeverageModule", () => {
         subjectRedeemQuantity = ether(590);
         subjectMinRepayQuantity = destinationTokenQuantity;
         subjectTradeAdapterName = "ONEINCHTOWETH";
-        subjectTradeData = oneInchExchangeMockFromWeth.interface.encodeFunctionData("swap", [
+        subjectTradeData = oneInchExchangeMockFromWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
           setup.dai.address, // Send token
           setup.weth.address, // Receive token
           subjectRedeemQuantity, // Send quantity
           subjectMinRepayQuantity, // Min receive quantity
-          ZERO,
-          ADDRESS_ZERO,
-          [ADDRESS_ZERO],
-          EMPTY_BYTES,
-          [ZERO],
-          [ZERO],
-        ]);
+        ));
         subjectCaller = owner;
       });
 
@@ -1862,18 +1841,12 @@ describe("CompoundLeverageModule", () => {
 
           // Set to other mock exchange adapter with slippage
           subjectTradeAdapterName = "ONEINCHSLIPPAGE";
-          subjectTradeData = oneInchExchangeMockWithSlippage.interface.encodeFunctionData("swap", [
+          subjectTradeData = oneInchExchangeMockWithSlippage.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.dai.address, // Send token
             setup.weth.address, // Receive token
             subjectRedeemQuantity, // Send quantity
             subjectMinRepayQuantity, // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
         });
 
         it("should revert", async () => {
@@ -1936,18 +1909,12 @@ describe("CompoundLeverageModule", () => {
 
         // Lever both cDAI and cETH in SetToken
         if (isInitialized) {
-          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.dai.address, // Send token
             setup.weth.address, // Receive token
             ether(590), // Send quantity
             ether(1), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,
@@ -1959,18 +1926,12 @@ describe("CompoundLeverageModule", () => {
             leverEthTradeData
           );
 
-          const leverDaiTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+          const leverDaiTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.weth.address, // Send token
             setup.dai.address, // Receive token
             ether(1), // Send quantity
             ether(590), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,
@@ -2237,18 +2198,12 @@ describe("CompoundLeverageModule", () => {
         await setup.weth.transfer(oneInchExchangeMockToWeth.address, ether(10));
 
         // Lever SetToken
-        const leverTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+        const leverTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
           setup.dai.address, // Send token
           setup.weth.address, // Receive token
           ether(590), // Send quantity
           ether(1), // Min receive quantity
-          ZERO,
-          ADDRESS_ZERO,
-          [ADDRESS_ZERO],
-          EMPTY_BYTES,
-          [ZERO],
-          [ZERO],
-        ]);
+        ));
 
         await compoundLeverageModule.lever(
           setToken.address,
@@ -3200,18 +3155,12 @@ describe("CompoundLeverageModule", () => {
 
         // Lever both cDAI and cETH in SetToken
         if (isInitialized) {
-          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.dai.address, // Send token
             setup.weth.address, // Receive token
             ether(590), // Send quantity
             ether(1), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,
@@ -3223,18 +3172,12 @@ describe("CompoundLeverageModule", () => {
             leverEthTradeData
           );
 
-          const leverDaiTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+          const leverDaiTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.weth.address, // Send token
             setup.dai.address, // Receive token
             ether(1), // Send quantity
             ether(590), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,
@@ -3389,18 +3332,12 @@ describe("CompoundLeverageModule", () => {
 
         // Lever both cDAI and cETH in SetToken
         if (isInitialized) {
-          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.dai.address, // Send token
             setup.weth.address, // Receive token
             ether(590), // Send quantity
             ether(1), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,
@@ -3412,18 +3349,12 @@ describe("CompoundLeverageModule", () => {
             leverEthTradeData
           );
 
-          const leverDaiTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+          const leverDaiTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.weth.address, // Send token
             setup.dai.address, // Receive token
             ether(1), // Send quantity
             ether(590), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,
@@ -3581,18 +3512,12 @@ describe("CompoundLeverageModule", () => {
         // Lever cETH in SetToken
         borrowQuantity = ether(590);
         if (isInitialized) {
-          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.dai.address, // Send token
             setup.weth.address, // Receive token
             borrowQuantity, // Send quantity
             ether(1), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,
@@ -3731,18 +3656,12 @@ describe("CompoundLeverageModule", () => {
 
         // Lever cETH in SetToken
         if (isInitialized) {
-          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", [
+          const leverEthTradeData = oneInchExchangeMockToWeth.interface.encodeFunctionData("swap", getOneInchSwapArgs(
             setup.dai.address, // Send token
             setup.weth.address, // Receive token
             repayQuantity, // Send quantity
             ether(1), // Min receive quantity
-            ZERO,
-            ADDRESS_ZERO,
-            [ADDRESS_ZERO],
-            EMPTY_BYTES,
-            [ZERO],
-            [ZERO],
-          ]);
+          ));
 
           await compoundLeverageModule.lever(
             setToken.address,

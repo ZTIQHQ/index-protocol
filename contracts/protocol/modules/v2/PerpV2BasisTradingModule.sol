@@ -13,13 +13,16 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { SignedSafeMath } from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import { IController } from "../../../interfaces/IController.sol";
 import { IMarketRegistry } from "../../../interfaces/external/perp-v2/IMarketRegistry.sol";
@@ -31,6 +34,7 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
 import { PerpV2LeverageModuleV2 } from "./PerpV2LeverageModuleV2.sol";
 import { Position } from "../../lib/Position.sol";
 import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
+import { UnitConversionUtils } from "../../../lib/UnitConversionUtils.sol";
 
 /**
  * @title PerpV2BasisTradingModule
@@ -44,6 +48,15 @@ import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
  * value of the Set's perpetual position. The current value can be calculated from getPositionNotionalInfo.
  */
 contract PerpV2BasisTradingModule is PerpV2LeverageModuleV2 {
+    using Position for ISetToken;
+    using Invoke for ISetToken;
+    using PreciseUnitMath for uint256;
+    using SafeMath for uint256;
+    using SafeCast for uint256;
+    using UnitConversionUtils for uint256;
+    using PreciseUnitMath for int256;
+    using SafeCast for int256;
+    using SignedSafeMath for int256;
 
     /* ============ Structs ============ */
 
@@ -117,9 +130,7 @@ contract PerpV2BasisTradingModule is PerpV2LeverageModuleV2 {
         IQuoter _perpQuoter,
         IMarketRegistry _perpMarketRegistry,
         uint256 _maxPerpPositionsPerSet
-    )
-        public
-        PerpV2LeverageModuleV2(
+    ) PerpV2LeverageModuleV2(
             _controller,
             _perpVault,
             _perpQuoter,
@@ -423,7 +434,7 @@ contract PerpV2BasisTradingModule is PerpV2LeverageModuleV2 {
     )
         external
         override(PerpV2LeverageModuleV2)
-        returns (int256[] memory, int256[] memory _)
+        returns (int256[] memory, int256[] memory)
     {
         int256 newExternalPositionUnitNetFees = 0;
 

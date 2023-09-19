@@ -9,13 +9,14 @@
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-    SPDX-License-Identifier: Apache License, Version 2.0
+    SPDX-License-Identifier: Apache-2.0
 */
 
-pragma solidity 0.6.10;
-pragma experimental "ABIEncoderV2";
+pragma solidity 0.8.19;
+
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import { AddressArrayUtils } from "../../../lib/AddressArrayUtils.sol";
 import { IClaimAdapter } from "../../../interfaces/IClaimAdapter.sol";
@@ -47,6 +48,7 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
  *   associated with the CURVE_CLAIM adapter to claim CRV and CURVE_DIRECT adapter to claim BPT.
  */
 contract ClaimModule is ModuleBase {
+    using SafeMath for uint256;
     using AddressArrayUtils for address[];
 
     /* ============ Events ============ */
@@ -91,7 +93,7 @@ contract ClaimModule is ModuleBase {
 
     /* ============ Constructor ============ */
 
-    constructor(IController _controller) public ModuleBase(_controller) {}
+    constructor(IController _controller) ModuleBase(_controller) {}
 
     /* ============ External Functions ============ */
 

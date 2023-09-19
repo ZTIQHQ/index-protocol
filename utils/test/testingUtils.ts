@@ -1,7 +1,7 @@
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
 import { SetToken } from "@utils/contracts";
-import { Contract} from "ethers";
+import { Contract } from "ethers";
 
 chai.use(solidity);
 
