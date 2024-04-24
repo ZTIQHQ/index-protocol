@@ -213,6 +213,7 @@ contract DebtIssuanceModuleV2 is DebtIssuanceModule {
         external
         view
         override
+        virtual
         returns (address[] memory, uint256[] memory, uint256[] memory)
     {
         (
@@ -261,6 +262,7 @@ contract DebtIssuanceModuleV2 is DebtIssuanceModule {
         uint256 _finalSetSupply
     )
         internal
+        virtual
     {
         for (uint256 i = 0; i < _components.length; i++) {
             address component = _components[i];
@@ -309,6 +311,7 @@ contract DebtIssuanceModuleV2 is DebtIssuanceModule {
         uint256 _finalSetSupply
     )
         internal
+        virtual
     {
         for (uint256 i = 0; i < _components.length; i++) {
             address component = _components[i];
