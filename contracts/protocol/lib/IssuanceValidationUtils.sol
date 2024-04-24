@@ -56,18 +56,13 @@ library IssuanceValidationUtils {
         internal
         view
     {
-        console.log("componentQuantity: %s", _componentQuantity);
         uint256 newComponentBalance = IERC20(_component).balanceOf(address(_setToken));
-        console.log("newComponentBalance: %s", newComponentBalance);
 
         uint256 defaultPositionUnit = _setToken.getDefaultPositionRealUnit(address(_component)).toUint256();
-        console.log("defaultPositionUnit: %s", defaultPositionUnit);
         
-        uint256 newComponentBalanceRequired = _initialSetSupply.preciseMulCeil(defaultPositionUnit).add(_componentQuantity);
-        console.log("newComponentBalanceRequired: %s", newComponentBalanceRequired);
         require(
             // Use preciseMulCeil to increase the lower bound and maintain over-collateralization
-            newComponentBalance >= newComponentBalanceRequired,
+            newComponentBalance >= _initialSetSupply.preciseMulCeil(defaultPositionUnit).add(_componentQuantity),
             "Invalid transfer in. Results in undercollateralization"
         );
     }
