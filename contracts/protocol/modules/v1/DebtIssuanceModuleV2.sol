@@ -273,7 +273,7 @@ contract DebtIssuanceModuleV2 is DebtIssuanceModule {
                         IERC20(component),
                         msg.sender,
                         address(_setToken),
-                        componentQuantity + 1
+                        componentQuantity
                     );
 
                     IssuanceValidationUtils.validateCollateralizationPostTransferInPreHook(_setToken, component, _initialSetSupply, componentQuantity);

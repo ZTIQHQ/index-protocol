@@ -9,20 +9,23 @@ import { impersonateAccount } from "@utils/test/testingUtils";
 
 import { DebtIssuanceModuleV2 } from "@typechain/DebtIssuanceModuleV2";
 import { DebtIssuanceModuleV2__factory } from "@typechain/factories/DebtIssuanceModuleV2__factory";
+import { DebtIssuanceModuleV3 } from "@typechain/DebtIssuanceModuleV3";
+import { DebtIssuanceModuleV3__factory } from "@typechain/factories/DebtIssuanceModuleV3__factory";
 import { IERC20 } from "@typechain/IERC20";
 import { IERC20__factory } from "@typechain/factories/IERC20__factory";
 import { Controller } from "@typechain/Controller";
 import { Controller__factory } from "@typechain/factories/Controller__factory";
 import { SetToken } from "@typechain/SetToken";
 import { SetToken__factory } from "@typechain/factories/SetToken__factory";
-import { takeSnapshot, time, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { time, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forked-mainnet ]", () => {
   let owner: Account;
   let manager: Account;
   const debtIssuanceModuleAddress = "0x120d2f26B7ffd35a8917415A5766Fa63B2af94aa";
   const aaveLeverageModuleAddress = "0x6D1b74e18064172D028C5EE7Af5D0ccC26f2A4Ae";
-  let debtIssuanceModule: DebtIssuanceModuleV2;
+  let debtIssuanceModuleV2: DebtIssuanceModuleV2;
+  let debtIssuanceModuleV3: DebtIssuanceModuleV3;
 
   const aWETHAddress = "0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8";
   let aWETH: IERC20;
@@ -42,6 +45,11 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
   const setTokenAddress = "0x67d2373f0321Cd24a1b58e3c81fC1b6Ef15B205C"; // ETH2X
   let setToken: SetToken;
 
+  let subjectSetToken: Address;
+  let subjectCaller: Account;
+  let subjectQuantity: BigNumber;
+  let subjectTo: Address;
+
   cacheBeforeEach(async () => {
     [owner, manager] = await getAccounts();
     controller = Controller__factory.connect(controllerAddress, owner.wallet);
@@ -57,14 +65,24 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
     setToken = SetToken__factory.connect(setTokenAddress, owner.wallet);
     const totalSupply = await setToken.totalSupply();
     console.log("set token total supply", totalSupply.toString());
-    const debtIssuanceModuleFactory = new DebtIssuanceModuleV2__factory(owner.wallet);
-    debtIssuanceModule = await debtIssuanceModuleFactory.deploy(controllerAddress);
-    await controller.addModule(debtIssuanceModule.address);
+
+    debtIssuanceModuleV2 = DebtIssuanceModuleV2__factory.connect(
+      debtIssuanceModuleAddress,
+      owner.wallet,
+    );
+    await aWETH.approve(debtIssuanceModuleV2.address, aWETHToTransfer);
+
+      console.log("Deploying DIMV3");
+    const debtIssuanceV3ModuleFactory = new DebtIssuanceModuleV3__factory(owner.wallet);
+    debtIssuanceModuleV3 = await debtIssuanceV3ModuleFactory.deploy(controllerAddress);
+    await controller.addModule(debtIssuanceModuleV3.address);
     const setTokenManager = await setToken.manager();
     const managerSigner = await impersonateAccount(setTokenManager);
     await setBalance(setTokenManager, utils.parseEther("1"));
-    await setToken.connect(managerSigner).addModule(debtIssuanceModule.address);
-    await debtIssuanceModule
+    await setToken.connect(managerSigner).addModule(debtIssuanceModuleV3.address);
+
+    console.log("Initializing DIMV3");
+    await debtIssuanceModuleV3
       .connect(managerSigner)
       .initialize(
         setToken.address,
@@ -74,44 +92,51 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
         manager.address,
         supplyCapIssuanceHookAddress,
       );
-    await aWETH.approve(debtIssuanceModule.address, aWETHToTransfer);
+    await aWETH.approve(debtIssuanceModuleV3.address, aWETHToTransfer);
     const almSigner = await impersonateAccount(aaveLeverageModuleAddress);
     await setBalance(aaveLeverageModuleAddress, utils.parseEther("1"));
-    await debtIssuanceModule.connect(almSigner).registerToIssuanceModule(setToken.address);
+    console.log("Connecting ALM to DIMV3");
+    await debtIssuanceModuleV3.connect(almSigner).registerToIssuanceModule(setToken.address);
+
+    subjectSetToken = setTokenAddress;
+    subjectCaller = owner;
+    subjectQuantity = utils.parseEther("1");
+    subjectTo = subjectCaller.address;
   });
 
-  describe("#DebtIssuanceModuleV2.issue", async () => {
-    let subjectSetToken: Address;
-    let subjectCaller: Account;
-    let subjectQuantity: BigNumber;
-    let subjectTo: Address;
-    let blockTimestamp: number;
-    beforeEach(async () => {
-      subjectSetToken = setTokenAddress;
-      subjectCaller = owner;
-      subjectQuantity = utils.parseEther("1");
-      subjectTo = subjectCaller.address;
-    });
-    async function subject(): Promise<any> {
-      return debtIssuanceModule
-        .connect(subjectCaller.wallet)
-        .issue(subjectSetToken, subjectQuantity, subjectTo);
-    }
-
-    // First timestamp results in revertion second one doesn't
-    Array(50).fill(0).forEach((_,i) => {
+  // First timestamp results in revertion second one doesn't
+  Array(50)
+    .fill(0)
+    .forEach((_, i) => {
       context(`when timestamp offset is ${i}`, async () => {
         beforeEach(async () => {
           const newTimestamp = Math.floor(new Date("2024-04-23T07:30:00.000Z").getTime() / 1000);
           await time.setNextBlockTimestamp(newTimestamp + i);
           await aWETH.transfer(setToken.address, 1);
         });
+        describe("#DebtIssuanceModuleV2.issue", async () => {
+          async function subject(): Promise<any> {
+            return debtIssuanceModuleV2
+              .connect(subjectCaller.wallet)
+              .issue(subjectSetToken, subjectQuantity, subjectTo);
+          }
 
-        it("should not revert", async () => {
-          console.log("AWETH Balance before", (await aWETH.balanceOf(setToken.address)).toString());
-          await subject();
+          it("should not revert", async () => {
+            await subject();
+          });
+        });
+
+        describe("#DebtIssuanceModuleV3.issue", async () => {
+          async function subject(): Promise<any> {
+            return debtIssuanceModuleV3
+              .connect(subjectCaller.wallet)
+              .issue(subjectSetToken, subjectQuantity, subjectTo);
+          }
+
+          it("should not revert", async () => {
+            await subject();
+          });
         });
       });
     });
-  });
 });
