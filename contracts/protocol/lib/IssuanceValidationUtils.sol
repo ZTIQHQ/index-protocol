@@ -25,8 +25,6 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ISetToken } from "../../interfaces/ISetToken.sol";
 import { PreciseUnitMath } from "../../lib/PreciseUnitMath.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title IssuanceValidationUtils
  * @author Set Protocol
