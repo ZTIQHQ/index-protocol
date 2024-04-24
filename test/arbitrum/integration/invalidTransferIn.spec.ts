@@ -11,14 +11,17 @@ import { DebtIssuanceModuleV2 } from "@typechain/DebtIssuanceModuleV2";
 import { DebtIssuanceModuleV2__factory } from "@typechain/factories/DebtIssuanceModuleV2__factory";
 import { IERC20 } from "@typechain/IERC20";
 import { IERC20__factory } from "@typechain/factories/IERC20__factory";
+import { Controller } from "@typechain/Controller";
+import { Controller__factory } from "@typechain/factories/Controller__factory";
 import { SetToken } from "@typechain/SetToken";
 import { SetToken__factory } from "@typechain/factories/SetToken__factory";
-import { takeSnapshot, time } from "@nomicfoundation/hardhat-network-helpers";
+import { takeSnapshot, time, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forked-mainnet ]", () => {
   let owner: Account;
   let manager: Account;
   const debtIssuanceModuleAddress = "0x120d2f26B7ffd35a8917415A5766Fa63B2af94aa";
+  const aaveLeverageModuleAddress = "0x6D1b74e18064172D028C5EE7Af5D0ccC26f2A4Ae";
   let debtIssuanceModule: DebtIssuanceModuleV2;
 
   const aWETHAddress = "0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8";
@@ -28,24 +31,53 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
   let usdc: IERC20;
   const usdcWhaleAddress = "0xB38e8c17e38363aF6EbdCb3dAE12e0243582891D";
 
+  const controllerAddress = "0xCd79A0B9aeca0eCE7eA59d14338ea330cb1cb2d7";
+  let controller: Controller;
+  const setTokenCreatorAddress = "0x497F43969fdbb31778b62a6F79c5bdfacca8063B";
+  const supplyCapIssuanceHookAddress = "0xe44C15131b6B93d6940C578b17A1ff3aC9AA2321";
+  const mintFee = utils.parseEther("0.001"); // 0.1% mint fee
+  const maxFee = utils.parseEther("0.05"); // 0.1% mint fee
+  const redeemFee = utils.parseEther("0.001"); // 0.1% mint fee
+
   const setTokenAddress = "0x67d2373f0321Cd24a1b58e3c81fC1b6Ef15B205C"; // ETH2X
   let setToken: SetToken;
 
   cacheBeforeEach(async () => {
     [owner, manager] = await getAccounts();
+    controller = Controller__factory.connect(controllerAddress, owner.wallet);
+    const controllerOwner = await controller.owner();
+    const controllerOwnerSigner = await impersonateAccount(controllerOwner);
+    await setBalance(controllerOwner, utils.parseEther("1"));
+    controller = controller.connect(controllerOwnerSigner);
     const aWethWhaleSigner = await impersonateAccount(aWETHWhaleAddress);
     aWETH = IERC20__factory.connect(aWETHAddress, owner.wallet);
     const aWETHToTransfer = utils.parseEther("10");
     await aWETH.connect(aWethWhaleSigner).transfer(owner.address, aWETHToTransfer);
-    aWETH.approve(debtIssuanceModuleAddress, aWETHToTransfer);
     usdc = IERC20__factory.connect(usdcAddress, owner.wallet);
     setToken = SetToken__factory.connect(setTokenAddress, owner.wallet);
     const totalSupply = await setToken.totalSupply();
     console.log("set token total supply", totalSupply.toString());
-    debtIssuanceModule = DebtIssuanceModuleV2__factory.connect(
-      debtIssuanceModuleAddress,
-      owner.wallet,
-    );
+    const debtIssuanceModuleFactory = new DebtIssuanceModuleV2__factory(owner.wallet);
+    debtIssuanceModule = await debtIssuanceModuleFactory.deploy(controllerAddress);
+    await controller.addModule(debtIssuanceModule.address);
+    const setTokenManager = await setToken.manager();
+    const managerSigner = await impersonateAccount(setTokenManager);
+    await setBalance(setTokenManager, utils.parseEther("1"));
+    await setToken.connect(managerSigner).addModule(debtIssuanceModule.address);
+    await debtIssuanceModule
+      .connect(managerSigner)
+      .initialize(
+        setToken.address,
+        maxFee,
+        mintFee,
+        redeemFee,
+        manager.address,
+        supplyCapIssuanceHookAddress,
+      );
+    await aWETH.approve(debtIssuanceModule.address, aWETHToTransfer);
+    const almSigner = await impersonateAccount(aaveLeverageModuleAddress);
+    await setBalance(aaveLeverageModuleAddress, utils.parseEther("1"));
+    await debtIssuanceModule.connect(almSigner).registerToIssuanceModule(setToken.address);
   });
 
   describe("#DebtIssuanceModuleV2.issue", async () => {
@@ -75,6 +107,7 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
         });
 
         it("should not revert", async () => {
+          console.log("AWETH Balance before", (await aWETH.balanceOf(setToken.address)).toString());
           await subject();
         });
       });

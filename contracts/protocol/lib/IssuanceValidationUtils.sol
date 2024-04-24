@@ -25,6 +25,8 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ISetToken } from "../../interfaces/ISetToken.sol";
 import { PreciseUnitMath } from "../../lib/PreciseUnitMath.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title IssuanceValidationUtils
  * @author Set Protocol
@@ -54,13 +56,18 @@ library IssuanceValidationUtils {
         internal
         view
     {
+        console.log("componentQuantity: %s", _componentQuantity);
         uint256 newComponentBalance = IERC20(_component).balanceOf(address(_setToken));
+        console.log("newComponentBalance: %s", newComponentBalance);
 
         uint256 defaultPositionUnit = _setToken.getDefaultPositionRealUnit(address(_component)).toUint256();
+        console.log("defaultPositionUnit: %s", defaultPositionUnit);
         
+        uint256 newComponentBalanceRequired = _initialSetSupply.preciseMulCeil(defaultPositionUnit).add(_componentQuantity);
+        console.log("newComponentBalanceRequired: %s", newComponentBalanceRequired);
         require(
             // Use preciseMulCeil to increase the lower bound and maintain over-collateralization
-            newComponentBalance >= _initialSetSupply.preciseMulCeil(defaultPositionUnit).add(_componentQuantity),
+            newComponentBalance >= newComponentBalanceRequired,
             "Invalid transfer in. Results in undercollateralization"
         );
     }

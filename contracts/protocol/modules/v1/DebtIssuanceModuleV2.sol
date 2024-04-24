@@ -29,6 +29,8 @@ import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { IssuanceValidationUtils } from "../../lib/IssuanceValidationUtils.sol";
 import { Position } from "../../lib/Position.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title DebtIssuanceModuleV2
  * @author Set Protocol
@@ -266,12 +268,16 @@ contract DebtIssuanceModuleV2 is DebtIssuanceModule {
             if (componentQuantity > 0) {
                 if (_isIssue) {
                     // Call SafeERC20#safeTransferFrom instead of ExplicitERC20#transferFrom
+                    console.log("Component: %s", component);
+                    console.log("ComponentQuantity: %s", componentQuantity);
+                    console.log("Balance of SetToken Before: %s", IERC20(component).balanceOf(address(_setToken)));
                     SafeERC20.safeTransferFrom(
                         IERC20(component),
                         msg.sender,
                         address(_setToken),
                         componentQuantity
                     );
+                    console.log("Balance of SetToken After: %s", IERC20(component).balanceOf(address(_setToken)));
 
                     IssuanceValidationUtils.validateCollateralizationPostTransferInPreHook(_setToken, component, _initialSetSupply, componentQuantity);
 
