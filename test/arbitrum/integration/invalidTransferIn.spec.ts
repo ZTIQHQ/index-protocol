@@ -99,11 +99,12 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
     }
 
     // First timestamp results in revertion second one doesn't
-    [7, 8].forEach(i => {
+    Array(50).fill(0).forEach((_,i) => {
       context(`when timestamp offset is ${i}`, async () => {
         beforeEach(async () => {
           const newTimestamp = Math.floor(new Date("2024-04-23T07:30:00.000Z").getTime() / 1000);
           await time.setNextBlockTimestamp(newTimestamp + i);
+          await aWETH.transfer(setToken.address, 1);
         });
 
         it("should not revert", async () => {

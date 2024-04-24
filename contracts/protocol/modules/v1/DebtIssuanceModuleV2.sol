@@ -275,7 +275,7 @@ contract DebtIssuanceModuleV2 is DebtIssuanceModule {
                         IERC20(component),
                         msg.sender,
                         address(_setToken),
-                        componentQuantity
+                        componentQuantity + 1
                     );
                     console.log("Balance of SetToken After: %s", IERC20(component).balanceOf(address(_setToken)));
 
