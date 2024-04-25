@@ -19,7 +19,7 @@ import { SetToken } from "@typechain/SetToken";
 import { SetToken__factory } from "@typechain/factories/SetToken__factory";
 import { time, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 
-describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forked-mainnet ]", () => {
+describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forked-arbitrum ]", () => {
   let owner: Account;
   let manager: Account;
   const debtIssuanceModuleAddress = "0x120d2f26B7ffd35a8917415A5766Fa63B2af94aa";
