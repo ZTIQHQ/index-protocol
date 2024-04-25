@@ -30,13 +30,14 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
   const aWETHAddress = "0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8";
   let aWETH: IERC20;
   const aWETHWhaleAddress = "0xb7fb2b774eb5e2dad9c060fb367acbdc7fa7099b";
-  const usdcAddress = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
-  let usdc: IERC20;
-  const usdcWhaleAddress = "0xB38e8c17e38363aF6EbdCb3dAE12e0243582891D";
+
+  // const usdcAddress = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+  // let usdc: IERC20;
+  // const usdcWhaleAddress = "0xB38e8c17e38363aF6EbdCb3dAE12e0243582891D";
 
   const controllerAddress = "0xCd79A0B9aeca0eCE7eA59d14338ea330cb1cb2d7";
   let controller: Controller;
-  const setTokenCreatorAddress = "0x497F43969fdbb31778b62a6F79c5bdfacca8063B";
+
   const supplyCapIssuanceHookAddress = "0xe44C15131b6B93d6940C578b17A1ff3aC9AA2321";
   const mintFee = utils.parseEther("0.001"); // 0.1% mint fee
   const maxFee = utils.parseEther("0.05"); // 0.1% mint fee
@@ -61,7 +62,7 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
     aWETH = IERC20__factory.connect(aWETHAddress, owner.wallet);
     const aWETHToTransfer = utils.parseEther("10");
     await aWETH.connect(aWethWhaleSigner).transfer(owner.address, aWETHToTransfer);
-    usdc = IERC20__factory.connect(usdcAddress, owner.wallet);
+    // usdc = IERC20__factory.connect(usdcAddress, owner.wallet);
     setToken = SetToken__factory.connect(setTokenAddress, owner.wallet);
     const totalSupply = await setToken.totalSupply();
     console.log("set token total supply", totalSupply.toString());
@@ -72,7 +73,7 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
     );
     await aWETH.approve(debtIssuanceModuleV2.address, aWETHToTransfer);
 
-      console.log("Deploying DIMV3");
+    console.log("Deploying DIMV3");
     const debtIssuanceV3ModuleFactory = new DebtIssuanceModuleV3__factory(owner.wallet);
     debtIssuanceModuleV3 = await debtIssuanceV3ModuleFactory.deploy(controllerAddress);
     await controller.addModule(debtIssuanceModuleV3.address);
@@ -105,7 +106,7 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
   });
 
   // First timestamp results in revertion second one doesn't
-  Array(50)
+  Array(100)
     .fill(0)
     .forEach((_, i) => {
       context(`when timestamp offset is ${i}`, async () => {

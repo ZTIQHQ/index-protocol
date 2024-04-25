@@ -38,6 +38,8 @@ import { CompoundLeverageModule__factory } from "../../typechain/factories/Compo
 import { CustomOracleNavIssuanceModule__factory } from "../../typechain/factories/CustomOracleNavIssuanceModule__factory";
 import { DebtIssuanceModule__factory } from "../../typechain/factories/DebtIssuanceModule__factory";
 import { DebtIssuanceModuleV2__factory } from "../../typechain/factories/DebtIssuanceModuleV2__factory";
+import { DebtIssuanceModuleV3 } from "../../typechain/DebtIssuanceModuleV3";
+import { DebtIssuanceModuleV3__factory } from "../../typechain/factories/DebtIssuanceModuleV3__factory";
 import { SlippageIssuanceModule__factory } from "../../typechain/factories/SlippageIssuanceModule__factory";
 import { GeneralIndexModule__factory } from "../../typechain/factories/GeneralIndexModule__factory";
 import { GovernanceModule__factory } from "../../typechain/factories/GovernanceModule__factory";
@@ -73,6 +75,10 @@ export default class DeployModules {
 
   public async deployDebtIssuanceModuleV2(controller: Address): Promise<DebtIssuanceModuleV2> {
     return await new DebtIssuanceModuleV2__factory(this._deployerSigner).deploy(controller);
+  }
+
+  public async deployDebtIssuanceModuleV3(controller: Address): Promise<DebtIssuanceModuleV3> {
+    return await new DebtIssuanceModuleV3__factory(this._deployerSigner).deploy(controller);
   }
 
   public async deploySlippageIssuanceModule(controller: Address): Promise<SlippageIssuanceModule> {
