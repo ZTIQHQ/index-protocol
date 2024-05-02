@@ -1,4 +1,4 @@
-import { BigNumber, Signer } from "ethers";
+import { BigNumber, BigNumberish, Signer } from "ethers";
 
 import {
   AaveLeverageModule,
@@ -77,8 +77,8 @@ export default class DeployModules {
     return await new DebtIssuanceModuleV2__factory(this._deployerSigner).deploy(controller);
   }
 
-  public async deployDebtIssuanceModuleV3(controller: Address): Promise<DebtIssuanceModuleV3> {
-    return await new DebtIssuanceModuleV3__factory(this._deployerSigner).deploy(controller);
+  public async deployDebtIssuanceModuleV3(controller: Address, tokenTransferBuffer: BigNumberish): Promise<DebtIssuanceModuleV3> {
+    return await new DebtIssuanceModuleV3__factory(this._deployerSigner, tokenTransferBuffer).deploy(controller);
   }
 
   public async deploySlippageIssuanceModule(controller: Address): Promise<SlippageIssuanceModule> {

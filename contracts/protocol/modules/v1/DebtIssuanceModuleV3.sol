@@ -41,11 +41,17 @@ import { Position } from "../../lib/Position.sol";
 contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
     using Position for uint256;
 
-    uint256 tokenTransferBuffer = 1;
+    // Amount in WEI by which we will adjust token transfers to avoid revertions on rounding errors
+    uint256 immutable public tokenTransferBuffer;
 
     /* ============ Constructor ============ */
 
-    constructor(IController _controller) public DebtIssuanceModuleV2(_controller) {}
+    constructor(
+        IController _controller,
+        uint256 _tokenTransferBuffer
+    ) public DebtIssuanceModuleV2(_controller) {
+        tokenTransferBuffer = _tokenTransferBuffer;
+    }
 
     /* ============ External View Functions ============ */
 

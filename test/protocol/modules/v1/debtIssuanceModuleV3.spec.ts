@@ -32,6 +32,7 @@ import { ContractTransaction } from "ethers";
 const expect = getWaffleExpect();
 
 describe("DebtIssuanceModuleV3", () => {
+  const tokenTransferBuffer = 1;
   let owner: Account;
   let manager: Account;
   let feeRecipient: Account;
@@ -62,7 +63,7 @@ describe("DebtIssuanceModuleV3", () => {
     await setup.initialize();
 
     tokenWithRoundingError = await deployer.mocks.deployTokenWithErrorMock(owner.address, ether(1000000), ZERO);
-    debtIssuance = await deployer.modules.deployDebtIssuanceModuleV3(setup.controller.address);
+    debtIssuance = await deployer.modules.deployDebtIssuanceModuleV3(setup.controller.address, tokenTransferBuffer);
     debtModule = await deployer.mocks.deployDebtModuleMock(setup.controller.address);
     externalPositionModule = await deployer.mocks.deployModuleIssuanceHookMock();
     issuanceHook = await deployer.mocks.deployManagerIssuanceHookMock();
