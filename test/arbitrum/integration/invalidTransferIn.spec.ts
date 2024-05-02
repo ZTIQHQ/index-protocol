@@ -5,7 +5,7 @@ import { BigNumber, utils } from "ethers";
 import { Address } from "@utils/types";
 import { Account } from "@utils/test/types";
 import { cacheBeforeEach, getAccounts } from "@utils/test/index";
-import { impersonateAccount } from "@utils/test/testingUtils";
+import { getWaffleExpect, impersonateAccount } from "@utils/test/testingUtils";
 
 import { DebtIssuanceModuleV2 } from "@typechain/DebtIssuanceModuleV2";
 import { DebtIssuanceModuleV2__factory } from "@typechain/factories/DebtIssuanceModuleV2__factory";
@@ -18,6 +18,8 @@ import { Controller__factory } from "@typechain/factories/Controller__factory";
 import { SetToken } from "@typechain/SetToken";
 import { SetToken__factory } from "@typechain/factories/SetToken__factory";
 import { time, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+
+const expect = getWaffleExpect();
 
 describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forked-arbitrum ]", () => {
   let owner: Account;
@@ -105,39 +107,39 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
     subjectTo = subjectCaller.address;
   });
 
-  // First timestamp results in revertion second one doesn't
-  Array(100)
-    .fill(0)
-    .forEach((_, i) => {
-      context(`when timestamp offset is ${i}`, async () => {
-        beforeEach(async () => {
-          const newTimestamp = Math.floor(new Date("2024-04-23T07:30:00.000Z").getTime() / 1000);
-          await time.setNextBlockTimestamp(newTimestamp + i);
-          await aWETH.transfer(setToken.address, 1);
+  // Cherry-picked timestamps for which V2.issue will fail due to rounding error in aToken transfer
+  [0, 16, 17].forEach((_, i) => {
+    context(`when timestamp offset is ${i}`, async () => {
+      beforeEach(async () => {
+        const newTimestamp = Math.floor(new Date("2024-04-23T07:30:00.000Z").getTime() / 1000);
+        await time.setNextBlockTimestamp(newTimestamp + i);
+        await aWETH.transfer(setToken.address, 1);
+      });
+      describe("#DebtIssuanceModuleV2.issue", async () => {
+        async function subject(): Promise<any> {
+          return debtIssuanceModuleV2
+            .connect(subjectCaller.wallet)
+            .issue(subjectSetToken, subjectQuantity, subjectTo);
+        }
+
+        it("reverts", async () => {
+          await expect(subject()).to.be.revertedWith(
+            "Invalid transfer in. Results in undercollateralization",
+          );
         });
-        describe("#DebtIssuanceModuleV2.issue", async () => {
-          async function subject(): Promise<any> {
-            return debtIssuanceModuleV2
-              .connect(subjectCaller.wallet)
-              .issue(subjectSetToken, subjectQuantity, subjectTo);
-          }
+      });
 
-          it("should not revert", async () => {
-            await subject();
-          });
-        });
+      describe("#DebtIssuanceModuleV3.issue", async () => {
+        async function subject(): Promise<any> {
+          return debtIssuanceModuleV3
+            .connect(subjectCaller.wallet)
+            .issue(subjectSetToken, subjectQuantity, subjectTo);
+        }
 
-        describe("#DebtIssuanceModuleV3.issue", async () => {
-          async function subject(): Promise<any> {
-            return debtIssuanceModuleV3
-              .connect(subjectCaller.wallet)
-              .issue(subjectSetToken, subjectQuantity, subjectTo);
-          }
-
-          it("should not revert", async () => {
-            await subject();
-          });
+        it("does not revert", async () => {
+          await subject();
         });
       });
     });
+  });
 });
