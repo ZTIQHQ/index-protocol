@@ -22,6 +22,7 @@ import { time, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 const expect = getWaffleExpect();
 
 describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forked-arbitrum ]", () => {
+  const tokenTransferBuffer = 1;
   let owner: Account;
   let manager: Account;
   const debtIssuanceModuleAddress = "0x120d2f26B7ffd35a8917415A5766Fa63B2af94aa";
@@ -77,7 +78,10 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
 
     console.log("Deploying DIMV3");
     const debtIssuanceV3ModuleFactory = new DebtIssuanceModuleV3__factory(owner.wallet);
-    debtIssuanceModuleV3 = await debtIssuanceV3ModuleFactory.deploy(controllerAddress);
+    debtIssuanceModuleV3 = await debtIssuanceV3ModuleFactory.deploy(
+      controllerAddress,
+      tokenTransferBuffer,
+    );
     await controller.addModule(debtIssuanceModuleV3.address);
     const setTokenManager = await setToken.manager();
     const managerSigner = await impersonateAccount(setTokenManager);
