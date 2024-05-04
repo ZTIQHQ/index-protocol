@@ -78,7 +78,7 @@ export default class DeployModules {
   }
 
   public async deployDebtIssuanceModuleV3(controller: Address, tokenTransferBuffer: BigNumberish): Promise<DebtIssuanceModuleV3> {
-    return await new DebtIssuanceModuleV3__factory(this._deployerSigner, tokenTransferBuffer).deploy(controller);
+    return await new DebtIssuanceModuleV3__factory(this._deployerSigner).deploy(controller, tokenTransferBuffer);
   }
 
   public async deploySlippageIssuanceModule(controller: Address): Promise<SlippageIssuanceModule> {
