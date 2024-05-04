@@ -69,7 +69,9 @@ contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
     {
         (components, equityUnits, debtUnits) = _getRequiredComponentIssuanceUnits(_setToken, _quantity);
         for(uint256 i = 0; i < components.length; i++) {
-            equityUnits[i] += tokenTransferBuffer;
+            if(equityUnits[i] > 0) {
+                equityUnits[i] += tokenTransferBuffer;
+            }
             if(debtUnits[i] > tokenTransferBuffer) {
                 debtUnits[i] -= tokenTransferBuffer;
             } else {
@@ -96,7 +98,9 @@ contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
 
         (components, equityUnits, debtUnits) = _calculateRequiredComponentIssuanceUnits(_setToken, totalQuantity, false);
         for(uint256 i = 0; i < components.length; i++) {
-            debtUnits[i] += tokenTransferBuffer;
+            if(debtUnits[i] > 0) {
+                debtUnits[i] += tokenTransferBuffer;
+            }
             if(equityUnits[i] > tokenTransferBuffer) {
                 equityUnits[i] -= tokenTransferBuffer;
             } else {
