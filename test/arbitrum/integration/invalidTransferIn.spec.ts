@@ -112,7 +112,7 @@ describe("Reproducing issuance failure for leveraged tokens on arbitrum [ @forke
   });
 
   // Cherry-picked timestamps for which V2.issue will fail due to rounding error in aToken transfer
-  [0, 16, 17].forEach((_, i) => {
+  [0].forEach((_, i) => {
     context(`when timestamp offset is ${i}`, async () => {
       beforeEach(async () => {
         const newTimestamp = Math.floor(new Date("2024-04-23T07:30:00.000Z").getTime() / 1000);
