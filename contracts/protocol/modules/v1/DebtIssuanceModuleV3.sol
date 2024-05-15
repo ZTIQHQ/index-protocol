@@ -34,8 +34,12 @@ import { Position } from "../../lib/Position.sol";
  * @title DebtIssuanceModuleV3
  * @author Set Protocol
  *
- * This Module is an adjusted version of the DebtIssuanceModuleV2 that increases / decreases transfered in / out token amounts by a slight factor 
+ * This Module is an adjusted version of the DebtIssuanceModuleV2 
  * to account for rounding errors in some tokens that mean balanceAfter != balanceBefore + amountTransferred
+ * To avoid undercollateralization errors we:
+ *  - Subtract a few wei whenever transfering tokens to the user (debtTokens on issuance, equityTokens on redemption)
+ *  - Add a few wei whenever transfering tokens to the SetToken (equityTokens on issuance, debtTokens on redemption)
+ * The amount to add/subtract is defined in the tokenTransferBuffer variable
  *
  */
 contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
@@ -56,7 +60,10 @@ contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
     /* ============ External View Functions ============ */
 
     /**
-     * @dev Same as in v2 but adjusting the positions by the tokenTransferBuffer currently configured
+     * @dev Same as in v2 but adjusting the positions by the tokenTransferBuffer currently configured:
+     *      - Increases equityPositions by configured tokenTransferBuffer (because they are  transferred in)
+     *      - Decreases debtPositions by configured tokenTransferBuffer (because they are transferred out)
+     * The original logic is factored out into the _getRequiredComponentIssuanceUnits internal helper method for readability
      */
     function getRequiredComponentIssuanceUnits(
         ISetToken _setToken,
@@ -82,6 +89,8 @@ contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
 
     /**
      * @dev Same as in v2 but adjusting the positions by the tokenTransferBuffer currently configured
+     *      - Increases debtPositions by configured tokenTransferBuffer (because they are  transferred in)
+     *      - Decreases equityPositions by configured tokenTransferBuffer (because they are transferred out)
      */
     function getRequiredComponentRedemptionUnits(
         ISetToken _setToken,
@@ -111,6 +120,10 @@ contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
 
     /* ============ Internal Functions ============ */
 
+    /**
+     * @dev Contains the exact same logic as DebtIssuanceModuleV2.getRequiredComponentIssuanceUnits 
+     * @dev Factored out into internal helper method to keep the getRequiredComponentRedemptionUnits function more readable
+     */
     function _getRequiredComponentIssuanceUnits(
         ISetToken _setToken,
         uint256 _quantity
@@ -173,7 +186,7 @@ contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
                         IERC20(component),
                         msg.sender,
                         address(_setToken),
-                        // Add buffer to account for rounding errors
+                        // Transfer in a few wei more than the calculated quantity to avoid undercollateralization in case of rounding error on the token
                         componentQuantity + tokenTransferBuffer 
                     );
 
@@ -184,7 +197,8 @@ contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
                     _executeExternalPositionHooks(_setToken, _quantity, IERC20(component), false, true);
 
                     // Call Invoke#invokeTransfer instead of Invoke#strictInvokeTransfer
-                    // Subtract buffer to account for rounding errors
+
+                    // Transfer out a few wei less than the calculated quantity to avoid undercollateralization in case of rounding error on the token
                     _setToken.invokeTransfer(component, _to, componentQuantity - tokenTransferBuffer); 
 
 
@@ -216,8 +230,7 @@ contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
                 if (_isIssue) {
                     _executeExternalPositionHooks(_setToken, _quantity, IERC20(component), true, false);
 
-                    // Call Invoke#invokeTransfer instead of Invoke#strictInvokeTransfer
-                    // Subtract buffer to account for rounding errors
+                    // Transfer out a few wei less than the calculated quantity to avoid undercollateralization in case of rounding error on the token
                     _setToken.invokeTransfer(component, msg.sender, componentQuantity - tokenTransferBuffer); 
 
                     IssuanceValidationUtils.validateCollateralizationPostTransferOut(_setToken, component, _finalSetSupply);
@@ -227,7 +240,7 @@ contract DebtIssuanceModuleV3 is DebtIssuanceModuleV2 {
                         IERC20(component),
                         msg.sender,
                         address(_setToken),
-                        // Add buffer to account for rounding errors
+                        // Transfer in a few wei more than the calculated quantity to avoid undercollateralization in case of rounding error on the token
                         componentQuantity + tokenTransferBuffer
                     );
 
