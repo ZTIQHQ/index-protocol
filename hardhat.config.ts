@@ -19,16 +19,42 @@ import type { DependencyGraph, CompilationJob } from "hardhat/types/builtin-task
 
 import "./tasks";
 
-export const forkingConfig = {
+const ethereumForkingConfig = {
   url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_TOKEN}`,
   blockNumber: 16889000,
 };
 
-const mochaConfig = {
+const arbitrumForkingConfig = {
+  url: process.env.ARBITRUM_RPC_URL ?? "",
+  blockNumber: 201830000,
+};
+
+export const forkingConfig =
+  process.env.FORK_NETWORK === "arbitrum" ? arbitrumForkingConfig : ethereumForkingConfig;
+
+const mainnetForkMochaConfig = {
   grep: "@forked-mainnet",
-  invert: process.env.FORK ? false : true,
+  invert: false,
   timeout: 200000,
 } as Mocha.MochaOptions;
+
+const arbitrumForkMochaConfig = {
+  grep: "@forked-arbitrum",
+  invert: false,
+  timeout: 200000,
+} as Mocha.MochaOptions;
+
+const unittestMochaConfig = {
+  grep: "@forked",
+  invert: true,
+  timeout: 200000,
+} as Mocha.MochaOptions;
+
+const mochaConfig = process.env.FORK
+  ? process.env.FORK_NETWORK === "arbitrum"
+    ? arbitrumForkMochaConfig
+    : mainnetForkMochaConfig
+  : unittestMochaConfig;
 
 checkForkedProviderEnvironment();
 
