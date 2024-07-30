@@ -3,6 +3,7 @@ import { BigNumber, Signer } from "ethers";
 import {
   AaveGovernanceV2Adapter,
   AaveV2WrapV2Adapter,
+  AaveV3WrapV2Adapter,
   BalancerV1IndexExchangeAdapter,
   BalancerV2ExchangeAdapter,
   BoundedStepwiseExponentialPriceAdapter,
@@ -42,6 +43,7 @@ import {
 
 import { AaveGovernanceV2Adapter__factory } from "../../typechain/factories/AaveGovernanceV2Adapter__factory";
 import { AaveV2WrapV2Adapter__factory } from "../../typechain/factories/AaveV2WrapV2Adapter__factory";
+import { AaveV3WrapV2Adapter__factory } from "../../typechain/factories/AaveV3WrapV2Adapter__factory";
 import { BalancerV1IndexExchangeAdapter__factory } from "../../typechain/factories/BalancerV1IndexExchangeAdapter__factory";
 import { BalancerV2ExchangeAdapter__factory } from "../../typechain/factories/BalancerV2ExchangeAdapter__factory";
 import { BoundedStepwiseExponentialPriceAdapter__factory } from "../../typechain/factories/BoundedStepwiseExponentialPriceAdapter__factory";
@@ -293,6 +295,10 @@ export default class DeployAdapters {
 
   public async deployAaveV2WrapV2Adapter(lendingPool: Address): Promise<AaveV2WrapV2Adapter> {
     return await new AaveV2WrapV2Adapter__factory(this._deployerSigner).deploy(lendingPool);
+  }
+
+  public async deployAaveV3WrapV2Adapter(pool: Address): Promise<AaveV3WrapV2Adapter> {
+    return await new AaveV3WrapV2Adapter__factory(this._deployerSigner).deploy(pool);
   }
 
   public async deployERC4626WrapV2Adapter(): Promise<ERC4626WrapV2Adapter> {
