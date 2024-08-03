@@ -40,8 +40,8 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /* ============ Structs ============ */
 
     struct EnabledAssets {
-        address[] collateralAssets;             // Array of enabled underlying collateral assets for a SetToken
-        address[] borrowAssets;                 // Array of enabled underlying borrow assets for a SetToken
+        address[] collateralAsset;             // Array of enabled underlying collateral assets for a SetToken
+        address[] borrowAsset;                 // Array of enabled underlying borrow assets for a SetToken
     }
 
     struct ActionInfo {
@@ -97,28 +97,14 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         uint256 _protocolFee
     );
 
-    /**
-     * @dev Emitted on addCollateralAssets() and removeCollateralAssets()
-     * @param _setToken Instance of SetToken whose collateral assets is updated
-     * @param _added    true if assets are added false if removed
-     * @param _assets   Array of collateral assets being added/removed
-     */
-    event CollateralAssetsUpdated(
+    event CollateralAssetUpdated(
         ISetToken indexed _setToken,
-        bool indexed _added,
-        IERC20[] _assets
+        IERC20 _asset
     );
 
-    /**
-     * @dev Emitted on addBorrowAssets() and removeBorrowAssets()
-     * @param _setToken Instance of SetToken whose borrow assets is updated
-     * @param _added    true if assets are added false if removed
-     * @param _assets   Array of borrow assets being added/removed
-     */
-    event BorrowAssetsUpdated(
+    event BorrowAssetUpdated(
         ISetToken indexed _setToken,
-        bool indexed _added,
-        IERC20[] _assets
+        IERC20 _asset
     );
 
 
@@ -152,14 +138,9 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     /* ============ State Variables ============ */
 
-    // Mapping to efficiently check if collateral asset is enabled in SetToken
-    mapping(ISetToken => mapping(IERC20 => bool)) public collateralAssetEnabled;
 
-    // Mapping to efficiently check if a borrow asset is enabled in SetToken
-    mapping(ISetToken => mapping(IERC20 => bool)) public borrowAssetEnabled;
-
-    // Internal mapping of enabled collateral and borrow tokens for syncing positions
-    mapping(ISetToken => EnabledAssets) internal enabledAssets;
+    mapping(ISetToken => IERC20) public collateralAsset;
+    mapping(ISetToken => IERC20) public borrowAsset;
 
     // Mapping of SetToken to boolean indicating if SetToken is on allow list. Updateable by governance
     mapping(ISetToken => bool) public allowedSetTokens;
@@ -183,19 +164,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     /* ============ External Functions ============ */
 
-    /**
-     * @dev MANAGER ONLY: Increases leverage for a given collateral position using an enabled borrow asset.
-     * Borrows _borrowAsset from Morpho Market. Performs a DEX trade, exchanging the _borrowAsset for _collateralAsset.
-     * Deposits _collateralAsset to Morpho Market
-     * Note: Both collateral and borrow assets need to be enabled, and they must not be the same asset.
-     * @param _setToken                     Instance of the SetToken
-     * @param _borrowAsset                  Address of underlying asset being borrowed for leverage
-     * @param _collateralAsset              Address of underlying collateral asset
-     * @param _borrowQuantityUnits          Borrow quantity of asset in position units
-     * @param _minReceiveQuantityUnits      Min receive quantity of collateral asset to receive post-trade in position units
-     * @param _tradeAdapterName             Name of trade adapter
-     * @param _tradeData                    Arbitrary data for trade
-     */
     function lever(
         ISetToken _setToken,
         IERC20 _borrowAsset,
@@ -244,19 +212,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         );
     }
 
-    /**
-     * @dev MANAGER ONLY: Decrease leverage for a given collateral position using an enabled borrow asset.
-     * Withdraws _collateralAsset from Morpho. Performs a DEX trade, exchanging the _collateralAsset for _repayAsset.
-     * Repays _repayAsset to Morpho
-     * Note: Both collateral and borrow assets need to be enabled, and they must not be the same asset.
-     * @param _setToken                 Instance of the SetToken
-     * @param _collateralAsset          Address of underlying collateral asset being withdrawn
-     * @param _repayAsset               Address of underlying borrowed asset being repaid
-     * @param _redeemQuantityUnits      Quantity of collateral asset to delever in position units
-     * @param _minRepayQuantityUnits    Minimum amount of repay asset to receive post trade in position units
-     * @param _tradeAdapterName         Name of trade adapter
-     * @param _tradeData                Arbitrary data for trade
-     */
     function delever(
         ISetToken _setToken,
         IERC20 _collateralAsset,
@@ -305,21 +260,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         );
     }
 
-    /** @dev MANAGER ONLY: Pays down the borrow asset to 0 selling off a given amount of collateral asset.
-     * Withdraws _collateralAsset from Morpho Market. Performs a DEX trade, exchanging the _collateralAsset for _repayAsset.
-     * Minimum receive amount for the DEX trade is set to the current variable debt balance of the borrow asset.
-     * Repays received _repayAsset to Morpho market. Any extra received borrow asset is .
-     * updated as equity. No protocol fee is charged.
-     * Note: Both collateral and borrow assets need to be enabled, and they must not be the same asset.
-     * The function reverts if not enough collateral asset is redeemed to buy the required minimum amount of _repayAsset.
-     * @param _setToken             Instance of the SetToken
-     * @param _collateralAsset      Address of underlying collateral asset being redeemed
-     * @param _repayAsset           Address of underlying asset being repaid
-     * @param _redeemQuantityUnits  Quantity of collateral asset to delever in position units
-     * @param _tradeAdapterName     Name of trade adapter
-     * @param _tradeData            Arbitrary data for trade
-     * @return uint256              Notional repay quantity
-     */
     function deleverToZeroBorrowBalance(
         ISetToken _setToken,
         IERC20 _collateralAsset,
@@ -337,8 +277,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         uint256 notionalRedeemQuantity = _redeemQuantityUnits.preciseMul(setTotalSupply);
         // TODO: Review conversion
         uint256 notionalRepayQuantity = notionalRedeemQuantity;
-
-        require(borrowAssetEnabled[_setToken][_repayAsset], "Borrow not enabled");
 
         ActionInfo memory deleverInfo = _createAndValidateActionInfoNotional(
             _setToken,
@@ -384,13 +322,13 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * or anySetAllowed needs to be true. Only callable by the SetToken's manager.
      * Note: Managers can enable collateral and borrow assets that don't exist as positions on the SetToken
      * @param _setToken             Instance of the SetToken to initialize
-     * @param _collateralAssets     Underlying tokens to be enabled as collateral in the SetToken
-     * @param _borrowAssets         Underlying tokens to be enabled as borrow in the SetToken
+     * @param _collateralAsset     Underlying tokens to be enabled as collateral in the SetToken
+     * @param _borrowAsset         Underlying tokens to be enabled as borrow in the SetToken
      */
     function initialize(
         ISetToken _setToken,
-        IERC20[] memory _collateralAssets,
-        IERC20[] memory _borrowAssets
+        IERC20 _collateralAsset,
+        IERC20 _borrowAsset
     )
         external
         onlySetManager(_setToken, msg.sender)
@@ -412,9 +350,9 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
             try IDebtIssuanceModule(modules[i]).registerToIssuanceModule(_setToken) {} catch {}
         }
 
-        // _collateralAssets and _borrowAssets arrays are validated in their respective internal functions
-        _addCollateralAssets(_setToken, _collateralAssets);
-        _addBorrowAssets(_setToken, _borrowAssets);
+        // _collateralAsset and _borrowAsset arrays are validated in their respective internal functions
+        _addCollateralAsset(_setToken, _collateralAsset);
+        _setBorrowAsset(_setToken, _borrowAsset);
     }
 
     /**
@@ -427,20 +365,9 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         sync(setToken);
 
-        address[] memory borrowAssets = enabledAssets[setToken].borrowAssets;
-        for(uint256 i = 0; i < borrowAssets.length; i++) {
-            IERC20 borrowAsset = IERC20(borrowAssets[i]);
+        delete borrowAsset[setToken];
 
-            delete borrowAssetEnabled[setToken][borrowAsset];
-        }
-
-        address[] memory collateralAssets = enabledAssets[setToken].collateralAssets;
-        for(uint256 i = 0; i < collateralAssets.length; i++) {
-            IERC20 collateralAsset = IERC20(collateralAssets[i]);
-            delete collateralAssetEnabled[setToken][collateralAsset];
-        }
-
-        delete enabledAssets[setToken];
+        delete collateralAsset[setToken];
 
         // Try if unregister exists on any of the modules
         address[] memory modules = setToken.getModules();
@@ -460,67 +387,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         require(_setToken.isInitializedModule(address(_debtIssuanceModule)), "Issuance not initialized");
 
         _debtIssuanceModule.registerToIssuanceModule(_setToken);
-    }
-
-    /**
-     * @dev MANAGER ONLY: Add collateral assets. 
-     * Note: Reverts with "Collateral already enabled" if there are duplicate assets in the passed _newCollateralAssets array.
-     *
-     * NOTE: ALL ADDED COLLATERAL ASSETS CAN BE ADDED AS A POSITION ON THE SET TOKEN WITHOUT MANAGER'S EXPLICIT PERMISSION.
-     * UNWANTED EXTRA POSITIONS CAN BREAK EXTERNAL LOGIC, INCREASE COST OF MINT/REDEEM OF SET TOKEN, AMONG OTHER POTENTIAL UNINTENDED CONSEQUENCES.
-     * SO, PLEASE ADD ONLY THOSE COLLATERAL ASSETS WHOSE CORRESPONDING aTOKENS ARE NEEDED AS DEFAULT POSITIONS ON THE SET TOKEN.
-     *
-     * @param _setToken             Instance of the SetToken
-     * @param _newCollateralAssets  Addresses of new collateral underlying assets
-     */
-    function addCollateralAssets(ISetToken _setToken, IERC20[] memory _newCollateralAssets) external onlyManagerAndValidSet(_setToken) {
-        _addCollateralAssets(_setToken, _newCollateralAssets);
-    }
-
-    /**
-     * @dev MANAGER ONLY: Remove collateral assets. Disable deposited assets to be used as collateral on Morpho market.
-     * @param _setToken             Instance of the SetToken
-     * @param _collateralAssets     Addresses of collateral underlying assets to remove
-     */
-    function removeCollateralAssets(ISetToken _setToken, IERC20[] memory _collateralAssets) external onlyManagerAndValidSet(_setToken) {
-
-        for(uint256 i = 0; i < _collateralAssets.length; i++) {
-            IERC20 collateralAsset = _collateralAssets[i];
-            require(collateralAssetEnabled[_setToken][collateralAsset], "Collateral not enabled");
-
-            delete collateralAssetEnabled[_setToken][collateralAsset];
-            enabledAssets[_setToken].collateralAssets.removeStorage(address(collateralAsset));
-        }
-        emit CollateralAssetsUpdated(_setToken, false, _collateralAssets);
-    }
-
-    /**
-     * @dev MANAGER ONLY: Add borrow assets. Debt tokens corresponding to borrow assets are tracked for syncing positions.
-     * Note: Reverts with "Borrow already enabled" if there are duplicate assets in the passed _newBorrowAssets array.
-     * @param _setToken             Instance of the SetToken
-     * @param _newBorrowAssets      Addresses of borrow underlying assets to add
-     */
-    function addBorrowAssets(ISetToken _setToken, IERC20[] memory _newBorrowAssets) external onlyManagerAndValidSet(_setToken) {
-        _addBorrowAssets(_setToken, _newBorrowAssets);
-    }
-
-    /**
-     * @dev MANAGER ONLY: Remove borrow assets.
-     * Note: If there is a borrow balance, borrow asset cannot be removed
-     * @param _setToken             Instance of the SetToken
-     * @param _borrowAssets         Addresses of borrow underlying assets to remove
-     */
-    function removeBorrowAssets(ISetToken _setToken, IERC20[] memory _borrowAssets) external onlyManagerAndValidSet(_setToken) {
-
-        for(uint256 i = 0; i < _borrowAssets.length; i++) {
-            IERC20 borrowAsset = _borrowAssets[i];
-
-            require(borrowAssetEnabled[_setToken][borrowAsset], "Borrow not enabled");
-
-            delete borrowAssetEnabled[_setToken][borrowAsset];
-            enabledAssets[_setToken].borrowAssets.removeStorage(address(borrowAsset));
-        }
-        emit BorrowAssetsUpdated(_setToken, false, _borrowAssets);
     }
 
     /**
@@ -600,19 +466,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         }
     }
 
-    /* ============ External Getter Functions ============ */
-
-    /**
-     * @dev Get enabled assets for SetToken. Returns an array of collateral and borrow assets.
-     * @return Underlying collateral assets that are enabled
-     * @return Underlying borrowed assets that are enabled
-     */
-    function getEnabledAssets(ISetToken _setToken) external view returns(address[] memory, address[] memory) {
-        return (
-            enabledAssets[_setToken].collateralAssets,
-            enabledAssets[_setToken].borrowAssets
-        );
-    }
 
     /* ============ Internal Functions ============ */
 
@@ -811,43 +664,32 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     }
 
     /**
-     * @dev Add collateral assets to SetToken. Updates the collateralAssetsEnabled and enabledAssets mappings.
-     * Emits CollateralAssetsUpdated event.
+     * @dev Add collateral assets to SetToken. Updates the collateralAssetEnabled and enabledAssets mappings.
+     * Emits CollateralAssetUpdated event.
      */
-    function _addCollateralAssets(ISetToken _setToken, IERC20[] memory _newCollateralAssets) internal {
-        for(uint256 i = 0; i < _newCollateralAssets.length; i++) {
-            IERC20 collateralAsset = _newCollateralAssets[i];
-
-            _validateNewCollateralAsset(_setToken, collateralAsset);
-
-            collateralAssetEnabled[_setToken][collateralAsset] = true;
-            enabledAssets[_setToken].collateralAssets.push(address(collateralAsset));
-        }
-        emit CollateralAssetsUpdated(_setToken, true, _newCollateralAssets);
+    function _addCollateralAsset(ISetToken _setToken, IERC20 _newCollateralAsset) internal {
+        collateralAsset[_setToken] = _newCollateralAsset;
+        emit CollateralAssetUpdated(_setToken, _newCollateralAsset);
     }
 
     /**
-     * @dev Add borrow assets to SetToken. Updates the borrowAssetsEnabled and enabledAssets mappings.
-     * Emits BorrowAssetsUpdated event.
+     * @dev Add borrow assets to SetToken. Updates the borrowAssetEnabled and enabledAssets mappings.
+     * Emits BorrowAssetUpdated event.
      */
-    function _addBorrowAssets(ISetToken _setToken, IERC20[] memory _newBorrowAssets) internal {
-        for(uint256 i = 0; i < _newBorrowAssets.length; i++) {
-            IERC20 borrowAsset = _newBorrowAssets[i];
+    function _setBorrowAsset(ISetToken _setToken, IERC20 _newBorrowAsset) internal {
 
-            _validateNewBorrowAsset(_setToken, borrowAsset);
+        _validateNewBorrowAsset(_setToken, _newBorrowAsset);
 
-            borrowAssetEnabled[_setToken][borrowAsset] = true;
-            enabledAssets[_setToken].borrowAssets.push(address(borrowAsset));
-        }
-        emit BorrowAssetsUpdated(_setToken, true, _newBorrowAssets);
+        borrowAsset[_setToken] = _newBorrowAsset;
+        emit BorrowAssetUpdated(_setToken, _newBorrowAsset);
     }
 
     /**
      * @dev Validate common requirements for lever and delever
      */
     function _validateCommon(ActionInfo memory _actionInfo) internal view {
-        require(collateralAssetEnabled[_actionInfo.setToken][_actionInfo.collateralAsset], "Collateral not enabled");
-        require(borrowAssetEnabled[_actionInfo.setToken][_actionInfo.borrowAsset], "Borrow not enabled");
+        require(collateralAsset[_actionInfo.setToken] != IERC20(address(0)), "Collateral not enabled");
+        require(borrowAsset[_actionInfo.setToken] != IERC20(address(0)), "Borrow not enabled");
         require(_actionInfo.collateralAsset != _actionInfo.borrowAsset, "Collateral and borrow asset must be different");
         require(_actionInfo.notionalSendQuantity > 0, "Quantity is 0");
     }
