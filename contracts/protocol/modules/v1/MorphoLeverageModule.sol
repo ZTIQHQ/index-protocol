@@ -28,6 +28,8 @@ import { IDebtIssuanceModule } from "../../../interfaces/IDebtIssuanceModule.sol
 import { IExchangeAdapter } from "../../../interfaces/IExchangeAdapter.sol";
 import { IModuleIssuanceHook } from "../../../interfaces/IModuleIssuanceHook.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
+import { IMorpho } from "../../../interfaces/external/morpho/IMorpho.sol";
+import { Morpho } from "../../../protocol/integration/lib/Morpho.sol";
 import { ModuleBase } from "../../lib/ModuleBase.sol";
 
 /**
@@ -36,6 +38,7 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
  * @notice Smart contract that enables leverage trading using Morpho Blue as the lending protocol.
  */
 contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssuanceHook {
+    using Morpho for ISetToken;
 
     /* ============ Structs ============ */
 
@@ -136,11 +139,12 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     // 0 index stores protocol fee % on the controller, charged in the _executeTrade function
     uint256 constant internal PROTOCOL_TRADE_FEE_INDEX = 0;
 
+    IMorpho public immutable morpho;
+
     /* ============ State Variables ============ */
 
 
-    mapping(ISetToken => IERC20) public collateralAsset;
-    mapping(ISetToken => IERC20) public borrowAsset;
+    mapping(ISetToken => IMorpho.MarketParams) public marketParams;
 
     // Mapping of SetToken to boolean indicating if SetToken is on allow list. Updateable by governance
     mapping(ISetToken => bool) public allowedSetTokens;
@@ -155,19 +159,19 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @param _controller                       Address of controller contract
      */
     constructor(
-        IController _controller
+        IController _controller,
+        IMorpho _morpho
     )
         public
         ModuleBase(_controller)
     {
+        morpho = _morpho;
     }
 
     /* ============ External Functions ============ */
 
     function lever(
         ISetToken _setToken,
-        IERC20 _borrowAsset,
-        IERC20 _collateralAsset,
         uint256 _borrowQuantityUnits,
         uint256 _minReceiveQuantityUnits,
         string memory _tradeAdapterName,
@@ -177,34 +181,37 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         nonReentrant
         onlyManagerAndValidSet(_setToken)
     {
+        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken]; 
+        require(setMarketParams.collateralToken != address(0), "Collateral not set");
+
         // For levering up, send quantity is derived from borrow asset and receive quantity is derived from
         // collateral asset
         ActionInfo memory leverInfo = _createAndValidateActionInfo(
             _setToken,
-            _borrowAsset,
-            _collateralAsset,
+            IERC20(setMarketParams.loanToken),
+            IERC20(setMarketParams.collateralToken),
             _borrowQuantityUnits,
             _minReceiveQuantityUnits,
             _tradeAdapterName,
             true
         );
 
-        _borrow(leverInfo.setToken, leverInfo.borrowAsset, leverInfo.notionalSendQuantity);
+        _borrow(leverInfo.setToken, setMarketParams, leverInfo.notionalSendQuantity);
 
-        uint256 postTradeReceiveQuantity = _executeTrade(leverInfo, _borrowAsset, _collateralAsset, _tradeData);
+        uint256 postTradeReceiveQuantity = _executeTrade(leverInfo, IERC20(setMarketParams.loanToken), IERC20(setMarketParams.collateralToken), _tradeData);
 
-        uint256 protocolFee = _accrueProtocolFee(_setToken, _collateralAsset, postTradeReceiveQuantity);
+        uint256 protocolFee = _accrueProtocolFee(_setToken, IERC20(setMarketParams.collateralToken), postTradeReceiveQuantity);
 
         uint256 postTradeCollateralQuantity = postTradeReceiveQuantity.sub(protocolFee);
 
-        _deposit(leverInfo.setToken, _collateralAsset, postTradeCollateralQuantity);
+        _deposit(leverInfo.setToken, setMarketParams, postTradeCollateralQuantity);
 
-        _updateLeverPositions(leverInfo, _borrowAsset);
+        _updateLeverPositions(leverInfo, IERC20(setMarketParams.loanToken));
 
         emit LeverageIncreased(
             _setToken,
-            _borrowAsset,
-            _collateralAsset,
+            IERC20(setMarketParams.loanToken),
+            IERC20(setMarketParams.collateralToken),
             leverInfo.exchangeAdapter,
             leverInfo.notionalSendQuantity,
             postTradeCollateralQuantity,
@@ -214,8 +221,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     function delever(
         ISetToken _setToken,
-        IERC20 _collateralAsset,
-        IERC20 _repayAsset,
         uint256 _redeemQuantityUnits,
         uint256 _minRepayQuantityUnits,
         string memory _tradeAdapterName,
@@ -225,34 +230,37 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         nonReentrant
         onlyManagerAndValidSet(_setToken)
     {
+        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken]; 
+        require(setMarketParams.collateralToken != address(0), "Collateral not set");
+
         // Note: for delevering, send quantity is derived from collateral asset and receive quantity is derived from
         // repay asset
         ActionInfo memory deleverInfo = _createAndValidateActionInfo(
             _setToken,
-            _collateralAsset,
-            _repayAsset,
+            IERC20(setMarketParams.collateralToken),
+            IERC20(setMarketParams.loanToken),
             _redeemQuantityUnits,
             _minRepayQuantityUnits,
             _tradeAdapterName,
             false
         );
 
-        _withdraw(deleverInfo.setToken, _collateralAsset, deleverInfo.notionalSendQuantity);
+        _withdraw(deleverInfo.setToken, setMarketParams, deleverInfo.notionalSendQuantity);
 
-        uint256 postTradeReceiveQuantity = _executeTrade(deleverInfo, _collateralAsset, _repayAsset, _tradeData);
+        uint256 postTradeReceiveQuantity = _executeTrade(deleverInfo, IERC20(setMarketParams.collateralToken), IERC20(setMarketParams.loanToken), _tradeData);
 
-        uint256 protocolFee = _accrueProtocolFee(_setToken, _repayAsset, postTradeReceiveQuantity);
+        uint256 protocolFee = _accrueProtocolFee(_setToken, IERC20(setMarketParams.loanToken), postTradeReceiveQuantity);
 
         uint256 repayQuantity = postTradeReceiveQuantity.sub(protocolFee);
 
-        _repayBorrow(deleverInfo.setToken, _repayAsset, repayQuantity);
+        _repayBorrow(deleverInfo.setToken, setMarketParams, repayQuantity);
 
-        _updateDeleverPositions(deleverInfo, _repayAsset);
+        _updateDeleverPositions(deleverInfo, IERC20(setMarketParams.loanToken));
 
         emit LeverageDecreased(
             _setToken,
-            _collateralAsset,
-            _repayAsset,
+            IERC20(setMarketParams.collateralToken),
+            IERC20(setMarketParams.loanToken),
             deleverInfo.exchangeAdapter,
             deleverInfo.notionalSendQuantity,
             repayQuantity,
@@ -262,8 +270,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     function deleverToZeroBorrowBalance(
         ISetToken _setToken,
-        IERC20 _collateralAsset,
-        IERC20 _repayAsset,
         uint256 _redeemQuantityUnits,
         string memory _tradeAdapterName,
         bytes memory _tradeData
@@ -273,6 +279,9 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         onlyManagerAndValidSet(_setToken)
         returns (uint256)
     {
+        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken]; 
+        require(setMarketParams.collateralToken != address(0), "Collateral not set");
+       
         uint256 setTotalSupply = _setToken.totalSupply();
         uint256 notionalRedeemQuantity = _redeemQuantityUnits.preciseMul(setTotalSupply);
         // TODO: Review conversion
@@ -280,8 +289,8 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         ActionInfo memory deleverInfo = _createAndValidateActionInfoNotional(
             _setToken,
-            _collateralAsset,
-            _repayAsset,
+            IERC20(setMarketParams.collateralToken),
+            IERC20(setMarketParams.loanToken),
             notionalRedeemQuantity,
             notionalRepayQuantity,
             _tradeAdapterName,
@@ -289,18 +298,18 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
             setTotalSupply
         );
 
-        _withdraw(deleverInfo.setToken, _collateralAsset, deleverInfo.notionalSendQuantity);
+        _withdraw(deleverInfo.setToken, setMarketParams, deleverInfo.notionalSendQuantity);
 
-        _executeTrade(deleverInfo, _collateralAsset, _repayAsset, _tradeData);
+        _executeTrade(deleverInfo, IERC20(setMarketParams.collateralToken), IERC20(setMarketParams.loanToken), _tradeData);
 
-        _repayBorrow(deleverInfo.setToken, _repayAsset, notionalRepayQuantity);
+        _repayBorrow(deleverInfo.setToken, setMarketParams, notionalRepayQuantity);
 
-        _updateDeleverPositions(deleverInfo, _repayAsset);
+        _updateDeleverPositions(deleverInfo, IERC20(setMarketParams.loanToken));
 
         emit LeverageDecreased(
             _setToken,
-            _collateralAsset,
-            _repayAsset,
+            IERC20(setMarketParams.collateralToken),
+            IERC20(setMarketParams.loanToken),
             deleverInfo.exchangeAdapter,
             deleverInfo.notionalSendQuantity,
             notionalRepayQuantity,
@@ -317,18 +326,9 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     function sync(ISetToken _setToken) public nonReentrant onlyValidAndInitializedSet(_setToken) {
     }
 
-    /**
-     * @dev MANAGER ONLY: Initializes this module to the SetToken. Either the SetToken needs to be on the allowed list
-     * or anySetAllowed needs to be true. Only callable by the SetToken's manager.
-     * Note: Managers can enable collateral and borrow assets that don't exist as positions on the SetToken
-     * @param _setToken             Instance of the SetToken to initialize
-     * @param _collateralAsset     Underlying tokens to be enabled as collateral in the SetToken
-     * @param _borrowAsset         Underlying tokens to be enabled as borrow in the SetToken
-     */
     function initialize(
         ISetToken _setToken,
-        IERC20 _collateralAsset,
-        IERC20 _borrowAsset
+        IMorpho.MarketParams memory _marketParams
     )
         external
         onlySetManager(_setToken, msg.sender)
@@ -351,8 +351,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         }
 
         // _collateralAsset and _borrowAsset arrays are validated in their respective internal functions
-        _addCollateralAsset(_setToken, _collateralAsset);
-        _setBorrowAsset(_setToken, _borrowAsset);
+        _setMarketParams(_setToken, _marketParams);
     }
 
     /**
@@ -365,9 +364,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         sync(setToken);
 
-        delete borrowAsset[setToken];
-
-        delete collateralAsset[setToken];
+        delete marketParams[setToken];
 
         // Try if unregister exists on any of the modules
         address[] memory modules = setToken.getModules();
@@ -472,21 +469,25 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /**
      * @dev Invoke deposit (as collateral) from SetToken using Morpho Blue
      */
-    function _deposit(ISetToken _setToken, IERC20 _asset, uint256 _notionalQuantity) internal {
-        //@TODO: Implement
+    function _deposit(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
+        _setToken.invokeSupplyCollateral(
+            morpho,
+            _marketParams,
+            _notionalQuantity
+        );
     }
 
     /**
      * @dev Invoke withdraw from SetToken using Morpho Blue
      */
-    function _withdraw(ISetToken _setToken, IERC20 _asset, uint256 _notionalQuantity) internal {
+    function _withdraw(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
         //@TODO: Implement
     }
 
     /**
      * @dev Invoke repay from SetToken using Morpho Blue
      */
-    function _repayBorrow(ISetToken _setToken, IERC20 _asset, uint256 _notionalQuantity) internal {
+    function _repayBorrow(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
         //@TODO: Implement
     }
 
@@ -500,8 +501,12 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /**
      * @dev Invoke borrow from the SetToken using Morpho 
      */
-    function _borrow(ISetToken _setToken, IERC20 _asset, uint256 _notionalQuantity) internal {
-        //@TODO: Implement
+    function _borrow(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
+        _setToken.invokeBorrow(
+            morpho,
+            _marketParams,
+            _notionalQuantity
+        );
     }
 
     /**
@@ -663,33 +668,21 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         return actionInfo;
     }
 
-    /**
-     * @dev Add collateral assets to SetToken. Updates the collateralAssetEnabled and enabledAssets mappings.
-     * Emits CollateralAssetUpdated event.
-     */
-    function _addCollateralAsset(ISetToken _setToken, IERC20 _newCollateralAsset) internal {
-        collateralAsset[_setToken] = _newCollateralAsset;
-        emit CollateralAssetUpdated(_setToken, _newCollateralAsset);
+    function _setMarketParams(ISetToken _setToken, IMorpho.MarketParams memory _newMarketParams) internal {
+        _validateMarketParams(_setToken, _newMarketParams);
+        marketParams[_setToken] = _newMarketParams;
     }
 
-    /**
-     * @dev Add borrow assets to SetToken. Updates the borrowAssetEnabled and enabledAssets mappings.
-     * Emits BorrowAssetUpdated event.
-     */
-    function _setBorrowAsset(ISetToken _setToken, IERC20 _newBorrowAsset) internal {
-
-        _validateNewBorrowAsset(_setToken, _newBorrowAsset);
-
-        borrowAsset[_setToken] = _newBorrowAsset;
-        emit BorrowAssetUpdated(_setToken, _newBorrowAsset);
+    function _validateMarketParams(ISetToken _setToken, IMorpho.MarketParams memory _newMarketParams) internal view {
+        // @TODO: Implement
     }
 
     /**
      * @dev Validate common requirements for lever and delever
      */
     function _validateCommon(ActionInfo memory _actionInfo) internal view {
-        require(collateralAsset[_actionInfo.setToken] != IERC20(address(0)), "Collateral not enabled");
-        require(borrowAsset[_actionInfo.setToken] != IERC20(address(0)), "Borrow not enabled");
+        require(marketParams[_actionInfo.setToken].collateralToken != address(0), "Collateral not enabled");
+        require(marketParams[_actionInfo.setToken].loanToken != address(0), "Borrow not enabled");
         require(_actionInfo.collateralAsset != _actionInfo.borrowAsset, "Collateral and borrow asset must be different");
         require(_actionInfo.notionalSendQuantity > 0, "Quantity is 0");
     }
