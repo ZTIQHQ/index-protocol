@@ -30,6 +30,8 @@ import { IModuleIssuanceHook } from "../../../interfaces/IModuleIssuanceHook.sol
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { IMorpho } from "../../../interfaces/external/morpho/IMorpho.sol";
 import { Morpho } from "../../../protocol/integration/lib/Morpho.sol";
+import { MorphoMarketParams } from "../../../protocol/integration/lib/MorphoMarketParams.sol";
+import { MorphoSharesMath } from "../../../protocol/integration/lib/MorphoSharesMath.sol";
 import { ModuleBase } from "../../lib/ModuleBase.sol";
 
 /**
@@ -39,6 +41,8 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
  */
 contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssuanceHook {
     using Morpho for ISetToken;
+    using MorphoMarketParams for IMorpho.MarketParams;
+    using MorphoSharesMath for uint128;
 
     /* ============ Structs ============ */
 
@@ -324,6 +328,24 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @param _setToken               Instance of the SetToken
      */
     function sync(ISetToken _setToken) public nonReentrant onlyValidAndInitializedSet(_setToken) {
+
+        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
+        require(setMarketParams.collateralToken != address(0), "Collateral not set");
+        morpho.accrueInterest(setMarketParams);
+
+        uint256 setTotalSupply = _setToken.totalSupply();
+        (int256 newCollateralPositionUnit, int256 newBorrowPositionUnit) = _getCollateralAndBorrowPositions(_setToken, setMarketParams, setTotalSupply);
+
+        int256 previousCollateralPositionUnit = _setToken.getExternalPositionRealUnit(setMarketParams.collateralToken, address(this));
+        if (previousCollateralPositionUnit != newCollateralPositionUnit) {
+            _updateExternalPosition(_setToken, setMarketParams.collateralToken, newCollateralPositionUnit);
+        }
+
+        int256 previousBorrowPositionUnit = _setToken.getExternalPositionRealUnit(setMarketParams.loanToken, address(this));
+        // Note: Accounts for if borrowPosition does not exist on SetToken but is tracked in enabledAssets
+        if (newBorrowPositionUnit != previousBorrowPositionUnit) {
+            _updateExternalPosition(_setToken, setMarketParams.loanToken, newBorrowPositionUnit);
+        }
     }
 
     function initialize(
@@ -352,6 +374,21 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         // _collateralAsset and _borrowAsset arrays are validated in their respective internal functions
         _setMarketParams(_setToken, _marketParams);
+    }
+
+    function enterCollateralPosition(ISetToken _setToken)
+        external
+        nonReentrant
+        onlyManagerAndValidSet(_setToken)
+    {
+        IMorpho.MarketParams memory marketParams = marketParams[_setToken];
+        uint256 collateralBalance = IERC20(marketParams.collateralToken).balanceOf(address(_setToken));
+        require(collateralBalance > 0, "Collateral balance is 0");
+        _deposit(_setToken, marketParams, collateralBalance);
+        // Remove default position for collateral token 
+        _setToken.editDefaultPosition(marketParams.collateralToken, 0);
+        // TODO: This also syncs the borrow position which shouldn't be necessary. Review if we want to adjust
+        sync(_setToken);
     }
 
     /**
@@ -466,6 +503,25 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     /* ============ Internal Functions ============ */
 
+    function _getCollateralAndBorrowPositions(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _setTotalSupply) internal returns (int256 collateralPosition, int256 borrowPosition){
+        bytes32 marketId = _marketParams.id();
+        ( , , uint128 totalBorrowAssets, uint128 totalBorrowShares, , ) = morpho.market(marketId);
+
+
+        (uint256 supplyShares, uint128 borrowShares, uint128 collateral) = morpho.position(marketId, address(this));
+        uint256 borrowAssets = borrowShares.toAssetsDown(totalBorrowAssets, totalBorrowShares);
+        collateralPosition = uint256(collateral).preciseDiv(_setTotalSupply).toInt256();
+        borrowPosition = borrowAssets.preciseDivCeil(_setTotalSupply).toInt256().mul(-1);
+    }
+
+    /**
+     * @dev Updates external position unit for given borrow asset on SetToken
+     */
+    function _updateExternalPosition(ISetToken _setToken,  address _underlyingAsset, int256 _newPositionUnit) internal {
+        _setToken.editExternalPosition(_underlyingAsset, address(this), _newPositionUnit, "");
+    }
+
+
     /**
      * @dev Invoke deposit (as collateral) from SetToken using Morpho Blue
      */
@@ -475,6 +531,17 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
             _marketParams,
             _notionalQuantity
         );
+    }
+
+    function _depositAllCollateralTokens(ISetToken _setToken, IMorpho.MarketParams memory _marketParams) internal {
+        uint256 collateralBalance = IERC20(_marketParams.collateralToken).balanceOf(address(_setToken));
+        _setToken.invokeSupplyCollateral(
+            morpho,
+            _marketParams,
+            collateralBalance
+        );
+        // Remove default position for collateral token 
+        _setToken.editDefaultPosition(_marketParams.collateralToken, 0);
     }
 
     /**
@@ -589,19 +656,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         //@TODO: Implement / or remove
     }
 
-    /**
-     * @dev Updates default position unit for given collateralToken on SetToken
-     */
-    function _updateCollateralPosition(ISetToken _setToken, IERC20 _collateralToken, uint256 _newPositionUnit) internal {
-        //@TODO: Implement / or remove
-    }
-
-    /**
-     * @dev Updates external position unit for given borrow asset on SetToken
-     */
-    function _updateBorrowPosition(ISetToken _setToken, IERC20 _underlyingAsset, int256 _newPositionUnit) internal {
-        //@TODO: Implement / or remove
-    }
 
     /**
      * @dev Construct the ActionInfo struct for lever and delever
