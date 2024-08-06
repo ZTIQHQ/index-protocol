@@ -19,6 +19,7 @@ import {
   ExplicitERC20Mock,
   ERC20NoReturnMock,
   ERC20ReturnFalseMock,
+  ERC4626ConverterMock,
   ERC4626Mock,
   ForceFunderMock,
   GaugeControllerMock,
@@ -85,6 +86,7 @@ import { DebtIssuanceMock__factory } from "../../typechain/factories/DebtIssuanc
 import { DebtModuleMock__factory } from "../../typechain/factories/DebtModuleMock__factory";
 import { ERC20NoReturnMock__factory } from "../../typechain/factories/ERC20NoReturnMock__factory";
 import { ERC20ReturnFalseMock__factory } from "../../typechain/factories/ERC20ReturnFalseMock__factory";
+import { ERC4626ConverterMock__factory } from "../../typechain/factories/ERC4626ConverterMock__factory";
 import { ERC4626Mock__factory } from "../../typechain/factories/ERC4626Mock__factory";
 import { ExplicitERC20Mock__factory } from "../../typechain/factories/ExplicitERC20Mock__factory";
 import { ForceFunderMock__factory } from "../../typechain/factories/ForceFunderMock__factory";
@@ -509,6 +511,16 @@ export default class DeployMocks {
       rates.eth.usd,
       rates.usd.btc,
       rates.btc.usd,
+    );
+  }
+
+  public async deployERC4626ConverterMock(
+    decimals: BigNumberish,
+    pricePerShare: BigNumberish,
+  ): Promise<ERC4626ConverterMock> {
+    return await new ERC4626ConverterMock__factory(this._deployerSigner).deploy(
+      decimals,
+      pricePerShare,
     );
   }
 
