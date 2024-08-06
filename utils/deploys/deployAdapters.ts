@@ -17,6 +17,7 @@ import {
   KyberV3IndexExchangeAdapter,
   OneInchExchangeAdapter,
   CompoundWrapV2Adapter,
+  CompoundV3WrapV2Adapter,
   YearnWrapV2Adapter,
   UniswapPairPriceAdapter,
   UniswapV2AmmAdapter,
@@ -57,6 +58,7 @@ import { KyberV3IndexExchangeAdapter__factory } from "../../typechain/factories/
 import { OneInchExchangeAdapter__factory } from "../../typechain/factories/OneInchExchangeAdapter__factory";
 import { ZeroExApiAdapter__factory } from "../../typechain/factories/ZeroExApiAdapter__factory";
 import { CompoundWrapV2Adapter__factory } from "../../typechain/factories/CompoundWrapV2Adapter__factory";
+import { CompoundV3WrapV2Adapter__factory } from "../../typechain/factories/CompoundV3WrapV2Adapter__factory";
 import { YearnWrapV2Adapter__factory } from "../../typechain/factories/YearnWrapV2Adapter__factory";
 import { UniswapPairPriceAdapter__factory } from "../../typechain/factories/UniswapPairPriceAdapter__factory";
 import { UniswapV2ExchangeAdapter__factory } from "../../typechain/factories/UniswapV2ExchangeAdapter__factory";
@@ -285,6 +287,10 @@ export default class DeployAdapters {
       },
       this._deployerSigner,
     ).deploy();
+  }
+
+  public async deployCompoundV3WrapV2Adapter(comet: Address): Promise<CompoundV3WrapV2Adapter> {
+    return await new CompoundV3WrapV2Adapter__factory(this._deployerSigner).deploy(comet);
   }
 
   public async deployYearnWrapV2Adapter(): Promise<YearnWrapV2Adapter> {
