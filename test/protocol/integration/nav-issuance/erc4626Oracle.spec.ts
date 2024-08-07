@@ -3,12 +3,11 @@ import "module-alias/register";
 import { BigNumber, Signer } from "ethers";
 import { Address, CustomOracleNAVIssuanceSettings } from "@utils/types";
 import { Account } from "@utils/test/types";
-import { ADDRESS_ZERO } from "@utils/constants";
+import { ADDRESS_ZERO, MAX_UINT_256 } from "@utils/constants";
 import { CustomOracleNavIssuanceModule, SetToken, ERC4626Oracle } from "@utils/contracts";
 import DeployHelper from "@utils/deploys";
 import {
   ether,
-  preciseMul,
   usdc,
 } from "@utils/index";
 import {
@@ -24,7 +23,7 @@ import {
   IERC20__factory,
 } from "@typechain/index";
 import { network } from "hardhat";
-import { forkingConfig } from "../../hardhat.config";
+import { forkingConfig } from "../../../../hardhat.config";
 import { impersonateAccount } from "@utils/test/testingUtils";
 
 const expect = getWaffleExpect();
@@ -38,7 +37,7 @@ const whales = {
   gtUSDC: "0x73738c989398EBAfdAfD097836Fd910BAc14CCDC",
 };
 
-describe("gtUSDC - ERC4626Oracle - CustomOracleNavIssuanceModule Integration Tests", () => {
+describe.only("gtUSDC - ERC4626Oracle - CustomOracleNavIssuanceModule Integration Tests", () => {
   let owner: Account;
   let feeRecipient: Account;
   let recipient: Account;
@@ -49,9 +48,10 @@ describe("gtUSDC - ERC4626Oracle - CustomOracleNavIssuanceModule Integration Tes
 
   let erc4626Oracle: ERC4626Oracle;
 
+  let erc20_usdc: IERC20;
   let gtUSDC: IERC20;
 
-  const blockNumber = 20420724;
+  const blockNumber = 20479395;
   before(async () => {
     const forking = {
       jsonRpcUrl: forkingConfig.url,
@@ -91,8 +91,10 @@ describe("gtUSDC - ERC4626Oracle - CustomOracleNavIssuanceModule Integration Tes
       tokenAddresses.gtUSDC,
       "gtUSDC - USDC Calculated Oracle",
     );
+    await setup.priceOracle.addAdapter(erc4626Oracle.address);
     await setup.priceOracle.addPair(tokenAddresses.gtUSDC, tokenAddresses.usdc, erc4626Oracle.address);
 
+    erc20_usdc = IERC20__factory.connect(tokenAddresses.usdc, owner.wallet);
     gtUSDC = IERC20__factory.connect(tokenAddresses.gtUSDC, owner.wallet);
   });
 
@@ -119,9 +121,9 @@ describe("gtUSDC - ERC4626Oracle - CustomOracleNavIssuanceModule Integration Tes
       // Issue some Sets
       const setTokensIssued = ether(1);
       const whale = await impersonateAccount(whales.gtUSDC);
-      await setup.usdc.connect(whale).approve(setup.issuanceModule.address, preciseMul(usdcUnits, setTokensIssued));
-      await gtUSDC.connect(whale).approve(setup.issuanceModule.address, preciseMul(gtUSDCUnits, setTokensIssued));
-      await setup.issuanceModule.connect(whale).issue(setToken.address, setTokensIssued, owner.address);
+      await erc20_usdc.connect(whale).approve(setup.issuanceModule.address, MAX_UINT_256);
+      await gtUSDC.connect(whale).approve(setup.issuanceModule.address, MAX_UINT_256);
+      await setup.issuanceModule.connect(whale).issue(setToken.address, setTokensIssued, whales.gtUSDC);
 
       // Initialize NAV Issuance Module
       const managerIssuanceHook = ADDRESS_ZERO;
@@ -161,7 +163,7 @@ describe("gtUSDC - ERC4626Oracle - CustomOracleNavIssuanceModule Integration Tes
 
       beforeEach(async () => {
         subjectSetToken = setToken.address;
-        subjectReserveAsset = setup.usdc.address;
+        subjectReserveAsset = tokenAddresses.usdc;
         subjectReserveQuantity = usdc(100);
         subjectMinSetTokenReceived = ether(99);
         subjectTo = recipient;
@@ -180,9 +182,9 @@ describe("gtUSDC - ERC4626Oracle - CustomOracleNavIssuanceModule Integration Tes
 
       it("should reduce the underlying quantity and mint the wrapped asset to the SetToken", async () => {
         const totalSupplyBefore = await setToken.totalSupply();
-        const usdcCollateralBefore = await setup.usdc.balanceOf(setToken.address);
+        const usdcCollateralBefore = await erc20_usdc.balanceOf(setToken.address);
         const gtUSDCCollateralBefore = await gtUSDC.balanceOf(setToken.address);
-        const usdcBalanceBefore = await setup.usdc.balanceOf(whales.gtUSDC);
+        const usdcBalanceBefore = await erc20_usdc.balanceOf(whales.gtUSDC);
 
         expect(totalSupplyBefore).to.eq(ether(1));
         expect(usdcCollateralBefore).to.eq(usdc(50));
@@ -191,9 +193,9 @@ describe("gtUSDC - ERC4626Oracle - CustomOracleNavIssuanceModule Integration Tes
         await subject();
 
         const totalSupplyAfter = await setToken.totalSupply();
-        const usdcCollateralAfter = await setup.usdc.balanceOf(setToken.address);
+        const usdcCollateralAfter = await erc20_usdc.balanceOf(setToken.address);
         const gtUSDCCollateralAfter = await gtUSDC.balanceOf(setToken.address);
-        const usdcBalanceAfter = await setup.usdc.balanceOf(whales.gtUSDC);
+        const usdcBalanceAfter = await erc20_usdc.balanceOf(whales.gtUSDC);
 
         expect(totalSupplyAfter).to.eq(ether(2));
         expect(usdcCollateralAfter).to.eq(usdc(150));
