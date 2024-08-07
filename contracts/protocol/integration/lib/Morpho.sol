@@ -43,8 +43,9 @@ library Morpho {
         pure
         returns (address, uint256, bytes memory)
     {
-        bytes memory callData = abi.encodeWithSignature(
-            "supplyCollateral(MarketParams,uint256,address,bytes)", 
+        // TODO: Check why encodeWithSelector is not working
+        bytes memory callData = abi.encodeWithSelector(
+            0x238d6579, 
             _marketParams, 
             _assets, 
             _onBehalfOf,
@@ -62,12 +63,13 @@ library Morpho {
     )
         external
     {
+        bytes memory data = bytes("");
         ( , , bytes memory supplyCollateralCalldata) = getSupplyCollateralCalldata(
             _morpho,
             _marketParams,
             _amountNotional, 
             address(_setToken), 
-            bytes("")
+            data
         );
         
         _setToken.invoke(address(_morpho), 0, supplyCollateralCalldata);
@@ -85,8 +87,8 @@ library Morpho {
         pure
         returns (address, uint256, bytes memory)
     {
-        bytes memory callData = abi.encodeWithSignature(
-            "borrow(MarketParams,uint256,uint256,address,bytes)", 
+        bytes memory callData = abi.encodeWithSelector(
+            0x50d8cd4b,
             _marketParams, 
             _assets, 
             _shares, 

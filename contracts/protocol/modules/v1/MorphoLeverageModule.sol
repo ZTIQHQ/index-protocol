@@ -210,7 +210,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         _deposit(leverInfo.setToken, setMarketParams, postTradeCollateralQuantity);
 
-        _updateLeverPositions(leverInfo, IERC20(setMarketParams.loanToken));
+        _sync(leverInfo.setToken);
 
         emit LeverageIncreased(
             _setToken,
@@ -259,7 +259,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         _repayBorrow(deleverInfo.setToken, setMarketParams, repayQuantity);
 
-        _updateDeleverPositions(deleverInfo, IERC20(setMarketParams.loanToken));
+        _sync(deleverInfo.setToken);
 
         emit LeverageDecreased(
             _setToken,
@@ -328,7 +328,10 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @param _setToken               Instance of the SetToken
      */
     function sync(ISetToken _setToken) public nonReentrant onlyValidAndInitializedSet(_setToken) {
+        _sync(_setToken);
+    }
 
+    function _sync(ISetToken _setToken) internal {
         IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
         require(setMarketParams.collateralToken != address(0), "Collateral not set");
         morpho.accrueInterest(setMarketParams);
@@ -378,7 +381,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     function enterCollateralPosition(ISetToken _setToken)
         external
-        nonReentrant
         onlyManagerAndValidSet(_setToken)
     {
         IMorpho.MarketParams memory marketParams = marketParams[_setToken];
@@ -526,6 +528,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @dev Invoke deposit (as collateral) from SetToken using Morpho Blue
      */
     function _deposit(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
+        _setToken.invokeApprove(_marketParams.collateralToken, address(morpho), _notionalQuantity);
         _setToken.invokeSupplyCollateral(
             morpho,
             _marketParams,
@@ -535,11 +538,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     function _depositAllCollateralTokens(ISetToken _setToken, IMorpho.MarketParams memory _marketParams) internal {
         uint256 collateralBalance = IERC20(_marketParams.collateralToken).balanceOf(address(_setToken));
-        _setToken.invokeSupplyCollateral(
-            morpho,
-            _marketParams,
-            collateralBalance
-        );
+        _deposit(_setToken, _marketParams, collateralBalance);
         // Remove default position for collateral token 
         _setToken.editDefaultPosition(_marketParams.collateralToken, 0);
     }

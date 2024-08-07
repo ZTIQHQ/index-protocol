@@ -70,7 +70,15 @@ const tokenAddresses = {
 
 const whales = {
   usdc: "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8",
-  wsteth: "0x5fEC2f34D80ED82370F733043B6A536d7e9D7f8d",
+  wsteth: "0x3c22ec75ea5D745c78fc84762F7F1E6D82a2c5BF",
+};
+
+const wstethUsdcMarketParams: MarketParamsStruct = {
+     loanToken: tokenAddresses.usdc,
+     collateralToken: tokenAddresses.wsteth,
+     oracle: "0x48F7E36EB6B826B2dF4B2E630B62Cd25e89E40e2",
+     irm: "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
+     lltv: ethers.utils.parseEther("0.86"),
 };
 
 describe("MorphoLeverageModule integration", () => {
@@ -98,7 +106,7 @@ describe("MorphoLeverageModule integration", () => {
   let managerFeeRecipient: Address;
   let managerIssuanceHook: Address;
 
-  const blockNumber = 17611000;
+  const blockNumber = 20475000;
   before(async () => {
     const forking = {
       jsonRpcUrl: forkingConfig.url,
@@ -114,10 +122,10 @@ describe("MorphoLeverageModule integration", () => {
     });
   });
   after(async () => {
-    await network.provider.request({
-      method: "hardhat_reset",
-      params: [],
-    });
+    // await network.provider.request({
+    //   method: "hardhat_reset",
+    //   params: [],
+    // });
   });
   cacheBeforeEach(async () => {
     [owner, notOwner, mockModule] = await getAccounts();
@@ -264,13 +272,7 @@ describe("MorphoLeverageModule integration", () => {
     const initializeSubjectVariables = () => {
       subjectSetToken = setToken.address;
       subjectCaller = owner;
-      subjectMarketParams = {
-            loanToken: usdc.address,
-            collateralToken: wsteth.address,
-            oracle: "0xbD60A6770b27E084E8617335ddE769241B0e71D8",
-            irm: "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
-            lltv: ethers.utils.parseEther("0.945"),
-      }
+      subjectMarketParams = wstethUsdcMarketParams;
     };
 
     async function subject(): Promise<any> {
@@ -410,666 +412,204 @@ describe("MorphoLeverageModule integration", () => {
     });
   });
 
-  // describe("#lever", async () => {
-  //   let setToken: SetToken;
-  //   let isInitialized: boolean;
-  //   let destinationTokenQuantity: BigNumber;
+  describe("#lever", async () => {
+    let setToken: SetToken;
+    let isInitialized: boolean;
+    let destinationTokenQuantity: BigNumber;
 
-  //   let subjectSetToken: Address;
-  //   let subjectBorrowAsset: Address;
-  //   let subjectCollateralAsset: Address;
-  //   let subjectBorrowQuantity: BigNumber;
-  //   let subjectMinCollateralQuantity: BigNumber;
-  //   let subjectTradeAdapterName: string;
-  //   let subjectTradeData: Bytes;
-  //   let subjectCaller: Account;
+    let subjectSetToken: Address;
+    let subjectBorrowAsset: Address;
+    let subjectCollateralAsset: Address;
+    let subjectBorrowQuantity: BigNumber;
+    let subjectMinCollateralQuantity: BigNumber;
+    let subjectTradeAdapterName: string;
+    let subjectTradeData: Bytes;
+    let subjectCaller: Account;
 
-  //   async function subject(): Promise<any> {
-  //     return morphoLeverageModule
-  //       .connect(subjectCaller.wallet)
-  //       .lever(
-  //         subjectSetToken,
-  //         subjectBorrowAsset,
-  //         subjectCollateralAsset,
-  //         subjectBorrowQuantity,
-  //         subjectMinCollateralQuantity,
-  //         subjectTradeAdapterName,
-  //         subjectTradeData,
-  //         { gasLimit: 2000000 },
-  //       );
-  //   }
+    async function subject(): Promise<any> {
+      return morphoLeverageModule
+        .connect(subjectCaller.wallet)
+        .lever(
+          subjectSetToken,
+          subjectBorrowQuantity,
+          subjectMinCollateralQuantity,
+          subjectTradeAdapterName,
+          subjectTradeData,
+          { gasLimit: 2000000 },
+        );
+    }
 
-  //   context(
-  //     "when wsteth is borrow asset, and WSTETH is collateral asset (icEth configuration)",
-  //     async () => {
-  //       // This is a borrow amount that will fail in normal mode but should work in e-mode
-  //       const maxBorrowAmount = utils.parseEther("1.6");
-  //       before(async () => {
-  //         isInitialized = true;
-  //       });
+    context(
+      "when wsteth is collateral asset and usdc borrow assets",
+      async () => {
+        // This is a borrow amount that will fail in normal mode but should work in e-mode
+        const maxBorrowAmount = utils.parseEther("1.6");
+        before(async () => {
+          isInitialized = true;
+        });
 
-  //       cacheBeforeEach(async () => {
-  //         setToken = await createSetToken(
-  //           [aWstEth.address, wsteth.address],
-  //           [ether(2), ether(1)],
-  //           [morphoLeverageModule.address, debtIssuanceModule.address],
-  //         );
-  //         await initializeDebtIssuanceModule(setToken.address);
-  //         // Add SetToken to allow list
-  //         await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
-  //         // Initialize module if set to true
-  //         if (isInitialized) {
-  //           await morphoLeverageModule.initialize(
-  //             setToken.address,
-  //             [wsteth.address, wsteth.address],
-  //             [wsteth.address, wsteth.address],
-  //           );
-  //         }
+        cacheBeforeEach(async () => {
+          setToken = await createSetToken(
+            [wsteth.address],
+            [ether(1)],
+            [morphoLeverageModule.address, debtIssuanceModule.address],
+          );
+          await initializeDebtIssuanceModule(setToken.address);
 
-  //         // Mint aTokens
-  //         await network.provider.send("hardhat_setBalance", [
-  //           whales.wsteth,
-  //           ether(10).toHexString(),
-  //         ]);
-  //         await wsteth
-  //           .connect(await impersonateAccount(whales.wsteth))
-  //           .transfer(owner.address, ether(10000));
-  //         await wsteth.approve(aaveLendingPool.address, ether(10000));
-  //         await aaveLendingPool
-  //           .connect(owner.wallet)
-  //           .deposit(wsteth.address, ether(10000), owner.address, ZERO);
+          // Mint aTokens
+          await network.provider.send("hardhat_setBalance", [
+            whales.wsteth,
+            ether(10).toHexString(),
+          ]);
+          await wsteth
+            .connect(await impersonateAccount(whales.wsteth))
+            .transfer(owner.address, ether(10000));
+          await wsteth.approve(debtIssuanceModule.address, ether(10000));
 
-  //         await wsteth.approve(aaveLendingPool.address, ether(1000));
-  //         await aaveLendingPool
-  //           .connect(owner.wallet)
-  //           .deposit(wsteth.address, ether(1000), owner.address, ZERO);
+          // Issue 1 SetToken. Note: 1inch mock is hardcoded to trade 1000 USDC regardless of Set supply
+          const issueQuantity = ether(1);
+          destinationTokenQuantity = ether(1);
+          await debtIssuanceModule.issue(setToken.address, issueQuantity, owner.address);
 
-  //         // Approve tokens to issuance module and call issue
-  //         await aWstEth.approve(debtIssuanceModule.address, ether(10000));
-  //         await wsteth.approve(debtIssuanceModule.address, ether(1000));
+          // Add SetToken to allow list
+          await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
+          // Initialize module if set to true
+          if (isInitialized) {
+            await morphoLeverageModule.initialize(
+              setToken.address,
+              wstethUsdcMarketParams
+            );
+            await morphoLeverageModule.enterCollateralPosition(setToken.address);
+          }
 
-  //         // Issue 1 SetToken. Note: 1inch mock is hardcoded to trade 1000 USDC regardless of Set supply
-  //         const issueQuantity = ether(1);
-  //         destinationTokenQuantity = ether(1);
-  //         await debtIssuanceModule.issue(setToken.address, issueQuantity, owner.address);
-  //       });
+        });
 
-  //       beforeEach(async () => {
-  //         subjectSetToken = setToken.address;
-  //         subjectBorrowAsset = wsteth.address;
-  //         subjectCollateralAsset = wsteth.address;
-  //         subjectBorrowQuantity = utils.parseEther("0.2");
-  //         subjectMinCollateralQuantity = utils.parseEther("0.1");
-  //         subjectTradeAdapterName = "UNISWAPV3";
-  //         subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-  //           [wsteth.address, wsteth.address], // Swap path
-  //           [500], // Fees
-  //           true,
-  //         );
-  //         subjectCaller = owner;
-  //       });
+        beforeEach(async () => {
+          subjectSetToken = setToken.address;
+          subjectBorrowAsset = wsteth.address;
+          subjectCollateralAsset = wsteth.address;
+          subjectBorrowQuantity = utils.parseUnits("1000", 6);
+          subjectMinCollateralQuantity = utils.parseEther("0.1");
+          subjectTradeAdapterName = "UNISWAPV3";
+          subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+            [usdc.address, wsteth.address], // Swap path
+            [500], // Fees
+            true,
+          );
+          subjectCaller = owner;
+        });
 
-  //       it("should update the collateral position on the SetToken correctly", async () => {
-  //         const initialPositions = await setToken.getPositions();
+        it("should update the collateral position on the SetToken correctly", async () => {
+          const initialPositions = await setToken.getPositions();
+            console.log("initialPositions", initialPositions);
 
-  //         await subject();
+          await subject();
 
-  //         // cEther position is increased
-  //         const currentPositions = await setToken.getPositions();
-  //         const newFirstPosition = (await setToken.getPositions())[0];
-  //         const newSecondPosition = (await setToken.getPositions())[1];
+          // cEther position is increased
+          const currentPositions = await setToken.getPositions();
+            console.log("currentPositions", currentPositions);
+          const newFirstPosition = (await setToken.getPositions())[0];
+          const newSecondPosition = (await setToken.getPositions())[1];
 
-  //         // Get expected aTokens minted
-  //         const newUnits = subjectMinCollateralQuantity;
-  //         const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
+          // Get expected aTokens minted
+          const newUnits = subjectMinCollateralQuantity;
+          const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
 
-  //         expect(initialPositions.length).to.eq(2);
-  //         expect(currentPositions.length).to.eq(3);
-  //         expect(newFirstPosition.component).to.eq(aWstEth.address);
-  //         expect(newFirstPosition.positionState).to.eq(0); // Default
-  //         expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
-  //         expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
+          expect(initialPositions.length).to.eq(1);
+          expect(currentPositions.length).to.eq(2);
+          expect(newFirstPosition.component).to.eq(wsteth.address);
+          expect(newFirstPosition.positionState).to.eq(0); // Default
+          expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
+          expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
 
-  //         expect(newSecondPosition.component).to.eq(wsteth.address);
-  //         expect(newSecondPosition.positionState).to.eq(0); // Default
-  //         expect(newSecondPosition.unit).to.eq(ether(1));
-  //         expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
-  //       });
-  //       describe("When leverage ratio is higher than normal limit", () => {
-  //         beforeEach(async () => {
-  //           subjectBorrowQuantity = maxBorrowAmount;
-  //         });
-  //         it("should revert", async () => {
-  //           await expect(subject()).to.be.revertedWith("36");
-  //         });
-  //       });
+          expect(newSecondPosition.component).to.eq(wsteth.address);
+          expect(newSecondPosition.positionState).to.eq(0); // Default
+          expect(newSecondPosition.unit).to.eq(ether(1));
+          expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
+        });
+        describe("When leverage ratio is higher than normal limit", () => {
+          beforeEach(async () => {
+            subjectBorrowQuantity = maxBorrowAmount;
+          });
+          it("should revert", async () => {
+            await expect(subject()).to.be.revertedWith("36");
+          });
+        });
 
-  //       describe("When E-mode category is set to eth category", () => {
-  //         beforeEach(async () => {
-  //           const wstethEModeCategory = await protocolDataProvider.getReserveEModeCategory(
-  //             wsteth.address,
-  //           );
-  //           const wstethEModeCategory = await protocolDataProvider.getReserveEModeCategory(
-  //             wsteth.address,
-  //           );
-  //           expect(wstethEModeCategory).to.eq(wstethEModeCategory);
-  //           await morphoLeverageModule.setEModeCategory(setToken.address, wstethEModeCategory);
-  //         });
+        describe("When E-mode category is set to eth category", () => {
+          beforeEach(async () => {
+            const wstethEModeCategory = await protocolDataProvider.getReserveEModeCategory(
+              wsteth.address,
+            );
+            const wstethEModeCategory = await protocolDataProvider.getReserveEModeCategory(
+              wsteth.address,
+            );
+            expect(wstethEModeCategory).to.eq(wstethEModeCategory);
+            await morphoLeverageModule.setEModeCategory(setToken.address, wstethEModeCategory);
+          });
 
-  //         it("should update the collateral position on the SetToken correctly", async () => {
-  //           const initialPositions = await setToken.getPositions();
+          it("should update the collateral position on the SetToken correctly", async () => {
+            const initialPositions = await setToken.getPositions();
 
-  //           await subject();
+            await subject();
 
-  //           // cEther position is increased
-  //           const currentPositions = await setToken.getPositions();
-  //           const newFirstPosition = (await setToken.getPositions())[0];
-  //           const newSecondPosition = (await setToken.getPositions())[1];
+            // cEther position is increased
+            const currentPositions = await setToken.getPositions();
+            const newFirstPosition = (await setToken.getPositions())[0];
+            const newSecondPosition = (await setToken.getPositions())[1];
 
-  //           // Get expected aTokens minted
-  //           const newUnits = subjectMinCollateralQuantity;
-  //           const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
+            // Get expected aTokens minted
+            const newUnits = subjectMinCollateralQuantity;
+            const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
 
-  //           expect(initialPositions.length).to.eq(2);
-  //           expect(currentPositions.length).to.eq(3);
-  //           expect(newFirstPosition.component).to.eq(aWstEth.address);
-  //           expect(newFirstPosition.positionState).to.eq(0); // Default
-  //           expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
-  //           expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
+            expect(initialPositions.length).to.eq(2);
+            expect(currentPositions.length).to.eq(3);
+            expect(newFirstPosition.component).to.eq(wsteth.address);
+            expect(newFirstPosition.positionState).to.eq(0); // Default
+            expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
+            expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
 
-  //           expect(newSecondPosition.component).to.eq(wsteth.address);
-  //           expect(newSecondPosition.positionState).to.eq(0); // Default
-  //           expect(newSecondPosition.unit).to.eq(ether(1));
-  //           expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
-  //         });
-  //         describe("When leverage ratio is higher than normal limit", () => {
-  //           beforeEach(async () => {
-  //             subjectBorrowQuantity = maxBorrowAmount;
-  //           });
-  //           it("should update the collateral position on the SetToken correctly", async () => {
-  //             const initialPositions = await setToken.getPositions();
+            expect(newSecondPosition.component).to.eq(wsteth.address);
+            expect(newSecondPosition.positionState).to.eq(0); // Default
+            expect(newSecondPosition.unit).to.eq(ether(1));
+            expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
+          });
+          describe("When leverage ratio is higher than normal limit", () => {
+            beforeEach(async () => {
+              subjectBorrowQuantity = maxBorrowAmount;
+            });
+            it("should update the collateral position on the SetToken correctly", async () => {
+              const initialPositions = await setToken.getPositions();
 
-  //             await subject();
+              await subject();
 
-  //             // cEther position is increased
-  //             const currentPositions = await setToken.getPositions();
-  //             const newFirstPosition = (await setToken.getPositions())[0];
-  //             const newSecondPosition = (await setToken.getPositions())[1];
+              // cEther position is increased
+              const currentPositions = await setToken.getPositions();
+              const newFirstPosition = (await setToken.getPositions())[0];
+              const newSecondPosition = (await setToken.getPositions())[1];
 
-  //             // Get expected aTokens minted
-  //             const newUnits = subjectMinCollateralQuantity;
-  //             const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
+              // Get expected aTokens minted
+              const newUnits = subjectMinCollateralQuantity;
+              const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
 
-  //             expect(initialPositions.length).to.eq(2);
-  //             expect(currentPositions.length).to.eq(3);
-  //             expect(newFirstPosition.component).to.eq(aWstEth.address);
-  //             expect(newFirstPosition.positionState).to.eq(0); // Default
-  //             expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
-  //             expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
+              expect(initialPositions.length).to.eq(2);
+              expect(currentPositions.length).to.eq(3);
+              expect(newFirstPosition.component).to.eq(wsteth.address);
+              expect(newFirstPosition.positionState).to.eq(0); // Default
+              expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
+              expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
 
-  //             expect(newSecondPosition.component).to.eq(wsteth.address);
-  //             expect(newSecondPosition.positionState).to.eq(0); // Default
-  //             expect(newSecondPosition.unit).to.eq(ether(1));
-  //             expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
-  //           });
-  //         });
-  //       });
-  //     },
-  //   );
-  //   context("when awsteth is collateral asset and borrow positions is 0", async () => {
-  //     const initializeContracts = async () => {
-  //       setToken = await createSetToken(
-  //         [awsteth.address],
-  //         [ether(2)],
-  //         [morphoLeverageModule.address, debtIssuanceModule.address],
-  //       );
-  //       await initializeDebtIssuanceModule(setToken.address);
-  //       // Add SetToken to allow list
-  //       await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
-  //       // Initialize module if set to true
-  //       if (isInitialized) {
-  //         await morphoLeverageModule.initialize(
-  //           setToken.address,
-  //           [wsteth.address, usdc.address],
-  //           [usdc.address, wsteth.address],
-  //         );
-  //       }
-  //       // Mint aTokens
-  //       await wsteth.approve(aaveLendingPool.address, ether(1000));
-  //       await aaveLendingPool
-  //         .connect(owner.wallet)
-  //         .deposit(wsteth.address, ether(1000), owner.address, ZERO);
-  //       await usdc.approve(aaveLendingPool.address, ether(10000));
-  //       await aaveLendingPool
-  //         .connect(owner.wallet)
-  //         .deposit(usdc.address, ether(10000), owner.address, ZERO);
-  //       // Issue 1 SetToken. Note: 1inch mock is hardcoded to trade 1000 USDC regardless of Set supply
-  //       const issueQuantity = ether(1);
-  //       destinationTokenQuantity = utils.parseEther("0.5");
-  //       await awsteth.approve(debtIssuanceModule.address, ether(1000));
-  //       await debtIssuanceModule.issue(setToken.address, issueQuantity, owner.address);
-  //     };
-  //     const initializeSubjectVariables = async () => {
-  //       subjectSetToken = setToken.address;
-  //       subjectBorrowAsset = usdc.address;
-  //       subjectCollateralAsset = wsteth.address;
-  //       subjectBorrowQuantity = ether(1000);
-  //       subjectMinCollateralQuantity = destinationTokenQuantity;
-  //       subjectTradeAdapterName = "UNISWAPV3";
-  //       subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-  //         [usdc.address, wsteth.address], // Swap path
-  //         [500], // Fees
-  //         true,
-  //       );
-  //       subjectCaller = owner;
-  //     };
-  //     describe("when module is initialized", async () => {
-  //       before(async () => {
-  //         isInitialized = true;
-  //       });
-  //       cacheBeforeEach(initializeContracts);
-  //       beforeEach(initializeSubjectVariables);
-  //       it("should update the collateral position on the SetToken correctly", async () => {
-  //         const initialPositions = await setToken.getPositions();
-  //         await subject();
-  //         // cwsteth position is increased
-  //         const currentPositions = await setToken.getPositions();
-  //         const newFirstPosition = (await setToken.getPositions())[0];
-  //         const expectedFirstPositionUnit = initialPositions[0].unit.add(destinationTokenQuantity);
-  //         expect(initialPositions.length).to.eq(1);
-  //         expect(currentPositions.length).to.eq(2); // added a new borrow position
-  //         expect(newFirstPosition.component).to.eq(awsteth.address);
-  //         expect(newFirstPosition.positionState).to.eq(0); // Default
-  //         expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
-  //         expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
-  //       });
-  //       it("should update the borrow position on the SetToken correctly", async () => {
-  //         const initialPositions = await setToken.getPositions();
-  //         await subject();
-  //         // cEther position is increased
-  //         const currentPositions = await setToken.getPositions();
-  //         const newSecondPosition = (await setToken.getPositions())[1];
-  //         const expectedSecondPositionUnit = (
-  //           await variableDebtUSDC.balanceOf(setToken.address)
-  //         ).mul(-1);
-  //         expect(initialPositions.length).to.eq(1);
-  //         expect(currentPositions.length).to.eq(2);
-  //         expect(newSecondPosition.component).to.eq(usdc.address);
-  //         expect(newSecondPosition.positionState).to.eq(1); // External
-  //         expect(newSecondPosition.unit).to.eq(expectedSecondPositionUnit);
-  //         expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
-  //       });
-  //       it("should transfer the correct components to the exchange", async () => {
-  //         const oldSourceTokenBalance = await usdc.balanceOf(wstethUsdcPool.address);
-  //         await subject();
-  //         const totalSourceQuantity = subjectBorrowQuantity;
-  //         const expectedSourceTokenBalance = oldSourceTokenBalance.add(totalSourceQuantity);
-  //         const newSourceTokenBalance = await usdc.balanceOf(wstethUsdcPool.address);
-  //         expect(newSourceTokenBalance).to.eq(expectedSourceTokenBalance);
-  //       });
-  //       it("should transfer the correct components from the exchange", async () => {
-  //         const oldDestinationTokenBalance = await wsteth.balanceOf(wstethUsdcPool.address);
-  //         await subject();
-  //         const totalDestinationQuantity = destinationTokenQuantity;
-  //         const expectedDestinationTokenBalance = oldDestinationTokenBalance.sub(
-  //           totalDestinationQuantity,
-  //         );
-  //         const newDestinationTokenBalance = await wsteth.balanceOf(wstethUsdcPool.address);
-  //         expect(newDestinationTokenBalance).to.gt(
-  //           expectedDestinationTokenBalance.mul(999).div(1000),
-  //         );
-  //         expect(newDestinationTokenBalance).to.lt(
-  //           expectedDestinationTokenBalance.mul(1001).div(1000),
-  //         );
-  //       });
-  //       describe("when there is a protocol fee charged", async () => {
-  //         let feePercentage: BigNumber;
-  //         cacheBeforeEach(async () => {
-  //           feePercentage = ether(0.05);
-  //           controller = controller.connect(await impersonateAccount(await controller.owner()));
-  //           await controller.addFee(
-  //             morphoLeverageModule.address,
-  //             ZERO, // Fee type on trade function denoted as 0
-  //             feePercentage, // Set fee to 5 bps
-  //           );
-  //         });
-  //         it("should transfer the correct components to the exchange", async () => {
-  //           // const oldSourceTokenBalance = await usdc.balanceOf(oneInchExchangeMockTowsteth.address);
-  //           await subject();
-  //           // const totalSourceQuantity = subjectBorrowQuantity;
-  //           // const expectedSourceTokenBalance = oldSourceTokenBalance.add(totalSourceQuantity);
-  //           // const newSourceTokenBalance = await usdc.balanceOf(oneInchExchangeMockTowsteth.address);
-  //           // expect(newSourceTokenBalance).to.eq(expectedSourceTokenBalance);
-  //         });
-  //         it("should transfer the correct protocol fee to the protocol", async () => {
-  //           const feeRecipient = await controller.feeRecipient();
-  //           const oldFeeRecipientBalance = await wsteth.balanceOf(feeRecipient);
-  //           await subject();
-  //           const expectedFeeRecipientBalance = oldFeeRecipientBalance.add(
-  //             preciseMul(feePercentage, destinationTokenQuantity),
-  //           );
-  //           const newFeeRecipientBalance = await wsteth.balanceOf(feeRecipient);
-  //           expect(newFeeRecipientBalance).to.gte(expectedFeeRecipientBalance);
-  //         });
-  //         it("should update the collateral position on the SetToken correctly", async () => {
-  //           const initialPositions = await setToken.getPositions();
-  //           await subject();
-  //           // cEther position is increased
-  //           const currentPositions = await setToken.getPositions();
-  //           const newFirstPosition = (await setToken.getPositions())[0];
-  //           // Get expected cTokens minted
-  //           const unitProtocolFee = feePercentage.mul(subjectMinCollateralQuantity).div(ether(1));
-  //           const newUnits = subjectMinCollateralQuantity.sub(unitProtocolFee);
-  //           const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
-  //           expect(initialPositions.length).to.eq(1);
-  //           expect(currentPositions.length).to.eq(2);
-  //           expect(newFirstPosition.component).to.eq(awsteth.address);
-  //           expect(newFirstPosition.positionState).to.eq(0); // Default
-  //           expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
-  //           expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
-  //         });
-  //         it("should update the borrow position on the SetToken correctly", async () => {
-  //           const initialPositions = await setToken.getPositions();
-  //           await subject();
-  //           // cEther position is increased
-  //           const currentPositions = await setToken.getPositions();
-  //           const newSecondPosition = (await setToken.getPositions())[1];
-  //           const expectedSecondPositionUnit = (
-  //             await variableDebtUSDC.balanceOf(setToken.address)
-  //           ).mul(-1);
-  //           expect(initialPositions.length).to.eq(1);
-  //           expect(currentPositions.length).to.eq(2);
-  //           expect(newSecondPosition.component).to.eq(usdc.address);
-  //           expect(newSecondPosition.positionState).to.eq(1); // External
-  //           expect(newSecondPosition.unit).to.eq(expectedSecondPositionUnit);
-  //           expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
-  //         });
-  //       });
-  //       describe("when the exchange is not valid", async () => {
-  //         beforeEach(async () => {
-  //           subjectTradeAdapterName = "INVALID";
-  //         });
-  //         it("should revert", async () => {
-  //           await expect(subject()).to.be.revertedWith("Must be valid adapter");
-  //         });
-  //       });
-  //       describe("when collateral asset is not enabled", async () => {
-  //         beforeEach(async () => {
-  //           subjectCollateralAsset = wbtc.address;
-  //         });
-  //         it("should revert", async () => {
-  //           await expect(subject()).to.be.revertedWith("CNE");
-  //         });
-  //       });
-  //       describe("when borrow asset is not enabled", async () => {
-  //         beforeEach(async () => {
-  //           subjectBorrowAsset = await getRandomAddress();
-  //         });
-  //         it("should revert", async () => {
-  //           await expect(subject()).to.be.revertedWith("BNE");
-  //         });
-  //       });
-  //       describe("when borrow asset is same as collateral asset", async () => {
-  //         beforeEach(async () => {
-  //           subjectBorrowAsset = wsteth.address;
-  //         });
-  //         it("should revert", async () => {
-  //           await expect(subject()).to.be.revertedWith("CBE");
-  //         });
-  //       });
-  //       describe("when quantity of token to sell is 0", async () => {
-  //         beforeEach(async () => {
-  //           subjectBorrowQuantity = ZERO;
-  //         });
-  //         it("should revert", async () => {
-  //           await expect(subject()).to.be.revertedWith("ZQ");
-  //         });
-  //       });
-  //       describe("when the caller is not the SetToken manager", async () => {
-  //         beforeEach(async () => {
-  //           subjectCaller = await getRandomAccount();
-  //         });
-  //         it("should revert", async () => {
-  //           await expect(subject()).to.be.revertedWith("Must be the SetToken manager");
-  //         });
-  //       });
-  //       describe("when SetToken is not valid", async () => {
-  //         beforeEach(async () => {
-  //           const nonEnabledSetToken = await createNonControllerEnabledSetToken(
-  //             [wsteth.address],
-  //             [ether(1)],
-  //             [morphoLeverageModule.address],
-  //           );
-  //           subjectSetToken = nonEnabledSetToken.address;
-  //         });
-  //         it("should revert", async () => {
-  //           await expect(subject()).to.be.revertedWith("Must be a valid and initialized SetToken");
-  //         });
-  //       });
-  //     });
-  //     describe("when module is not initialized", async () => {
-  //       beforeEach(async () => {
-  //         isInitialized = false;
-  //         await initializeContracts();
-  //         initializeSubjectVariables();
-  //       });
-  //       it("should revert", async () => {
-  //         await expect(subject()).to.be.revertedWith("Must be a valid and initialized SetToken");
-  //       });
-  //     });
-  //   });
+              expect(newSecondPosition.component).to.eq(wsteth.address);
+              expect(newSecondPosition.positionState).to.eq(0); // Default
+              expect(newSecondPosition.unit).to.eq(ether(1));
+              expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
+            });
+          });
+        });
+      },
+    );
 
-  //   context("when USDC is borrow asset, and is a default position", async () => {
-  //     before(async () => {
-  //       isInitialized = true;
-  //     });
-  //     cacheBeforeEach(async () => {
-  //       setToken = await createSetToken(
-  //         [awsteth.address, usdc.address],
-  //         [ether(2), ether(1)],
-  //         [morphoLeverageModule.address, debtIssuanceModule.address],
-  //       );
-  //       await initializeDebtIssuanceModule(setToken.address);
-  //       // Add SetToken to allow list
-  //       await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
-  //       // Initialize module if set to true
-  //       if (isInitialized) {
-  //         await morphoLeverageModule.initialize(
-  //           setToken.address,
-  //           [wsteth.address, usdc.address],
-  //           [usdc.address, wsteth.address],
-  //         );
-  //       }
-  //       // Mint aTokens
-  //       await wsteth.approve(aaveLendingPool.address, ether(1000));
-  //       await aaveLendingPool
-  //         .connect(owner.wallet)
-  //         .deposit(wsteth.address, ether(1000), owner.address, ZERO);
-  //       await usdc.approve(aaveLendingPool.address, ether(10000));
-  //       await aaveLendingPool
-  //         .connect(owner.wallet)
-  //         .deposit(usdc.address, ether(10000), owner.address, ZERO);
-  //       // Approve tokens to issuance module and call issue
-  //       await awsteth.approve(debtIssuanceModule.address, ether(1000));
-  //       await usdc.approve(debtIssuanceModule.address, ether(10000));
-  //       // Issue 1 SetToken. Note: 1inch mock is hardcoded to trade 1000 USDC regardless of Set supply
-  //       const issueQuantity = ether(1);
-  //       destinationTokenQuantity = ether(1);
-  //       await debtIssuanceModule.issue(setToken.address, issueQuantity, owner.address);
-  //     });
-  //     beforeEach(async () => {
-  //       subjectSetToken = setToken.address;
-  //       subjectBorrowAsset = usdc.address;
-  //       subjectCollateralAsset = wsteth.address;
-  //       subjectBorrowQuantity = ether(1000);
-  //       subjectMinCollateralQuantity = destinationTokenQuantity.div(2);
-  //       subjectTradeAdapterName = "UNISWAPV3";
-  //       subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-  //         [usdc.address, wsteth.address], // Swap path
-  //         [500], // Fees
-  //         true,
-  //       );
-  //       subjectCaller = owner;
-  //     });
-  //     it("should update the collateral position on the SetToken correctly", async () => {
-  //       const initialPositions = await setToken.getPositions();
-  //       await subject();
-  //       // cEther position is increased
-  //       const currentPositions = await setToken.getPositions();
-  //       const newFirstPosition = (await setToken.getPositions())[0];
-  //       const newSecondPosition = (await setToken.getPositions())[1];
-  //       // Get expected aTokens minted
-  //       const newUnits = subjectMinCollateralQuantity;
-  //       const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
-  //       expect(initialPositions.length).to.eq(2);
-  //       expect(currentPositions.length).to.eq(3);
-  //       expect(newFirstPosition.component).to.eq(awsteth.address);
-  //       expect(newFirstPosition.positionState).to.eq(0); // Default
-  //       expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
-  //       expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
-  //       expect(newSecondPosition.component).to.eq(usdc.address);
-  //       expect(newSecondPosition.positionState).to.eq(0); // Default
-  //       expect(newSecondPosition.unit).to.eq(ether(1));
-  //       expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
-  //     });
-  //     it("should update the borrow position on the SetToken correctly", async () => {
-  //       const initialPositions = await setToken.getPositions();
-  //       await subject();
-  //       // cEther position is increased
-  //       const currentPositions = await setToken.getPositions();
-  //       const newThridPosition = (await setToken.getPositions())[2];
-  //       const expectedPositionUnit = (await variableDebtUSDC.balanceOf(setToken.address)).mul(-1);
-  //       expect(initialPositions.length).to.eq(2);
-  //       expect(currentPositions.length).to.eq(3);
-  //       expect(newThridPosition.component).to.eq(usdc.address);
-  //       expect(newThridPosition.positionState).to.eq(1); // External
-  //       expect(newThridPosition.unit).to.eq(expectedPositionUnit);
-  //       expect(newThridPosition.module).to.eq(morphoLeverageModule.address);
-  //     });
-  //   });
-  // });
-
-  // describe("#setEModeCategory", () => {
-  //   let setToken: SetToken;
-  //   let subjectCategoryId: number;
-  //   let subjectSetToken: Address;
-  //   let caller: Signer;
-  //   const initializeContracts = async () => {
-  //     setToken = await createSetToken(
-  //       [aWstEth.address, wsteth.address],
-  //       [ether(2), ether(1)],
-  //       [morphoLeverageModule.address, debtIssuanceModule.address],
-  //     );
-  //     await initializeDebtIssuanceModule(setToken.address);
-  //     // Add SetToken to allow list
-  //     await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
-  //     // Initialize module if set to true
-  //     await morphoLeverageModule.initialize(
-  //       setToken.address,
-  //       [wsteth.address, wsteth.address],
-  //       [wsteth.address, wsteth.address],
-  //     );
-
-  //     // Mint aTokens
-  //     await network.provider.send("hardhat_setBalance", [whales.wsteth, ether(10).toHexString()]);
-  //     await wsteth
-  //       .connect(await impersonateAccount(whales.wsteth))
-  //       .transfer(owner.address, ether(10000));
-  //     await wsteth.approve(aaveLendingPool.address, ether(10000));
-  //     await aaveLendingPool
-  //       .connect(owner.wallet)
-  //       .deposit(wsteth.address, ether(10000), owner.address, ZERO);
-
-  //     await wsteth.approve(aaveLendingPool.address, ether(1000));
-  //     await aaveLendingPool
-  //       .connect(owner.wallet)
-  //       .deposit(wsteth.address, ether(1000), owner.address, ZERO);
-
-  //     // Approve tokens to issuance module and call issue
-  //     await aWstEth.approve(debtIssuanceModule.address, ether(10000));
-  //     await wsteth.approve(debtIssuanceModule.address, ether(1000));
-
-  //     // Issue 1 SetToken. Note: 1inch mock is hardcoded to trade 1000 USDC regardless of Set supply
-  //     const issueQuantity = ether(1);
-  //     await debtIssuanceModule.issue(setToken.address, issueQuantity, owner.address);
-
-  //     // This is a borrow amount that will fail in normal mode but should work in e-mode
-  //     const borrowAmount = utils.parseEther("1.5");
-
-  //     const leverageTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-  //       [wsteth.address, wsteth.address], // Swap path
-  //       [500], // Fees
-  //       true,
-  //     );
-  //     console.log("levering up");
-  //     await morphoLeverageModule.lever(
-  //       setToken.address,
-  //       wsteth.address,
-  //       wsteth.address,
-  //       borrowAmount,
-  //       utils.parseEther("0.1"),
-  //       "UNISWAPV3",
-  //       leverageTradeData,
-  //     );
-  //     console.log("levered up");
-  //   };
-
-  //   cacheBeforeEach(initializeContracts);
-
-  //   beforeEach(() => {
-  //     subjectSetToken = setToken.address;
-  //     caller = owner.wallet;
-  //   });
-
-  //   const subject = () =>
-  //     morphoLeverageModule.connect(caller).setEModeCategory(subjectSetToken, subjectCategoryId);
-
-  //   describe("When changing the EMode Category from default to 1", async () => {
-  //     beforeEach(() => {
-  //       subjectCategoryId = 1;
-  //     });
-  //     it("sets the EMode category for the set Token user correctly", async () => {
-  //       await subject();
-  //       const categoryId = await aaveLendingPool.getUserEMode(subjectSetToken);
-  //       expect(categoryId).to.eq(subjectCategoryId);
-  //     });
-
-  //     it("Increases liquidationThreshold and healthFactor", async () => {
-  //       const userDataBefore = await aaveLendingPool.getUserAccountData(subjectSetToken);
-  //       await subject();
-  //       const userDataAfter = await aaveLendingPool.getUserAccountData(subjectSetToken);
-  //       expect(userDataAfter.healthFactor).to.be.gt(userDataBefore.healthFactor);
-  //       expect(userDataAfter.currentLiquidationThreshold).to.be.gt(
-  //         userDataBefore.currentLiquidationThreshold,
-  //       );
-  //     });
-  //   });
-
-  //   describe("When category has been set to 1 (ETH)", async () => {
-  //     beforeEach(async () => {
-  //       await morphoLeverageModule.setEModeCategory(subjectSetToken, 1);
-  //     });
-  //     describe("When setting the category back to 0", async () => {
-  //       beforeEach(() => {
-  //         subjectCategoryId = 0;
-  //       });
-  //       it("sets the EMode category for the set Token user correctly", async () => {
-  //         await subject();
-  //         const categoryId = await aaveLendingPool.getUserEMode(subjectSetToken);
-  //         expect(categoryId).to.eq(subjectCategoryId);
-  //       });
-  //     });
-  //   });
-
-  //   describe("When caller is not the owner", async () => {
-  //     beforeEach(async () => {
-  //       caller = notOwner.wallet;
-  //     });
-  //     it("should revert", async () => {
-  //       await expect(subject()).to.be.revertedWith("Must be the SetToken manager");
-  //     });
-  //   });
-  // });
+  });
 
   // describe("#delever", async () => {
   //   let setToken: SetToken;
