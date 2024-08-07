@@ -29,7 +29,7 @@ const tokenAddresses = {
   cUSDCv3: "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
 };
 
-describe.only("CompoundV3WrapV2Adapter", () => {
+describe("CompoundV3WrapV2Adapter", () => {
   let owner: Account;
   let deployer: DeployHelper;
   let setup: SystemFixture;

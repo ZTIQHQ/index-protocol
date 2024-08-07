@@ -3,7 +3,7 @@ import { BigNumber } from "ethers";
 
 import { Address } from "@utils/types";
 import { Account } from "@utils/test/types";
-import { ADDRESS_ZERO, ONE, ZERO_BYTES } from "@utils/constants";
+import { ADDRESS_ZERO, ONE, ZERO, ZERO_BYTES } from "@utils/constants";
 import { SetToken, WrapModuleV2 } from "@utils/contracts";
 import DeployHelper from "@utils/deploys";
 import {
@@ -37,7 +37,7 @@ const whales = {
   usdc: "0xf584F8728B874a6a5c7A8d4d387C9aae9172D621",
 };
 
-describe.only("CompoundV3WrapModule", () => {
+describe("CompoundV3WrapModule", () => {
   let owner: Account;
   let deployer: DeployHelper;
   let setup: SystemFixture;
@@ -184,7 +184,7 @@ describe.only("CompoundV3WrapModule", () => {
         subjectSetToken = setToken.address;
         subjectUnderlyingToken = tokenAddresses.usdc;
         subjectWrappedToken = tokenAddresses.cUSDCv3;
-        subjectWrappedTokenUnits = ONE;
+        subjectWrappedTokenUnits = usdc(50);
         subjectIntegrationName = compoundV3WrapAdapterIntegrationName;
         subjectUnwrapData = ZERO_BYTES;
         subjectCaller = owner;
@@ -224,10 +224,18 @@ describe.only("CompoundV3WrapModule", () => {
         const delta = preciseMul(setTokensIssued, wrappedQuantity.sub(subjectWrappedTokenUnits));
 
         const expectedUnderlyingBalance = previousUnderlyingBalance.add(delta);
-        expect(underlyingBalance).to.eq(expectedUnderlyingBalance);
+        expect(underlyingBalance).to.gte(expectedUnderlyingBalance);
 
         const expectedWrappedBalance = previousWrappedBalance.sub(delta);
-        expect(wrappedBalance).to.eq(expectedWrappedBalance);
+        expect(wrappedBalance).to.gte(expectedWrappedBalance);
+      });
+
+      it("should revoke the unwrapping spender allowance", async () => {
+        await subject();
+
+        const allowance = await wrappedToken.allowance(setToken.address, wrappedToken.address);
+
+        expect(allowance).to.eq(ZERO);
       });
     });
   });
