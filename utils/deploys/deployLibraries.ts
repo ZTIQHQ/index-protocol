@@ -12,9 +12,11 @@ import {
   AaveV3
 } from "../../typechain";
 
+import { Morpho } from "../../typechain/Morpho";
 import { Compound__factory } from "../../typechain/factories/Compound__factory";
 import { AaveV2__factory } from "../../typechain/factories/AaveV2__factory";
 import { AaveV3__factory } from "../../typechain/factories/AaveV3__factory";
+import { Morpho__factory } from "../../typechain/factories/Morpho__factory";
 import { PerpV2__factory } from "../../typechain/factories/PerpV2__factory";
 import { PerpV2LibraryV2__factory } from "../../typechain/factories/PerpV2LibraryV2__factory";
 import { PerpV2Positions__factory } from "../../typechain/factories/PerpV2Positions__factory";
@@ -38,6 +40,11 @@ export default class DeployLibraries {
   public async deployAaveV3(): Promise<AaveV3> {
     return await new AaveV3__factory(this._deployerSigner).deploy();
   }
+
+  public async deployMorpho(): Promise<Morpho> {
+    return await new Morpho__factory(this._deployerSigner).deploy();
+  }
+
 
 
   public async deployPerpV2(): Promise<PerpV2> {
