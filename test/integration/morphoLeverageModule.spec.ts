@@ -1,32 +1,22 @@
 import "module-alias/register";
 
-import { Signer, BigNumber, ContractTransaction, constants, utils } from "ethers";
+import {  BigNumber, constants, utils } from "ethers";
 
 import { getRandomAccount, getRandomAddress } from "@utils/test";
 import { Account } from "@utils/test/types";
 import { Address, Bytes } from "@utils/types";
-import { impersonateAccount, waitForEvent } from "@utils/test/testingUtils";
+import { impersonateAccount} from "@utils/test/testingUtils";
 import DeployHelper from "@utils/deploys";
 import { cacheBeforeEach, getAccounts, getWaffleExpect } from "@utils/test/index";
-import { ADDRESS_ZERO, ZERO } from "@utils/constants";
-import { ether, preciseMul } from "@utils/index";
+import { ADDRESS_ZERO } from "@utils/constants";
+import { ether } from "@utils/index";
 import { network } from "hardhat";
 import { forkingConfig } from "../../hardhat.config";
 
 import {
   MorphoLeverageModule,
-  ChainlinkAggregatorMock,
-  DebtIssuanceMock,
-  Iwsteth,
-  Iwsteth__factory,
   IERC20,
   IERC20__factory,
-  IPool,
-  IPool__factory,
-  IPoolAddressesProvider,
-  IPoolAddressesProvider__factory,
-  IPoolConfigurator,
-  IPoolConfigurator__factory,
   Controller,
   Controller__factory,
   DebtIssuanceModuleV2,
@@ -37,15 +27,10 @@ import {
   SetToken__factory,
   SetTokenCreator,
   SetTokenCreator__factory,
-  StandardTokenMock,
   UniswapV3ExchangeAdapterV2,
   UniswapV3ExchangeAdapterV2__factory,
-  UniswapV3Pool,
-  UniswapV3Pool__factory,
 } from "@typechain/index";
-import {
-    MarketParamsStruct 
-} from  "@typechain/IMorpho";
+import { MarketParamsStruct } from "@typechain/IMorpho";
 
 const expect = getWaffleExpect();
 
@@ -58,9 +43,8 @@ const contractAddresses = {
   integrationRegistry: "0xb9083dee5e8273E54B9DB4c31bA9d4aB7C6B28d3",
   uniswapV3ExchangeAdapterV2: "0xe6382D2D44402Bad8a03F11170032aBCF1Df1102",
   uniswapV3Router: "0xe6382D2D44402Bad8a03F11170032aBCF1Df1102",
-  wstethUsdcPool: "0x60594a405d53811d3bc4766596efd80fd545a270",
   interestRateStrategy: "0x76884cAFeCf1f7d4146DA6C4053B18B76bf6ED14",
-  morpho:  "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+  morpho: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
 };
 
 const tokenAddresses = {
@@ -74,30 +58,24 @@ const whales = {
 };
 
 const wstethUsdcMarketParams: MarketParamsStruct = {
-     loanToken: tokenAddresses.usdc,
-     collateralToken: tokenAddresses.wsteth,
-     oracle: "0x48F7E36EB6B826B2dF4B2E630B62Cd25e89E40e2",
-     irm: "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
-     lltv: ethers.utils.parseEther("0.86"),
+  loanToken: tokenAddresses.usdc,
+  collateralToken: tokenAddresses.wsteth,
+  oracle: "0x48F7E36EB6B826B2dF4B2E630B62Cd25e89E40e2",
+  irm: "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
+  lltv: ether(0.86),
 };
 
 describe("MorphoLeverageModule integration", () => {
   let owner: Account;
-  let notOwner: Account;
-  let mockModule: Account;
   let deployer: DeployHelper;
   let morphoLeverageModule: MorphoLeverageModule;
   let debtIssuanceModule: DebtIssuanceModuleV2;
   let integrationRegistry: IntegrationRegistry;
   let setTokenCreator: SetTokenCreator;
   let controller: Controller;
-  let wsteth: Iwsteth;
-  let usdc: IERC20;
-  let wbtc: IERC20;
   let usdc: IERC20;
   let wsteth: IERC20;
   let uniswapV3ExchangeAdapterV2: UniswapV3ExchangeAdapterV2;
-  let wstethUsdcPool: UniswapV3Pool;
 
   let manager: Address;
   const maxManagerFee = ether(0.05);
@@ -122,14 +100,13 @@ describe("MorphoLeverageModule integration", () => {
     });
   });
   after(async () => {
-    // await network.provider.request({
-    //   method: "hardhat_reset",
-    //   params: [],
-    // });
+    await network.provider.request({
+      method: "hardhat_reset",
+      params: [],
+    });
   });
   cacheBeforeEach(async () => {
-    [owner, notOwner, mockModule] = await getAccounts();
-
+    [owner] = await getAccounts();
 
     usdc = IERC20__factory.connect(tokenAddresses.usdc, owner.wallet);
     wsteth = IERC20__factory.connect(tokenAddresses.wsteth, owner.wallet);
@@ -137,7 +114,6 @@ describe("MorphoLeverageModule integration", () => {
       contractAddresses.uniswapV3ExchangeAdapterV2,
       owner.wallet,
     );
-
 
     manager = owner.address;
     managerFeeRecipient = owner.address;
@@ -295,7 +271,6 @@ describe("MorphoLeverageModule integration", () => {
         expect(isModuleEnabled).to.eq(true);
       });
 
-
       it("should register on the debt issuance module", async () => {
         await subject();
         const issuanceSettings = await debtIssuanceModule.issuanceSettings(setToken.address);
@@ -404,7 +379,9 @@ describe("MorphoLeverageModule integration", () => {
 
           it("should enable the Module on the SetToken", async () => {
             await subject();
-            const isModuleEnabled = await setToken.isInitializedModule(morphoLeverageModule.address);
+            const isModuleEnabled = await setToken.isInitializedModule(
+              morphoLeverageModule.address,
+            );
             expect(isModuleEnabled).to.eq(true);
           });
         });
@@ -412,120 +389,131 @@ describe("MorphoLeverageModule integration", () => {
     });
   });
 
-  describe("#lever", async () => {
+  context("when wsteth is collateral asset and usdc borrow assets", async () => {
     let setToken: SetToken;
-    let isInitialized: boolean;
-    let destinationTokenQuantity: BigNumber;
-
     let subjectSetToken: Address;
-    let subjectBorrowAsset: Address;
-    let subjectCollateralAsset: Address;
-    let subjectBorrowQuantity: BigNumber;
-    let subjectMinCollateralQuantity: BigNumber;
-    let subjectTradeAdapterName: string;
-    let subjectTradeData: Bytes;
     let subjectCaller: Account;
 
-    async function subject(): Promise<any> {
-      return morphoLeverageModule
-        .connect(subjectCaller.wallet)
-        .lever(
-          subjectSetToken,
-          subjectBorrowQuantity,
-          subjectMinCollateralQuantity,
-          subjectTradeAdapterName,
-          subjectTradeData,
-          { gasLimit: 2000000 },
-        );
-    }
 
-    context(
-      "when wsteth is collateral asset and usdc borrow assets",
-      async () => {
-        // This is a borrow amount that will fail in normal mode but should work in e-mode
-        const maxBorrowAmount = utils.parseEther("1.6");
-        before(async () => {
-          isInitialized = true;
-        });
+    cacheBeforeEach(async () => {
+      setToken = await createSetToken(
+        [wsteth.address],
+        [ether(1)],
+        [morphoLeverageModule.address, debtIssuanceModule.address],
+      );
+      await initializeDebtIssuanceModule(setToken.address);
+      subjectSetToken = setToken.address;
+      subjectCaller = owner;
 
-        cacheBeforeEach(async () => {
-          setToken = await createSetToken(
-            [wsteth.address],
-            [ether(1)],
-            [morphoLeverageModule.address, debtIssuanceModule.address],
-          );
-          await initializeDebtIssuanceModule(setToken.address);
+      // Mint aTokens
+      await network.provider.send("hardhat_setBalance", [whales.wsteth, ether(10).toHexString()]);
+      await wsteth
+        .connect(await impersonateAccount(whales.wsteth))
+        .transfer(owner.address, ether(10000));
+      await wsteth.approve(debtIssuanceModule.address, ether(10000));
 
-          // Mint aTokens
-          await network.provider.send("hardhat_setBalance", [
-            whales.wsteth,
-            ether(10).toHexString(),
-          ]);
-          await wsteth
-            .connect(await impersonateAccount(whales.wsteth))
-            .transfer(owner.address, ether(10000));
-          await wsteth.approve(debtIssuanceModule.address, ether(10000));
+      const issueQuantity = ether(1);
+      await debtIssuanceModule.issue(setToken.address, issueQuantity, owner.address);
 
-          // Issue 1 SetToken. Note: 1inch mock is hardcoded to trade 1000 USDC regardless of Set supply
-          const issueQuantity = ether(1);
-          destinationTokenQuantity = ether(1);
-          await debtIssuanceModule.issue(setToken.address, issueQuantity, owner.address);
+      // Add SetToken to allow list
+      await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
+      // Initialize module if set to true
+    });
+    context("when morphoLeverageModule is intialized", async () => {
+      cacheBeforeEach(async () => {
+        await morphoLeverageModule.initialize(setToken.address, wstethUsdcMarketParams);
+      });
 
-          // Add SetToken to allow list
-          await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
-          // Initialize module if set to true
-          if (isInitialized) {
-            await morphoLeverageModule.initialize(
-              setToken.address,
-              wstethUsdcMarketParams
-            );
-            await morphoLeverageModule.enterCollateralPosition(setToken.address);
-          }
-
-        });
-
-        beforeEach(async () => {
-          subjectSetToken = setToken.address;
-          subjectBorrowAsset = wsteth.address;
-          subjectCollateralAsset = wsteth.address;
-          subjectBorrowQuantity = utils.parseUnits("1000", 6);
-          subjectMinCollateralQuantity = utils.parseEther("0.1");
-          subjectTradeAdapterName = "UNISWAPV3";
-          subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-            [usdc.address, wsteth.address], // Swap path
-            [500], // Fees
-            true,
-          );
-          subjectCaller = owner;
-        });
-
+      describe("#enterCollateralPosition", async () => {
+        async function subject(): Promise<any> {
+          return morphoLeverageModule
+            .connect(subjectCaller.wallet)
+            .enterCollateralPosition(subjectSetToken);
+        }
         it("should update the collateral position on the SetToken correctly", async () => {
           const initialPositions = await setToken.getPositions();
+          const initialFirstPosition = initialPositions[0];
 
           await subject();
 
           const currentPositions = await setToken.getPositions();
           const newFirstPosition = (await setToken.getPositions())[0];
-          const newSecondPosition = (await setToken.getPositions())[1];
-
 
           expect(initialPositions.length).to.eq(1);
-          expect(initialPositions[0].positionState).to.eq(1); // External already
+          expect(initialFirstPosition.positionState).to.eq(0); // Default already
+          expect(initialFirstPosition.module).to.eq(ADDRESS_ZERO);
 
-          expect(currentPositions.length).to.eq(2);
+          expect(currentPositions.length).to.eq(1);
           expect(newFirstPosition.component).to.eq(wsteth.address);
           expect(newFirstPosition.positionState).to.eq(1); // External
-          expect(newFirstPosition.unit).to.gte(initialPositions[0].unit.add(subjectMinCollateralQuantity));
+          expect(newFirstPosition.unit).to.eq(initialFirstPosition.unit);
           expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
-
-          expect(newSecondPosition.component).to.eq(usdc.address);
-          expect(newSecondPosition.positionState).to.eq(1); // External
-          expect(newSecondPosition.unit).to.eq(subjectBorrowQuantity.mul(-1));
-          expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
         });
-      },
-    );
+      });
+      context("when collateral has been deposited into morpho", async () => {
+        cacheBeforeEach(async () => {
+          await morphoLeverageModule.enterCollateralPosition(setToken.address);
+        });
 
+        describe("#lever", async () => {
+          let subjectBorrowQuantity: BigNumber;
+          let subjectMinCollateralQuantity: BigNumber;
+          let subjectTradeAdapterName: string;
+          let subjectTradeData: Bytes;
+
+          async function subject(): Promise<any> {
+            return morphoLeverageModule
+              .connect(subjectCaller.wallet)
+              .lever(
+                subjectSetToken,
+                subjectBorrowQuantity,
+                subjectMinCollateralQuantity,
+                subjectTradeAdapterName,
+                subjectTradeData,
+                { gasLimit: 2000000 },
+              );
+          }
+
+          beforeEach(async () => {
+            subjectSetToken = setToken.address;
+            subjectBorrowQuantity = utils.parseUnits("1000", 6);
+            subjectMinCollateralQuantity = utils.parseEther("0.1");
+            subjectTradeAdapterName = "UNISWAPV3";
+            subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+              [usdc.address, wsteth.address], // Swap path
+              [500], // Fees
+              true,
+            );
+          });
+
+          it("should update the collateral position on the SetToken correctly", async () => {
+            const initialPositions = await setToken.getPositions();
+
+            await subject();
+
+            const currentPositions = await setToken.getPositions();
+            const newFirstPosition = (await setToken.getPositions())[0];
+            const newSecondPosition = (await setToken.getPositions())[1];
+
+            expect(initialPositions.length).to.eq(1);
+            expect(initialPositions[0].positionState).to.eq(1); // External already
+
+            expect(currentPositions.length).to.eq(2);
+            expect(newFirstPosition.component).to.eq(wsteth.address);
+            expect(newFirstPosition.positionState).to.eq(1); // External
+            expect(newFirstPosition.unit).to.gte(
+              initialPositions[0].unit.add(subjectMinCollateralQuantity),
+            );
+            expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
+
+            expect(newSecondPosition.component).to.eq(usdc.address);
+            expect(newSecondPosition.positionState).to.eq(1); // External
+            expect(newSecondPosition.unit).to.eq(subjectBorrowQuantity.mul(-1));
+            expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
+          });
+        });
+      });
+    });
   });
 
   // describe("#delever", async () => {
