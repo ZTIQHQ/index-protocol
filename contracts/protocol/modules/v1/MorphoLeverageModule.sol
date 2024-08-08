@@ -288,15 +288,15 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
        
         uint256 setTotalSupply = _setToken.totalSupply();
         uint256 notionalRedeemQuantity = _redeemQuantityUnits.preciseMul(setTotalSupply);
-        // TODO: Review conversion
-        uint256 notionalRepayQuantity = notionalRedeemQuantity;
+        (uint256 collateralBalance, uint256 borrowBalance) = _getCollateralAndBorrowBalances(_setToken, setMarketParams);
+        require(notionalRedeemQuantity <= collateralBalance, "Redeem quantity too high");  
 
         ActionInfo memory deleverInfo = _createAndValidateActionInfoNotional(
             _setToken,
             IERC20(setMarketParams.collateralToken),
             IERC20(setMarketParams.loanToken),
             notionalRedeemQuantity,
-            notionalRepayQuantity,
+            borrowBalance,
             _tradeAdapterName,
             false,
             setTotalSupply
@@ -306,7 +306,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         _executeTrade(deleverInfo, IERC20(setMarketParams.collateralToken), IERC20(setMarketParams.loanToken), _tradeData);
 
-        _repayBorrow(deleverInfo.setToken, setMarketParams, notionalRepayQuantity);
+        _repayBorrow(deleverInfo.setToken, setMarketParams, borrowBalance);
 
         _sync(deleverInfo.setToken);
 
@@ -316,11 +316,11 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
             IERC20(setMarketParams.loanToken),
             deleverInfo.exchangeAdapter,
             deleverInfo.notionalSendQuantity,
-            notionalRepayQuantity,
+            borrowBalance,
             0   // No protocol fee
         );
 
-        return notionalRepayQuantity;
+        return borrowBalance;
     }
 
     /**
@@ -523,14 +523,19 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /* ============ Internal Functions ============ */
 
     function _getCollateralAndBorrowPositions(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _setTotalSupply) internal returns (int256 collateralPosition, int256 borrowPosition){
+        (uint256 collateralBalance, uint256 borrowBalance) = _getCollateralAndBorrowBalances(_setToken, _marketParams);
+        collateralPosition = collateralBalance.preciseDiv(_setTotalSupply).toInt256();
+        borrowPosition = borrowBalance.preciseDivCeil(_setTotalSupply).toInt256().mul(-1);
+    }
+
+    function _getCollateralAndBorrowBalances(ISetToken _setToken, IMorpho.MarketParams memory _marketParams) internal returns (uint256 collateralBalance, uint256 borrowBalance){
         bytes32 marketId = _marketParams.id();
         ( , , uint128 totalBorrowAssets, uint128 totalBorrowShares, , ) = morpho.market(marketId);
-
-
-        (uint256 supplyShares, uint128 borrowShares, uint128 collateral) = morpho.position(marketId, address(_setToken));
+        ( , uint128 borrowShares, uint128 collateral) = morpho.position(marketId, address(_setToken));
         uint256 borrowAssets = borrowShares.toAssetsDown(totalBorrowAssets, totalBorrowShares);
-        collateralPosition = uint256(collateral).preciseDiv(_setTotalSupply).toInt256();
-        borrowPosition = borrowAssets.preciseDivCeil(_setTotalSupply).toInt256().mul(-1);
+
+        collateralBalance = uint256(collateral);
+        borrowBalance = borrowAssets;
     }
 
     /**
