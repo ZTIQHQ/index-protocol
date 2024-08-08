@@ -188,15 +188,16 @@ library Morpho {
         ISetToken _setToken,
         IMorpho _morpho,
         IMorpho.MarketParams memory _marketParams,
-        uint256 _amountNotional
+        uint256 _assets,
+        uint256 _shares
     )
         external
     {
         ( , , bytes memory repayCalldata) = getRepayCalldata(
             _morpho,
             _marketParams,
-            _amountNotional, 
-            0,
+            _assets, 
+            _shares,
             address(_setToken)
         );
         

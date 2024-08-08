@@ -257,7 +257,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         uint256 repayQuantity = postTradeReceiveQuantity.sub(protocolFee);
 
-        _repayBorrow(deleverInfo.setToken, setMarketParams, repayQuantity);
+        _repayBorrow(deleverInfo.setToken, setMarketParams, repayQuantity, 0);
 
         _sync(deleverInfo.setToken);
 
@@ -288,8 +288,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
        
         uint256 setTotalSupply = _setToken.totalSupply();
         uint256 notionalRedeemQuantity = _redeemQuantityUnits.preciseMul(setTotalSupply);
-        (uint256 collateralBalance, uint256 borrowBalance) = _getCollateralAndBorrowBalances(_setToken, setMarketParams);
-        require(notionalRedeemQuantity <= collateralBalance, "Redeem quantity too high");  
+        (,uint256 borrowBalance, uint256 borrowShares) = _getCollateralAndBorrowBalances(_setToken, setMarketParams);
 
         ActionInfo memory deleverInfo = _createAndValidateActionInfoNotional(
             _setToken,
@@ -306,7 +305,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         _executeTrade(deleverInfo, IERC20(setMarketParams.collateralToken), IERC20(setMarketParams.loanToken), _tradeData);
 
-        _repayBorrow(deleverInfo.setToken, setMarketParams, borrowBalance);
+        _repayBorrow(deleverInfo.setToken, setMarketParams, borrowBalance, borrowShares);
 
         _sync(deleverInfo.setToken);
 
@@ -515,7 +514,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
             require(componentDebt < 0, "Component must be negative");
 
             uint256 notionalDebt = componentDebt.mul(-1).toUint256().preciseMul(_setTokenQuantity);
-            _repayBorrow(_setToken, setMarketParams, notionalDebt);
+            _repayBorrow(_setToken, setMarketParams, notionalDebt, 0);
         }
     }
 
@@ -523,18 +522,20 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /* ============ Internal Functions ============ */
 
     function _getCollateralAndBorrowPositions(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _setTotalSupply) internal returns (int256 collateralPosition, int256 borrowPosition){
-        (uint256 collateralBalance, uint256 borrowBalance) = _getCollateralAndBorrowBalances(_setToken, _marketParams);
+        (uint256 collateralBalance, uint256 borrowBalance, ) = _getCollateralAndBorrowBalances(_setToken, _marketParams);
         collateralPosition = collateralBalance.preciseDiv(_setTotalSupply).toInt256();
         borrowPosition = borrowBalance.preciseDivCeil(_setTotalSupply).toInt256().mul(-1);
     }
 
-    function _getCollateralAndBorrowBalances(ISetToken _setToken, IMorpho.MarketParams memory _marketParams) internal returns (uint256 collateralBalance, uint256 borrowBalance){
+    function _getCollateralAndBorrowBalances(ISetToken _setToken, IMorpho.MarketParams memory _marketParams) internal returns (uint256 collateralBalance, uint256 borrowBalance, uint256 borrowSharesBig){
         bytes32 marketId = _marketParams.id();
         ( , , uint128 totalBorrowAssets, uint128 totalBorrowShares, , ) = morpho.market(marketId);
         ( , uint128 borrowShares, uint128 collateral) = morpho.position(marketId, address(_setToken));
-        uint256 borrowAssets = borrowShares.toAssetsDown(totalBorrowAssets, totalBorrowShares);
+        uint256 borrowAssets = borrowShares.toAssetsUp(totalBorrowAssets, totalBorrowShares);
 
         collateralBalance = uint256(collateral);
+        // TODO: Rename variables
+        borrowSharesBig = uint256(borrowShares);
         borrowBalance = borrowAssets;
     }
 
@@ -579,13 +580,24 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /**
      * @dev Invoke repay from SetToken using Morpho Blue
      */
-    function _repayBorrow(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
+    function _repayBorrow(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity, uint256 _shares) internal {
         _setToken.invokeApprove(_marketParams.loanToken, address(morpho), _notionalQuantity);
-        _setToken.invokeRepay(
-            morpho,
-            _marketParams,
-            _notionalQuantity
-        );
+        // Only ever set shares or assets to avoid "inconsistent input" error when there is a rounding error
+        if(_shares > 0) {
+            _setToken.invokeRepay(
+                morpho,
+                _marketParams,
+                0,
+                _shares
+            );
+        } else {
+            _setToken.invokeRepay(
+                morpho,
+                _marketParams,
+                _notionalQuantity,
+                0
+            );
+        }
     }
 
 
