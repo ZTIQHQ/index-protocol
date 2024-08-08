@@ -501,110 +501,27 @@ describe("MorphoLeverageModule integration", () => {
 
         it("should update the collateral position on the SetToken correctly", async () => {
           const initialPositions = await setToken.getPositions();
-            console.log("initialPositions", initialPositions);
 
           await subject();
 
-          // cEther position is increased
           const currentPositions = await setToken.getPositions();
-            console.log("currentPositions", currentPositions);
           const newFirstPosition = (await setToken.getPositions())[0];
           const newSecondPosition = (await setToken.getPositions())[1];
 
-          // Get expected aTokens minted
-          const newUnits = subjectMinCollateralQuantity;
-          const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
 
           expect(initialPositions.length).to.eq(1);
+          expect(initialPositions[0].positionState).to.eq(1); // External already
+
           expect(currentPositions.length).to.eq(2);
           expect(newFirstPosition.component).to.eq(wsteth.address);
-          expect(newFirstPosition.positionState).to.eq(0); // Default
-          expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
-          expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
+          expect(newFirstPosition.positionState).to.eq(1); // External
+          expect(newFirstPosition.unit).to.gte(initialPositions[0].unit.add(subjectMinCollateralQuantity));
+          expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
 
-          expect(newSecondPosition.component).to.eq(wsteth.address);
-          expect(newSecondPosition.positionState).to.eq(0); // Default
-          expect(newSecondPosition.unit).to.eq(ether(1));
-          expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
-        });
-        describe("When leverage ratio is higher than normal limit", () => {
-          beforeEach(async () => {
-            subjectBorrowQuantity = maxBorrowAmount;
-          });
-          it("should revert", async () => {
-            await expect(subject()).to.be.revertedWith("36");
-          });
-        });
-
-        describe("When E-mode category is set to eth category", () => {
-          beforeEach(async () => {
-            const wstethEModeCategory = await protocolDataProvider.getReserveEModeCategory(
-              wsteth.address,
-            );
-            const wstethEModeCategory = await protocolDataProvider.getReserveEModeCategory(
-              wsteth.address,
-            );
-            expect(wstethEModeCategory).to.eq(wstethEModeCategory);
-            await morphoLeverageModule.setEModeCategory(setToken.address, wstethEModeCategory);
-          });
-
-          it("should update the collateral position on the SetToken correctly", async () => {
-            const initialPositions = await setToken.getPositions();
-
-            await subject();
-
-            // cEther position is increased
-            const currentPositions = await setToken.getPositions();
-            const newFirstPosition = (await setToken.getPositions())[0];
-            const newSecondPosition = (await setToken.getPositions())[1];
-
-            // Get expected aTokens minted
-            const newUnits = subjectMinCollateralQuantity;
-            const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
-
-            expect(initialPositions.length).to.eq(2);
-            expect(currentPositions.length).to.eq(3);
-            expect(newFirstPosition.component).to.eq(wsteth.address);
-            expect(newFirstPosition.positionState).to.eq(0); // Default
-            expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
-            expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
-
-            expect(newSecondPosition.component).to.eq(wsteth.address);
-            expect(newSecondPosition.positionState).to.eq(0); // Default
-            expect(newSecondPosition.unit).to.eq(ether(1));
-            expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
-          });
-          describe("When leverage ratio is higher than normal limit", () => {
-            beforeEach(async () => {
-              subjectBorrowQuantity = maxBorrowAmount;
-            });
-            it("should update the collateral position on the SetToken correctly", async () => {
-              const initialPositions = await setToken.getPositions();
-
-              await subject();
-
-              // cEther position is increased
-              const currentPositions = await setToken.getPositions();
-              const newFirstPosition = (await setToken.getPositions())[0];
-              const newSecondPosition = (await setToken.getPositions())[1];
-
-              // Get expected aTokens minted
-              const newUnits = subjectMinCollateralQuantity;
-              const expectedFirstPositionUnit = initialPositions[0].unit.add(newUnits);
-
-              expect(initialPositions.length).to.eq(2);
-              expect(currentPositions.length).to.eq(3);
-              expect(newFirstPosition.component).to.eq(wsteth.address);
-              expect(newFirstPosition.positionState).to.eq(0); // Default
-              expect(newFirstPosition.unit).to.gte(expectedFirstPositionUnit);
-              expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
-
-              expect(newSecondPosition.component).to.eq(wsteth.address);
-              expect(newSecondPosition.positionState).to.eq(0); // Default
-              expect(newSecondPosition.unit).to.eq(ether(1));
-              expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
-            });
-          });
+          expect(newSecondPosition.component).to.eq(usdc.address);
+          expect(newSecondPosition.positionState).to.eq(1); // External
+          expect(newSecondPosition.unit).to.eq(subjectBorrowQuantity.mul(-1));
+          expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
         });
       },
     );

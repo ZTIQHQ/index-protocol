@@ -510,7 +510,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         ( , , uint128 totalBorrowAssets, uint128 totalBorrowShares, , ) = morpho.market(marketId);
 
 
-        (uint256 supplyShares, uint128 borrowShares, uint128 collateral) = morpho.position(marketId, address(this));
+        (uint256 supplyShares, uint128 borrowShares, uint128 collateral) = morpho.position(marketId, address(_setToken));
         uint256 borrowAssets = borrowShares.toAssetsDown(totalBorrowAssets, totalBorrowShares);
         collateralPosition = uint256(collateral).preciseDiv(_setTotalSupply).toInt256();
         borrowPosition = borrowAssets.preciseDivCeil(_setTotalSupply).toInt256().mul(-1);
