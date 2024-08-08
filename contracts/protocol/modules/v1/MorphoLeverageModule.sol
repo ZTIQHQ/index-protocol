@@ -308,7 +308,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         _repayBorrow(deleverInfo.setToken, setMarketParams, notionalRepayQuantity);
 
-        _updateDeleverPositions(deleverInfo, IERC20(setMarketParams.loanToken));
+        _sync(deleverInfo.setToken);
 
         emit LeverageDecreased(
             _setToken,
@@ -470,15 +470,26 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @param _component            Address of component
      */
     function componentIssueHook(ISetToken _setToken, uint256 _setTokenQuantity, IERC20 _component, bool _isEquity) external override onlyModule(_setToken) {
+        // TODO: Check if this comment from aave adapter is relevant
         // Check hook not being called for an equity position. If hook is called with equity position and outstanding borrow position
         // exists the loan would be taken out twice potentially leading to liquidation
-        if (!_isEquity) {
+        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
+        if (_isEquity && setMarketParams.collateralToken == address(_component)) {
+            int256 componentCollateral = _setToken.getExternalPositionRealUnit(address(_component), address(this));
+
+            require(componentCollateral > 0, "Component must be negative");
+
+            uint256 notionalCollateral = componentCollateral.toUint256().preciseMul(_setTokenQuantity);
+            _deposit(_setToken, setMarketParams, notionalCollateral);
+        }
+        if(!_isEquity) {
+            require(setMarketParams.loanToken == address(_component), "Debt component mismatch");
             int256 componentDebt = _setToken.getExternalPositionRealUnit(address(_component), address(this));
 
             require(componentDebt < 0, "Component must be negative");
 
             uint256 notionalDebt = componentDebt.mul(-1).toUint256().preciseMul(_setTokenQuantity);
-            _borrowForHook(_setToken, _component, notionalDebt);
+            _borrow(_setToken, setMarketParams, notionalDebt);
         }
     }
 
@@ -490,15 +501,21 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @param _component            Address of component
      */
     function componentRedeemHook(ISetToken _setToken, uint256 _setTokenQuantity, IERC20 _component, bool _isEquity) external override onlyModule(_setToken) {
-        // Check hook not being called for an equity position. If hook is called with equity position and outstanding borrow position
-        // exists the loan would be paid down twice, decollateralizing the Set
-        if (!_isEquity) {
+        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
+        if (_isEquity && setMarketParams.collateralToken == address(_component)) {
+            int256 componentCollateral = _setToken.getExternalPositionRealUnit(address(_component), address(this));
+            require(componentCollateral > 0, "Component must be negative");
+            uint256 notionalCollateral = componentCollateral.toUint256().preciseMul(_setTokenQuantity);
+            _withdraw(_setToken, setMarketParams, notionalCollateral);
+        }
+        if(!_isEquity) {
+            require(setMarketParams.loanToken == address(_component), "Debt component mismatch");
             int256 componentDebt = _setToken.getExternalPositionRealUnit(address(_component), address(this));
 
             require(componentDebt < 0, "Component must be negative");
 
-            uint256 notionalDebt = componentDebt.mul(-1).toUint256().preciseMulCeil(_setTokenQuantity);
-            _repayBorrowForHook(_setToken, _component, notionalDebt);
+            uint256 notionalDebt = componentDebt.mul(-1).toUint256().preciseMul(_setTokenQuantity);
+            _repayBorrow(_setToken, setMarketParams, notionalDebt);
         }
     }
 
@@ -547,22 +564,25 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @dev Invoke withdraw from SetToken using Morpho Blue
      */
     function _withdraw(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
-        //@TODO: Implement
+        _setToken.invokeWithdrawCollateral(
+            morpho,
+            _marketParams,
+            _notionalQuantity
+        );
     }
 
     /**
      * @dev Invoke repay from SetToken using Morpho Blue
      */
     function _repayBorrow(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
-        //@TODO: Implement
+        _setToken.invokeApprove(_marketParams.loanToken, address(morpho), _notionalQuantity);
+        _setToken.invokeRepay(
+            morpho,
+            _marketParams,
+            _notionalQuantity
+        );
     }
 
-    /**
-     * @dev Invoke borrow from the SetToken during issuance hook. 
-     */
-    function _repayBorrowForHook(ISetToken _setToken, IERC20 _asset, uint256 _notionalQuantity) internal {
-        //@TODO: Implement
-    }
 
     /**
      * @dev Invoke borrow from the SetToken using Morpho 
@@ -639,22 +659,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         return protocolFeeTotal;
     }
-
-    /**
-     * @dev Updates the collateral  and borrow position of the SetToken
-     */
-    function _updateLeverPositions(ActionInfo memory _actionInfo, IERC20 _borrowAsset) internal {
-        //@TODO: Implement / or remove
-    }
-
-    /**
-     * @dev Updates positions as per _updateLeverPositions and updates Default position for borrow asset in case Set is
-     * delevered all the way to zero any remaining borrow asset after the debt is paid can be added as a position.
-     */
-    function _updateDeleverPositions(ActionInfo memory _actionInfo, IERC20 _repayAsset) internal {
-        //@TODO: Implement / or remove
-    }
-
 
     /**
      * @dev Construct the ActionInfo struct for lever and delever

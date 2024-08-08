@@ -118,6 +118,94 @@ library Morpho {
         
         _setToken.invoke(address(_morpho), 0, borrowCalldata);
     }
+
+    function getWithdrawCollateralCalldata(
+        IMorpho _morpho,
+        IMorpho.MarketParams memory _marketParams,
+        uint256 _assets,
+        uint256 _shares,
+        address _onBehalfOf,
+        address _receiver
+    )
+        public
+        pure
+        returns (address, uint256, bytes memory)
+    {
+        bytes memory callData = abi.encodeWithSelector(
+            0x8720316d,
+            _marketParams, 
+            _assets, 
+            _shares, 
+            _onBehalfOf,
+            _receiver
+        );
+        
+        return (address(_morpho), 0, callData);
+    }
+    
+    function invokeWithdrawCollateral(
+        ISetToken _setToken,
+        IMorpho _morpho,
+        IMorpho.MarketParams memory _marketParams,
+        uint256 _amountNotional
+    )
+        external
+    {
+        ( , , bytes memory withdrawCollateralCalldata) = getWithdrawCollateralCalldata(
+            _morpho,
+            _marketParams,
+            _amountNotional, 
+            0,
+            address(_setToken), 
+            address(_setToken)
+        );
+        
+        _setToken.invoke(address(_morpho), 0, withdrawCollateralCalldata);
+    }
+    
+    
+     function getRepayCalldata(
+        IMorpho _morpho,
+        IMorpho.MarketParams memory _marketParams,
+        uint256 _assets,
+        uint256 _shares,
+        address _onBehalfOf
+    )
+        public
+        pure
+        returns (address, uint256, bytes memory)
+    {
+        bytes memory data = bytes("");
+        bytes memory callData = abi.encodeWithSelector(
+            0x20b76e81,
+            _marketParams, 
+            _assets, 
+            _shares, 
+            _onBehalfOf,
+            data
+        );
+        
+        return (address(_morpho), 0, callData);
+    }
+    
+    function invokeRepay(
+        ISetToken _setToken,
+        IMorpho _morpho,
+        IMorpho.MarketParams memory _marketParams,
+        uint256 _amountNotional
+    )
+        external
+    {
+        ( , , bytes memory repayCalldata) = getRepayCalldata(
+            _morpho,
+            _marketParams,
+            _amountNotional, 
+            0,
+            address(_setToken)
+        );
+        
+        _setToken.invoke(address(_morpho), 0, repayCalldata);
+    }
     
     
 }
