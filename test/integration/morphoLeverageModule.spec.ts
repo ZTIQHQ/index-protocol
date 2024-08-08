@@ -2,7 +2,7 @@ import "module-alias/register";
 
 import { BigNumber, constants, utils } from "ethers";
 
-import { getRandomAccount, getRandomAddress } from "@utils/test";
+import { getRandomAccount, getRandomAddress, convertPositionToNotional } from "@utils/test";
 import { Account } from "@utils/test/types";
 import { Address, Bytes } from "@utils/types";
 import { impersonateAccount } from "@utils/test/testingUtils";
@@ -515,8 +515,12 @@ describe("MorphoLeverageModule integration", () => {
             expect(newSecondPosition.positionState).to.eq(1); // External
 
             let roundingMargin = 1;
-            expect(newSecondPosition.unit).to.gte(subjectBorrowQuantity.mul(-1).sub(roundingMargin));
-            expect(newSecondPosition.unit).to.lte(subjectBorrowQuantity.mul(-1).add(roundingMargin));
+            expect(newSecondPosition.unit).to.gte(
+              subjectBorrowQuantity.mul(-1).sub(roundingMargin),
+            );
+            expect(newSecondPosition.unit).to.lte(
+              subjectBorrowQuantity.mul(-1).add(roundingMargin),
+            );
             expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
           });
         });
@@ -659,12 +663,22 @@ describe("MorphoLeverageModule integration", () => {
               expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
             });
 
-            it("should leave the set token with no debt on the morpho market", async () => {
+            it("positions should align with token balances", async () => {
               await subject();
               const [supplyShares, borrowShares, collateral] = await morpho.position(
                 marketId,
                 setToken.address,
               );
+              console.log("collateral", collateral.toString());
+              const currentPositions = await setToken.getPositions();
+              const collateralNotional = await convertPositionToNotional(
+                currentPositions[0].unit,
+                setToken,
+              );
+              console.log("collateralNotional", collateralNotional.toString());
+              const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
+              console.log("collateralTokenBalance", collateralTokenBalance.toString());
+              expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
               expect(borrowShares).to.eq(0);
               expect(supplyShares).to.eq(0);
               expect(collateral).to.gt(0);
