@@ -1,11 +1,11 @@
 import "module-alias/register";
 
-import {  BigNumber, constants, utils } from "ethers";
+import { BigNumber, constants, utils } from "ethers";
 
 import { getRandomAccount, getRandomAddress } from "@utils/test";
 import { Account } from "@utils/test/types";
 import { Address, Bytes } from "@utils/types";
-import { impersonateAccount} from "@utils/test/testingUtils";
+import { impersonateAccount } from "@utils/test/testingUtils";
 import DeployHelper from "@utils/deploys";
 import { cacheBeforeEach, getAccounts, getWaffleExpect } from "@utils/test/index";
 import { ADDRESS_ZERO } from "@utils/constants";
@@ -100,10 +100,10 @@ describe("MorphoLeverageModule integration", () => {
     });
   });
   after(async () => {
-    await network.provider.request({
-      method: "hardhat_reset",
-      params: [],
-    });
+    // await network.provider.request({
+    //   method: "hardhat_reset",
+    //   params: [],
+    // });
   });
   cacheBeforeEach(async () => {
     [owner] = await getAccounts();
@@ -394,7 +394,6 @@ describe("MorphoLeverageModule integration", () => {
     let subjectSetToken: Address;
     let subjectCaller: Account;
 
-
     cacheBeforeEach(async () => {
       setToken = await createSetToken(
         [wsteth.address],
@@ -486,7 +485,7 @@ describe("MorphoLeverageModule integration", () => {
             );
           });
 
-          it("should update the collateral position on the SetToken correctly", async () => {
+          it("should update the positions on the SetToken correctly", async () => {
             const initialPositions = await setToken.getPositions();
 
             await subject();
@@ -510,6 +509,80 @@ describe("MorphoLeverageModule integration", () => {
             expect(newSecondPosition.positionState).to.eq(1); // External
             expect(newSecondPosition.unit).to.eq(subjectBorrowQuantity.mul(-1));
             expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
+          });
+        });
+
+        describe("#delever", async () => {
+          let subjectRedeemQuantity: BigNumber;
+          let subjectMinRepayQuantity: BigNumber;
+          let subjectTradeAdapterName: string;
+          let subjectTradeData: Bytes;
+
+          async function subject(): Promise<any> {
+            return morphoLeverageModule
+              .connect(subjectCaller.wallet)
+              .delever(
+                subjectSetToken,
+                subjectRedeemQuantity,
+                subjectMinRepayQuantity,
+                subjectTradeAdapterName,
+                subjectTradeData,
+                { gasLimit: 2000000 },
+              );
+          }
+
+          beforeEach(async () => {
+            subjectSetToken = setToken.address;
+            subjectRedeemQuantity = utils.parseEther("0.05");
+            subjectMinRepayQuantity = utils.parseUnits("100", 6);
+            subjectTradeAdapterName = "UNISWAPV3";
+            subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+              [wsteth.address, usdc.address], // Swap path
+              [500], // Fees
+              true,
+            );
+          });
+          context("when token is levered", async () => {
+            cacheBeforeEach(async () => {
+              const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+                [usdc.address, wsteth.address], // Swap path
+                [500], // Fees
+                true,
+              );
+              await morphoLeverageModule.connect(owner.wallet).lever(
+                subjectSetToken,
+                subjectMinRepayQuantity.mul(2),
+                0,
+                subjectTradeAdapterName,
+                leverTradeData,
+              );
+            });
+
+            it("should update the positions on the SetToken correctly", async () => {
+              const initialPositions = await setToken.getPositions();
+
+              await subject();
+
+              const currentPositions = await setToken.getPositions();
+              const newFirstPosition = (await setToken.getPositions())[0];
+              const newSecondPosition = (await setToken.getPositions())[1];
+
+              expect(initialPositions.length).to.eq(2);
+              expect(initialPositions[0].positionState).to.eq(1); // External already
+
+              expect(currentPositions.length).to.eq(2);
+              expect(newFirstPosition.component).to.eq(wsteth.address);
+              expect(newFirstPosition.positionState).to.eq(1); // External
+              expect(newFirstPosition.unit).to.eq(
+                initialPositions[0].unit.sub(subjectRedeemQuantity),
+              );
+              expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
+
+              expect(newSecondPosition.component).to.eq(usdc.address);
+              expect(newSecondPosition.positionState).to.eq(1); // External
+              expect(newSecondPosition.unit).to.gte(initialPositions[1].unit.add(subjectMinRepayQuantity));
+              expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
+            });
           });
         });
       });

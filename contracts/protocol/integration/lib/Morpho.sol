@@ -43,9 +43,8 @@ library Morpho {
         pure
         returns (address, uint256, bytes memory)
     {
-        // TODO: Check why encodeWithSelector is not working
-        bytes memory callData = abi.encodeWithSelector(
-            0x238d6579, 
+        bytes memory callData = abi.encodeWithSignature(
+            "supplyCollateral((address,address,address,address,uint256),uint256,address,bytes)", 
             _marketParams, 
             _assets, 
             _onBehalfOf,
@@ -87,8 +86,8 @@ library Morpho {
         pure
         returns (address, uint256, bytes memory)
     {
-        bytes memory callData = abi.encodeWithSelector(
-            0x50d8cd4b,
+        bytes memory callData = abi.encodeWithSignature(
+            "borrow((address,address,address,address,uint256),uint256,uint256,address,address)",
             _marketParams, 
             _assets, 
             _shares, 
@@ -123,7 +122,6 @@ library Morpho {
         IMorpho _morpho,
         IMorpho.MarketParams memory _marketParams,
         uint256 _assets,
-        uint256 _shares,
         address _onBehalfOf,
         address _receiver
     )
@@ -131,11 +129,10 @@ library Morpho {
         pure
         returns (address, uint256, bytes memory)
     {
-        bytes memory callData = abi.encodeWithSelector(
-            0x8720316d,
+        bytes memory callData = abi.encodeWithSignature(
+            "withdrawCollateral((address,address,address,address,uint256),uint256,address,address)",
             _marketParams, 
             _assets, 
-            _shares, 
             _onBehalfOf,
             _receiver
         );
@@ -155,7 +152,6 @@ library Morpho {
             _morpho,
             _marketParams,
             _amountNotional, 
-            0,
             address(_setToken), 
             address(_setToken)
         );
@@ -176,8 +172,8 @@ library Morpho {
         returns (address, uint256, bytes memory)
     {
         bytes memory data = bytes("");
-        bytes memory callData = abi.encodeWithSelector(
-            0x20b76e81,
+        bytes memory callData = abi.encodeWithSignature(
+            "repay((address,address,address,address,uint256),uint256,uint256,address,bytes)",
             _marketParams, 
             _assets, 
             _shares, 
