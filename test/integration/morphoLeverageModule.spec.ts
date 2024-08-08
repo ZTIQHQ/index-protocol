@@ -549,13 +549,15 @@ describe("MorphoLeverageModule integration", () => {
                 [500], // Fees
                 true,
               );
-              await morphoLeverageModule.connect(owner.wallet).lever(
-                subjectSetToken,
-                subjectMinRepayQuantity.mul(2),
-                0,
-                subjectTradeAdapterName,
-                leverTradeData,
-              );
+              await morphoLeverageModule
+                .connect(owner.wallet)
+                .lever(
+                  subjectSetToken,
+                  subjectMinRepayQuantity.mul(2),
+                  0,
+                  subjectTradeAdapterName,
+                  leverTradeData,
+                );
             });
 
             it("should update the positions on the SetToken correctly", async () => {
@@ -580,274 +582,78 @@ describe("MorphoLeverageModule integration", () => {
 
               expect(newSecondPosition.component).to.eq(usdc.address);
               expect(newSecondPosition.positionState).to.eq(1); // External
-              expect(newSecondPosition.unit).to.gte(initialPositions[1].unit.add(subjectMinRepayQuantity));
+              expect(newSecondPosition.unit).to.gte(
+                initialPositions[1].unit.add(subjectMinRepayQuantity),
+              );
               expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
+            });
+          });
+        });
+
+        describe("#deleverToZeroBorrowBalance", async () => {
+          let subjectRedeemQuantity: BigNumber;
+          let borrowBalance: BigNumber;
+          let subjectTradeAdapterName: string;
+          let subjectTradeData: Bytes;
+
+          async function subject(): Promise<any> {
+            return morphoLeverageModule
+              .connect(subjectCaller.wallet)
+              .deleverToZeroBorrowBalance(
+                subjectSetToken,
+                subjectRedeemQuantity,
+                subjectTradeAdapterName,
+                subjectTradeData,
+              );
+          }
+
+          beforeEach(async () => {
+            subjectSetToken = setToken.address;
+            subjectRedeemQuantity = utils.parseEther("0.5");
+            borrowBalance = utils.parseUnits("100", 6);
+            subjectTradeAdapterName = "UNISWAPV3";
+            subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+              [wsteth.address, usdc.address], // Swap path
+              [500], // Fees
+              true,
+            );
+          });
+          context("when token is levered", async () => {
+            cacheBeforeEach(async () => {
+              const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+                [usdc.address, wsteth.address], // Swap path
+                [500], // Fees
+                true,
+              );
+              await morphoLeverageModule
+                .connect(owner.wallet)
+                .lever(subjectSetToken, borrowBalance, 0, subjectTradeAdapterName, leverTradeData);
+            });
+
+            it("should update the positions on the SetToken correctly", async () => {
+              const initialPositions = await setToken.getPositions();
+
+              await subject();
+
+              const currentPositions = await setToken.getPositions();
+              const newFirstPosition = (await setToken.getPositions())[0];
+
+              expect(initialPositions.length).to.eq(2);
+              expect(initialPositions[0].positionState).to.eq(1); // External already
+
+              expect(currentPositions.length).to.eq(1);
+              expect(newFirstPosition.component).to.eq(wsteth.address);
+              expect(newFirstPosition.positionState).to.eq(1); // External
+              expect(newFirstPosition.unit).to.eq(
+                initialPositions[0].unit.sub(subjectRedeemQuantity),
+              );
+              expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
             });
           });
         });
       });
     });
   });
-
-  // describe("#delever", async () => {
-  //   let setToken: SetToken;
-  //   let isInitialized: boolean;
-
-  //   let subjectSetToken: Address;
-  //   let subjectCollateralAsset: Address;
-  //   let subjectRepayAsset: Address;
-  //   let subjectRedeemQuantity: BigNumber;
-  //   let subjectMinRepayQuantity: BigNumber;
-  //   let subjectTradeAdapterName: string;
-  //   let subjectTradeData: Bytes;
-  //   let subjectCaller: Account;
-
-  //   const initializeContracts = async () => {
-  //     setToken = await createSetToken(
-  //       [awsteth.address],
-  //       [ether(10)],
-  //       [morphoLeverageModule.address, debtIssuanceModule.address],
-  //     );
-  //     await initializeDebtIssuanceModule(setToken.address);
-  //     // Add SetToken to allow list
-  //     await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
-  //     // Initialize module if set to true
-  //     if (isInitialized) {
-  //       await morphoLeverageModule.initialize(
-  //         setToken.address,
-  //         [wsteth.address, usdc.address],
-  //         [usdc.address, wsteth.address],
-  //       );
-  //     }
-
-  //     const issueQuantity = ether(10);
-
-  //     await wsteth.approve(aaveLendingPool.address, ether(100));
-  //     await aaveLendingPool
-  //       .connect(owner.wallet)
-  //       .deposit(wsteth.address, ether(100), owner.address, ZERO);
-  //     await awsteth.approve(debtIssuanceModule.address, ether(100));
-  //     await debtIssuanceModule.issue(setToken.address, issueQuantity, owner.address);
-
-  //     // Lever SetToken
-  //     if (isInitialized) {
-  //       const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-  //         [usdc.address, wsteth.address], // Swap path
-  //         [500], // fees
-  //         true,
-  //       );
-
-  //       await morphoLeverageModule.lever(
-  //         setToken.address,
-  //         usdc.address,
-  //         wsteth.address,
-  //         ether(2000),
-  //         ether(1),
-  //         "UNISWAPV3",
-  //         leverTradeData,
-  //       );
-  //     }
-  //   };
-
-  //   const initializeSubjectVariables = async () => {
-  //     subjectSetToken = setToken.address;
-  //     subjectCollateralAsset = wsteth.address;
-  //     subjectRepayAsset = usdc.address;
-  //     subjectRedeemQuantity = ether(2);
-  //     subjectTradeAdapterName = "UNISWAPV3";
-  //     subjectMinRepayQuantity = ZERO;
-  //     subjectCaller = owner;
-  //     subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-  //       [wsteth.address, usdc.address], // Swap path
-  //       [500], // Send quantity
-  //       true,
-  //     );
-  //   };
-
-  //   async function subject(): Promise<ContractTransaction> {
-  //     return await morphoLeverageModule
-  //       .connect(subjectCaller.wallet)
-  //       .delever(
-  //         subjectSetToken,
-  //         subjectCollateralAsset,
-  //         subjectRepayAsset,
-  //         subjectRedeemQuantity,
-  //         subjectMinRepayQuantity,
-  //         subjectTradeAdapterName,
-  //         subjectTradeData,
-  //       );
-  //   }
-
-  //   describe("when module is initialized", async () => {
-  //     before(async () => {
-  //       isInitialized = true;
-  //     });
-
-  //     cacheBeforeEach(initializeContracts);
-  //     beforeEach(initializeSubjectVariables);
-
-  //     it("should update the collateral position on the SetToken correctly", async () => {
-  //       const initialPositions = await setToken.getPositions();
-
-  //       await subject();
-
-  //       const currentPositions = await setToken.getPositions();
-  //       const newFirstPosition = (await setToken.getPositions())[0];
-
-  //       // Get expected aTokens burnt
-  //       const removedUnits = subjectRedeemQuantity;
-  //       const expectedFirstPositionUnit = initialPositions[0].unit.sub(removedUnits);
-
-  //       expect(initialPositions.length).to.eq(2);
-  //       expect(currentPositions.length).to.eq(2);
-  //       expect(newFirstPosition.component).to.eq(awsteth.address);
-  //       expect(newFirstPosition.positionState).to.eq(0); // Default
-  //       // When switching to uniswapV3 integration testing had to add some small tolerance here
-  //       // TODO: understand why
-  //       expect(newFirstPosition.unit).to.lt(expectedFirstPositionUnit.mul(1001).div(1000));
-  //       expect(newFirstPosition.unit).to.gt(expectedFirstPositionUnit.mul(999).div(1000));
-  //       expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
-  //     });
-
-  //     it("should wipe the debt on Aave", async () => {
-  //       await subject();
-
-  //       const borrowDebt = await variableDebtUSDC.balanceOf(setToken.address);
-
-  //       expect(borrowDebt).to.eq(ZERO);
-  //     });
-
-  //     it("should remove external positions on the borrow asset", async () => {
-  //       await subject();
-
-  //       const borrowAssetExternalModules = await setToken.getExternalPositionModules(usdc.address);
-  //       const borrowExternalUnit = await setToken.getExternalPositionRealUnit(
-  //         usdc.address,
-  //         morphoLeverageModule.address,
-  //       );
-  //       const isPositionModule = await setToken.isExternalPositionModule(
-  //         usdc.address,
-  //         morphoLeverageModule.address,
-  //       );
-
-  //       expect(borrowAssetExternalModules.length).to.eq(0);
-  //       expect(borrowExternalUnit).to.eq(ZERO);
-  //       expect(isPositionModule).to.eq(false);
-  //     });
-
-  //     it("should update the borrow asset equity on the SetToken correctly", async () => {
-  //       const initialPositions = await setToken.getPositions();
-
-  //       const tx = await subject();
-
-  //       // Fetch total repay amount
-  //       const res = await tx.wait();
-  //       const levDecreasedEvent = res.events?.find(value => {
-  //         return value.event == "LeverageDecreased";
-  //       });
-  //       expect(levDecreasedEvent).to.not.eq(undefined);
-
-  //       const initialSecondPosition = initialPositions[1];
-
-  //       const currentPositions = await setToken.getPositions();
-  //       const newSecondPosition = (await setToken.getPositions())[1];
-
-  //       expect(initialPositions.length).to.eq(2);
-  //       expect(currentPositions.length).to.eq(2);
-  //       expect(newSecondPosition.component).to.eq(usdc.address);
-  //       expect(newSecondPosition.positionState).to.eq(0); // Default
-  //       expect(newSecondPosition.unit).to.gt(initialSecondPosition.unit);
-  //       expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
-  //     });
-
-  //     it("should transfer the correct components to the exchange", async () => {
-  //       const oldSourceTokenBalance = await wsteth.balanceOf(wstethUsdcPool.address);
-
-  //       await subject();
-  //       const totalSourceQuantity = subjectRedeemQuantity;
-  //       const expectedSourceTokenBalance = oldSourceTokenBalance.add(totalSourceQuantity);
-  //       const newSourceTokenBalance = await wsteth.balanceOf(wstethUsdcPool.address);
-  //       // Had to add some tolerance here when switching to morpho integration testing
-  //       // TODO: understand why
-  //       expect(newSourceTokenBalance).to.lt(expectedSourceTokenBalance.mul(102).div(100));
-  //       expect(newSourceTokenBalance).to.gt(expectedSourceTokenBalance.mul(99).div(100));
-  //     });
-
-  //     it("should transfer the correct components from the exchange", async () => {
-  //       // const [, repayAssetAmountOut] = await uniswapV3Router.getAmountsOut(subjectRedeemQuantity, [
-  //       //   wsteth.address,
-  //       //   usdc.address,
-  //       // ]);
-  //       const oldDestinationTokenBalance = await usdc.balanceOf(wstethUsdcPool.address);
-
-  //       await subject();
-  //       // const totalDestinationQuantity = repayAssetAmountOut;
-  //       // const expectedDestinationTokenBalance = oldDestinationTokenBalance.sub(
-  //       //   totalDestinationQuantity,
-  //       // );
-  //       const newDestinationTokenBalance = await usdc.balanceOf(wstethUsdcPool.address);
-  //       expect(newDestinationTokenBalance).to.lt(oldDestinationTokenBalance);
-  //     });
-
-  //     describe("when the exchange is not valid", async () => {
-  //       beforeEach(async () => {
-  //         subjectTradeAdapterName = "INVALID";
-  //       });
-
-  //       it("should revert", async () => {
-  //         await expect(subject()).to.be.revertedWith("Must be valid adapter");
-  //       });
-  //     });
-
-  //     describe("when borrow / repay asset is not enabled", async () => {
-  //       beforeEach(async () => {
-  //         subjectRepayAsset = wbtc.address;
-  //       });
-
-  //       it("should revert", async () => {
-  //         await expect(subject()).to.be.revertedWith("BNE");
-  //       });
-  //     });
-
-  //     describe("when the caller is not the SetToken manager", async () => {
-  //       beforeEach(async () => {
-  //         subjectCaller = await getRandomAccount();
-  //       });
-
-  //       it("should revert", async () => {
-  //         await expect(subject()).to.be.revertedWith("Must be the SetToken manager");
-  //       });
-  //     });
-
-  //     describe("when SetToken is not valid", async () => {
-  //       beforeEach(async () => {
-  //         const nonEnabledSetToken = await createNonControllerEnabledSetToken(
-  //           [wsteth.address],
-  //           [ether(1)],
-  //           [morphoLeverageModule.address],
-  //         );
-
-  //         subjectSetToken = nonEnabledSetToken.address;
-  //       });
-
-  //       it("should revert", async () => {
-  //         await expect(subject()).to.be.revertedWith("Must be a valid and initialized SetToken");
-  //       });
-  //     });
-  //   });
-
-  //   describe("when module is not initialized", async () => {
-  //     beforeEach(async () => {
-  //       isInitialized = false;
-  //       await initializeContracts();
-  //       initializeSubjectVariables();
-  //     });
-
-  //     it("should revert", async () => {
-  //       await expect(subject()).to.be.revertedWith("Must be a valid and initialized SetToken");
-  //     });
-  //   });
-  // });
 
   // describe("#deleverToZeroBorrowBalance", async () => {
   //   let setToken: SetToken;
