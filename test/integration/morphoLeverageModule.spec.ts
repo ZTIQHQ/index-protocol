@@ -8,7 +8,7 @@ import { Address, Bytes } from "@utils/types";
 import { impersonateAccount } from "@utils/test/testingUtils";
 import DeployHelper from "@utils/deploys";
 import { cacheBeforeEach, getAccounts, getWaffleExpect } from "@utils/test/index";
-import { ADDRESS_ZERO } from "@utils/constants";
+import { ADDRESS_ZERO, ZERO } from "@utils/constants";
 import { ether } from "@utils/index";
 import { network } from "hardhat";
 import { forkingConfig } from "../../hardhat.config";
@@ -69,6 +69,7 @@ const wstethUsdcMarketParams: MarketParamsStruct = {
 
 describe("MorphoLeverageModule integration", () => {
   let owner: Account;
+  let mockModule: Account;
   let deployer: DeployHelper;
   let morphoLeverageModule: MorphoLeverageModule;
   let debtIssuanceModule: DebtIssuanceModuleV2;
@@ -88,11 +89,7 @@ describe("MorphoLeverageModule integration", () => {
   let managerFeeRecipient: Address;
   let managerIssuanceHook: Address;
 
-  const sharesToAssetsUp = (
-    shares: BigNumber,
-    totalAssets: BigNumber,
-    totalShares: BigNumber,
-  ) => {
+  const sharesToAssetsUp = (shares: BigNumber, totalAssets: BigNumber, totalShares: BigNumber) => {
     const VIRTUAL_SHARES = 1e6;
     const VIRTUAL_ASSETS = 1;
     const totalAssetsAdjusted = totalAssets.add(VIRTUAL_ASSETS);
@@ -122,7 +119,7 @@ describe("MorphoLeverageModule integration", () => {
     // });
   });
   cacheBeforeEach(async () => {
-    [owner] = await getAccounts();
+    [owner, mockModule] = await getAccounts();
 
     usdc = IERC20__factory.connect(tokenAddresses.usdc, owner.wallet);
     wsteth = IERC20__factory.connect(tokenAddresses.wsteth, owner.wallet);
@@ -434,7 +431,6 @@ describe("MorphoLeverageModule integration", () => {
 
       // Add SetToken to allow list
       await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
-      // Initialize module if set to true
     });
     context("when morphoLeverageModule is intialized", async () => {
       cacheBeforeEach(async () => {
@@ -465,6 +461,38 @@ describe("MorphoLeverageModule integration", () => {
           expect(newFirstPosition.positionState).to.eq(1); // External
           expect(newFirstPosition.unit).to.eq(initialFirstPosition.unit);
           expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
+        });
+        it("positions should align with token balances", async () => {
+          await subject();
+          const currentPositions = await setToken.getPositions();
+          const [supplyShares, borrowShares, collateral] = await morpho.position(
+            marketId,
+            setToken.address,
+          );
+          console.log("collateral", collateral.toString());
+          const collateralNotional = await convertPositionToNotional(
+            currentPositions[0].unit,
+            setToken,
+          );
+          console.log("collateralNotional", collateralNotional.toString());
+          const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
+          console.log("collateralTokenBalance", collateralTokenBalance.toString());
+          expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
+
+          const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
+          console.log("totalBorrowAssets", totalBorrowAssets.toString());
+          const borrowAssets = sharesToAssetsUp(borrowShares, totalBorrowAssets, totalBorrowShares);
+          console.log("borrowAssets", borrowAssets.toString());
+          if (borrowAssets.gt(0)) {
+            const borrowNotional = await convertPositionToNotional(
+              currentPositions[1].unit,
+              setToken,
+            );
+            console.log("borrowNotional", borrowNotional.toString());
+            expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
+          }
+
+          expect(supplyShares).to.eq(0);
         });
       });
       context("when collateral has been deposited into morpho", async () => {
@@ -647,6 +675,40 @@ describe("MorphoLeverageModule integration", () => {
               );
               expect(newSecondPosition.module).to.eq(morphoLeverageModule.address);
             });
+            it("positions should align with token balances", async () => {
+              await subject();
+              const currentPositions = await setToken.getPositions();
+              const [supplyShares, borrowShares, collateral] = await morpho.position(
+                marketId,
+                setToken.address,
+              );
+              console.log("collateral", collateral.toString());
+              const collateralNotional = await convertPositionToNotional(
+                currentPositions[0].unit,
+                setToken,
+              );
+              console.log("collateralNotional", collateralNotional.toString());
+              const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
+              console.log("collateralTokenBalance", collateralTokenBalance.toString());
+              expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
+
+              const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
+              console.log("totalBorrowAssets", totalBorrowAssets.toString());
+              const borrowAssets = sharesToAssetsUp(
+                borrowShares,
+                totalBorrowAssets,
+                totalBorrowShares,
+              );
+              console.log("borrowAssets", borrowAssets.toString());
+              const borrowNotional = await convertPositionToNotional(
+                currentPositions[1].unit,
+                setToken,
+              );
+              console.log("borrowNotional", borrowNotional.toString());
+              expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
+
+              expect(supplyShares).to.eq(0);
+            });
           });
         });
 
@@ -730,6 +792,150 @@ describe("MorphoLeverageModule integration", () => {
               expect(borrowShares).to.eq(0);
               expect(supplyShares).to.eq(0);
               expect(collateral).to.gt(0);
+            });
+          });
+        });
+
+        describe("#componentIssueHook", async () => {
+          let subjectSetToken: Address;
+          let subjectSetQuantity: BigNumber;
+          let subjectComponent: Address;
+          let subjectIsEquity: boolean;
+          let subjectCaller: Account;
+
+          cacheBeforeEach(async () => {
+            await controller.addModule(mockModule.address);
+            await setToken.addModule(mockModule.address);
+            await setToken.connect(mockModule.wallet).initializeModule();
+          });
+
+          beforeEach(() => {
+            subjectSetToken = setToken.address;
+            subjectSetQuantity = ether(0.1);
+            subjectComponent = usdc.address;
+            subjectIsEquity = false;
+            subjectCaller = mockModule;
+          });
+
+          async function subject(): Promise<any> {
+            return morphoLeverageModule
+              .connect(subjectCaller.wallet)
+              .componentIssueHook(
+                subjectSetToken,
+                subjectSetQuantity,
+                subjectComponent,
+                subjectIsEquity,
+              );
+          }
+          context("when token is levered", async () => {
+            cacheBeforeEach(async () => {
+              const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+                [usdc.address, wsteth.address], // Swap path
+                [500], // Fees
+                true,
+              );
+              const borrowBalance = utils.parseUnits("100", 6);
+              const tradeAdapterName = "UNISWAPV3";
+              await morphoLeverageModule
+                .connect(owner.wallet)
+                .lever(subjectSetToken, borrowBalance, 0, tradeAdapterName, leverTradeData);
+            });
+
+            it("should increase borrowed quantity on the SetToken", async () => {
+              const previousUsdcBalance = await usdc.balanceOf(setToken.address);
+
+              await subject();
+
+              const currentUsdcBalance = await usdc.balanceOf(setToken.address);
+
+              expect(previousUsdcBalance).to.eq(ZERO);
+              expect(currentUsdcBalance).to.gt(ZERO);
+            });
+
+            it("positions should align with token balances", async () => {
+              await subject();
+              // TODO: Check that the positions not getting synced in hook itself is correct
+              await morphoLeverageModule.sync(setToken.address);
+              const currentPositions = await setToken.getPositions();
+              const [supplyShares, borrowShares, collateral] = await morpho.position(
+                marketId,
+                setToken.address,
+              );
+              console.log("collateral", collateral.toString());
+              const collateralNotional = await convertPositionToNotional(
+                currentPositions[0].unit,
+                setToken,
+              );
+              console.log("collateralNotional", collateralNotional.toString());
+              const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
+              console.log("collateralTokenBalance", collateralTokenBalance.toString());
+              expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
+
+              const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
+              console.log("totalBorrowAssets", totalBorrowAssets.toString());
+              const borrowAssets = sharesToAssetsUp(
+                borrowShares,
+                totalBorrowAssets,
+                totalBorrowShares,
+              );
+              console.log("borrowAssets", borrowAssets.toString());
+              if (borrowAssets.gt(0)) {
+                const borrowNotional = await convertPositionToNotional(
+                  currentPositions[1].unit,
+                  setToken,
+                );
+                console.log("borrowNotional", borrowNotional.toString());
+                expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
+              }
+
+              expect(supplyShares).to.eq(0);
+            });
+
+            describe("when isEquity is false and component has positive unit (should not happen)", async () => {
+              beforeEach(async () => {
+                subjectComponent = wsteth.address;
+              });
+
+              it("should revert", async () => {
+                await expect(subject()).to.be.revertedWith("Debt component mismatch");
+              });
+            });
+
+            describe("when isEquity is true", async () => {
+              beforeEach(async () => {
+                subjectIsEquity = true;
+              });
+
+              it("should NOT increase borrowed quantity on the SetToken", async () => {
+                const previousUsdcBalance = await usdc.balanceOf(setToken.address);
+
+                await subject();
+
+                const currentUsdcBalance = await usdc.balanceOf(setToken.address);
+
+                expect(previousUsdcBalance).to.eq(ZERO);
+                expect(currentUsdcBalance).to.eq(ZERO);
+              });
+            });
+
+            describe("when caller is not module", async () => {
+              beforeEach(async () => {
+                subjectCaller = owner;
+              });
+
+              it("should revert", async () => {
+                await expect(subject()).to.be.revertedWith("Only the module can call");
+              });
+            });
+
+            describe("if disabled module is caller", async () => {
+              beforeEach(async () => {
+                await controller.removeModule(mockModule.address);
+              });
+
+              it("should revert", async () => {
+                await expect(subject()).to.be.revertedWith("Module must be enabled on controller");
+              });
             });
           });
         });
