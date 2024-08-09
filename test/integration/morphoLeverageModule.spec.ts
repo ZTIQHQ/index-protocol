@@ -55,7 +55,7 @@ const tokenAddresses = {
 };
 
 const whales = {
-  usdc: "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8",
+  usdc: "0xD6153F5af5679a75cC85D8974463545181f48772",
   wsteth: "0x3c22ec75ea5D745c78fc84762F7F1E6D82a2c5BF",
 };
 
@@ -915,6 +915,148 @@ describe("MorphoLeverageModule integration", () => {
 
                 expect(previousUsdcBalance).to.eq(ZERO);
                 expect(currentUsdcBalance).to.eq(ZERO);
+              });
+            });
+
+            describe("when caller is not module", async () => {
+              beforeEach(async () => {
+                subjectCaller = owner;
+              });
+
+              it("should revert", async () => {
+                await expect(subject()).to.be.revertedWith("Only the module can call");
+              });
+            });
+
+            describe("if disabled module is caller", async () => {
+              beforeEach(async () => {
+                await controller.removeModule(mockModule.address);
+              });
+
+              it("should revert", async () => {
+                await expect(subject()).to.be.revertedWith("Module must be enabled on controller");
+              });
+            });
+          });
+        });
+        describe("#componentRedeemHook", async () => {
+          let subjectSetToken: Address;
+          let subjectSetQuantity: BigNumber;
+          let subjectComponent: Address;
+          let subjectIsEquity: boolean;
+          let subjectCaller: Account;
+
+          cacheBeforeEach(async () => {
+            await controller.addModule(mockModule.address);
+            await setToken.addModule(mockModule.address);
+            await setToken.connect(mockModule.wallet).initializeModule();
+          });
+
+          beforeEach(() => {
+            subjectSetToken = setToken.address;
+            subjectSetQuantity = ether(0.1);
+            subjectComponent = usdc.address;
+            subjectIsEquity = false;
+            subjectCaller = mockModule;
+          });
+
+          async function subject(): Promise<any> {
+            return morphoLeverageModule
+              .connect(subjectCaller.wallet)
+              .componentRedeemHook(
+                subjectSetToken,
+                subjectSetQuantity,
+                subjectComponent,
+                subjectIsEquity,
+              );
+          }
+          context("when token is levered", async () => {
+            cacheBeforeEach(async () => {
+              const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+                [usdc.address, wsteth.address], // Swap path
+                [500], // Fees
+                true,
+              );
+              const borrowBalance = utils.parseUnits("100", 6);
+              const tradeAdapterName = "UNISWAPV3";
+              await morphoLeverageModule
+                .connect(owner.wallet)
+                .lever(subjectSetToken, borrowBalance, 0, tradeAdapterName, leverTradeData);
+              await usdc.connect(await impersonateAccount(whales.usdc)).transfer(setToken.address, utils.parseUnits("1000", 6));
+            });
+
+            it("should decrease borrowed quantity on the SetToken", async () => {
+              const previousUsdcBalance = await usdc.balanceOf(setToken.address);
+
+              await subject();
+
+              const currentUsdcBalance = await usdc.balanceOf(setToken.address);
+
+              expect(currentUsdcBalance).to.lt(previousUsdcBalance);
+            });
+
+            it("positions should align with token balances", async () => {
+              await subject();
+              // TODO: Check that the positions not getting synced in hook itself is correct
+              await morphoLeverageModule.sync(setToken.address);
+              const currentPositions = await setToken.getPositions();
+              const [supplyShares, borrowShares, collateral] = await morpho.position(
+                marketId,
+                setToken.address,
+              );
+              console.log("collateral", collateral.toString());
+              const collateralNotional = await convertPositionToNotional(
+                currentPositions[0].unit,
+                setToken,
+              );
+              console.log("collateralNotional", collateralNotional.toString());
+              const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
+              console.log("collateralTokenBalance", collateralTokenBalance.toString());
+              expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
+
+              const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
+              console.log("totalBorrowAssets", totalBorrowAssets.toString());
+              const borrowAssets = sharesToAssetsUp(
+                borrowShares,
+                totalBorrowAssets,
+                totalBorrowShares,
+              );
+              console.log("borrowAssets", borrowAssets.toString());
+              if (borrowAssets.gt(0)) {
+                const borrowNotional = await convertPositionToNotional(
+                  currentPositions[1].unit,
+                  setToken,
+                );
+                console.log("borrowNotional", borrowNotional.toString());
+                expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
+              }
+
+              expect(supplyShares).to.eq(0);
+            });
+
+            describe("when isEquity is false and component has positive unit (should not happen)", async () => {
+              beforeEach(async () => {
+                subjectComponent = wsteth.address;
+              });
+
+              it("should revert", async () => {
+                await expect(subject()).to.be.revertedWith("Debt component mismatch");
+              });
+            });
+
+            describe("when isEquity is true", async () => {
+              beforeEach(async () => {
+                subjectIsEquity = true;
+              });
+
+              it("should NOT decrease borrowed quantity on the SetToken", async () => {
+                const previousUsdcBalance = await usdc.balanceOf(setToken.address);
+
+                await subject();
+
+                const currentUsdcBalance = await usdc.balanceOf(setToken.address);
+
+                expect(previousUsdcBalance).to.eq(currentUsdcBalance);
               });
             });
 
