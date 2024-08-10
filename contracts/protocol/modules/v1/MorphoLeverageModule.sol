@@ -615,13 +615,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     }
 
     /**
-     * @dev Invoke borrow from the SetToken during issuance hook.
-     */
-    function _borrowForHook(ISetToken _setToken, IERC20 _asset, uint256 _notionalQuantity) internal {
-        //@TODO: Implement
-    }
-
-    /**
      * @dev Invokes approvals, gets trade call data from exchange adapter and invokes trade from SetToken
      * @return uint256     The quantity of tokens received post-trade
      */
@@ -750,7 +743,9 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     }
 
     function _validateMarketParams(ISetToken _setToken, IMorpho.MarketParams memory _newMarketParams) internal view {
-        // @TODO: Implement
+        bytes32 marketId = _newMarketParams.id();
+        (uint128 totalSupplyAssets,,,,,) = morpho.market(marketId);
+        require(totalSupplyAssets > 0, "Market not enabled");
     }
 
     /**
