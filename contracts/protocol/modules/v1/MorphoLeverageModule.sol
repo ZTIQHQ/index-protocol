@@ -581,9 +581,10 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @dev Invoke repay from SetToken using Morpho Blue
      */
     function _repayBorrow(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity, uint256 _shares) internal {
-        _setToken.invokeApprove(_marketParams.loanToken, address(morpho), _notionalQuantity);
         // Only ever set shares or assets to avoid "inconsistent input" error when there is a rounding error
         if(_shares > 0) {
+            // TODO: Check why the additional 1 has to be added here despite the asset balance already being generated with ceil
+            _setToken.invokeApprove(_marketParams.loanToken, address(morpho), _notionalQuantity + 1);
             _setToken.invokeRepay(
                 morpho,
                 _marketParams,
@@ -591,6 +592,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
                 _shares
             );
         } else {
+            _setToken.invokeApprove(_marketParams.loanToken, address(morpho), _notionalQuantity);
             _setToken.invokeRepay(
                 morpho,
                 _marketParams,
