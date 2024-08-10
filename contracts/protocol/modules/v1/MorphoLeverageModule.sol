@@ -46,11 +46,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     /* ============ Structs ============ */
 
-    struct EnabledAssets {
-        address[] collateralAsset;             // Array of enabled underlying collateral assets for a SetToken
-        address[] borrowAsset;                 // Array of enabled underlying borrow assets for a SetToken
-    }
-
     struct ActionInfo {
         ISetToken setToken;                      // SetToken instance
         IExchangeAdapter exchangeAdapter;        // Exchange adapter instance
@@ -103,17 +98,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         uint256 _totalRepayAmount,
         uint256 _protocolFee
     );
-
-    event CollateralAssetUpdated(
-        ISetToken indexed _setToken,
-        IERC20 _asset
-    );
-
-    event BorrowAssetUpdated(
-        ISetToken indexed _setToken,
-        IERC20 _asset
-    );
-
 
     /**
      * @dev Emitted on updateAllowedSetToken()
@@ -394,7 +378,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     /**
      * @dev MANAGER ONLY: Removes this module from the SetToken, via call by the SetToken. Any deposited collateral assets
-     * are disabled to be used as collateral on Morpho. Morpho Settings and manager enabled assets state is deleted.
+     * are disabled to be used as collateral on Morpho. Morpho market params state is deleted.
      * Note: Function should revert is there is any debt remaining on Morpho
      */
     function removeModule() external override onlyValidAndInitializedSet(ISetToken(msg.sender)) {
@@ -756,37 +740,5 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         require(marketParams[_actionInfo.setToken].loanToken != address(0), "Borrow not enabled");
         require(_actionInfo.collateralAsset != _actionInfo.borrowAsset, "Collateral and borrow asset must be different");
         require(_actionInfo.notionalSendQuantity > 0, "Quantity is 0");
-    }
-
-    /**
-     * @dev Validates if a new asset can be added as collateral asset for given SetToken
-     */
-    function _validateNewCollateralAsset(ISetToken _setToken, IERC20 _asset) internal view {
-        // @TODO: Implement
-    }
-
-    /**
-     * @dev Validates if a new asset can be added as borrow asset for given SetToken
-     */
-    function _validateNewBorrowAsset(ISetToken _setToken, IERC20 _asset) internal view {
-        // @TODO: Implement
-    }
-
-    /**
-     * @dev Reads collateral Position from Morpho
-     *
-     * @return collateralPosition  uint256 external collateral position unit
-     */
-    function _getCollateralPosition(ISetToken _setToken, IERC20 _collateralToken, uint256 _setTotalSupply) internal view returns (uint256 collateralPosition) {
-        // @TODO: Implement
-    }
-
-    /**
-     * @dev Reads debt position from Morpho
-     *
-     * @return borrowPosition  int256  external borrow position unit
-     */
-    function _getBorrowPosition(ISetToken _setToken, IERC20 _borrowAsset, uint256 _setTotalSupply) internal view returns (int256 borrowPosition) {
-        // @TODO: Implement
     }
 }
