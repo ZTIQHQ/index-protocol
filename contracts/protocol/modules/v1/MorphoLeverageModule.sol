@@ -142,6 +142,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /* ============ State Variables ============ */
 
 
+    // Mapping of SetToken to Morpho MarketParams defining the market on which to leverage
     mapping(ISetToken => IMorpho.MarketParams) public marketParams;
 
     // Mapping of SetToken to boolean indicating if SetToken is on allow list. Updateable by governance
@@ -410,7 +411,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
             try IDebtIssuanceModule(modules[i]).registerToIssuanceModule(_setToken) {} catch {}
         }
 
-        // _collateralAsset and _borrowAsset arrays are validated in their respective internal functions
         _setMarketParams(_setToken, _marketParams);
     }
 
@@ -420,17 +420,19 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * Note: At the time of calling this the set token should contain >0 balance of collateral tokens and no other position
      * @param _setToken             Instance of the SetToken for which to deposit collateral tokens into Morpho
      */
-    function enterCollateralPosition(ISetToken _setToken)
+    function enterCollateralPosition(
+        ISetToken _setToken
+    )
         external
         onlyManagerAndValidSet(_setToken)
     {
         // TODO: Check if this function should be called as part of the initialize method
-        IMorpho.MarketParams memory marketParams = marketParams[_setToken];
-        uint256 collateralBalance = IERC20(marketParams.collateralToken).balanceOf(address(_setToken));
+        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
+        uint256 collateralBalance = IERC20(setMarketParams.collateralToken).balanceOf(address(_setToken));
         require(collateralBalance > 0, "Collateral balance is 0");
-        _deposit(_setToken, marketParams, collateralBalance);
+        _deposit(_setToken, setMarketParams, collateralBalance);
         // Remove default position for collateral token 
-        _setToken.editDefaultPosition(marketParams.collateralToken, 0);
+        _setToken.editDefaultPosition(setMarketParams.collateralToken, 0);
         // TODO: This also syncs the borrow position which shouldn't be necessary. Review if we want to adjust
         sync(_setToken);
     }
@@ -440,7 +442,11 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * are disabled to be used as collateral on Morpho. Morpho market params state is deleted.
      * Note: Function should revert is there is any debt remaining on Morpho
      */
-    function removeModule() external override onlyValidAndInitializedSet(ISetToken(msg.sender)) {
+    function removeModule()
+        external
+        override
+        onlyValidAndInitializedSet(ISetToken(msg.sender))
+    {
         ISetToken setToken = ISetToken(msg.sender);
 
         sync(setToken);
@@ -461,7 +467,13 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @param _setToken             Instance of the SetToken
      * @param _debtIssuanceModule   Debt issuance module address to register
      */
-    function registerToModule(ISetToken _setToken, IDebtIssuanceModule _debtIssuanceModule) external onlyManagerAndValidSet(_setToken) {
+    function registerToModule(
+        ISetToken _setToken,
+        IDebtIssuanceModule _debtIssuanceModule
+    )
+        external
+        onlyManagerAndValidSet(_setToken)
+    {
         require(_setToken.isInitializedModule(address(_debtIssuanceModule)), "Issuance not initialized");
 
         _debtIssuanceModule.registerToIssuanceModule(_setToken);
@@ -472,7 +484,13 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @param _setToken             Instance of the SetToken
      * @param _status               Bool indicating if _setToken is allowed to initialize this module
      */
-    function updateAllowedSetToken(ISetToken _setToken, bool _status) external onlyOwner {
+    function updateAllowedSetToken(
+        ISetToken _setToken,
+        bool _status
+    )
+        external
+        onlyOwner
+    {
         require(controller.isSet(address(_setToken)) || allowedSetTokens[_setToken], "Invalid SetToken");
         allowedSetTokens[_setToken] = _status;
         emit SetTokenStatusUpdated(_setToken, _status);
@@ -491,7 +509,14 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @dev MODULE ONLY: Hook called prior to issuance to sync positions on SetToken. Only callable by valid module.
      * @param _setToken             Instance of the SetToken
      */
-    function moduleIssueHook(ISetToken _setToken, uint256 /* _setTokenQuantity */) external override onlyModule(_setToken) {
+    function moduleIssueHook(
+        ISetToken _setToken,
+        uint256 /* _setTokenQuantity */
+    )
+        external
+        override
+        onlyModule(_setToken)
+    {
         sync(_setToken);
     }
 
@@ -500,7 +525,14 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * balance after interest accrual. Only callable by valid module.
      * @param _setToken             Instance of the SetToken
      */
-    function moduleRedeemHook(ISetToken _setToken, uint256 /* _setTokenQuantity */) external override onlyModule(_setToken) {
+    function moduleRedeemHook(
+        ISetToken _setToken,
+        uint256 /* _setTokenQuantity */
+    )
+        external
+        override
+        onlyModule(_setToken)
+    {
         sync(_setToken);
     }
 
@@ -511,7 +543,16 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @param _setTokenQuantity     Quantity of SetToken
      * @param _component            Address of component
      */
-    function componentIssueHook(ISetToken _setToken, uint256 _setTokenQuantity, IERC20 _component, bool _isEquity) external override onlyModule(_setToken) {
+    function componentIssueHook(
+        ISetToken _setToken,
+        uint256 _setTokenQuantity,
+        IERC20 _component,
+        bool _isEquity
+    )
+        external
+        override
+        onlyModule(_setToken)
+    {
         // TODO: Check if this old comment from aave version is still relevant here
         // Check hook not being called for an equity position. If hook is called with equity position and outstanding borrow position 
         // exists the loan would be taken out twice potentially leading to liquidation
@@ -542,7 +583,16 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @param _setTokenQuantity     Quantity of SetToken
      * @param _component            Address of component
      */
-    function componentRedeemHook(ISetToken _setToken, uint256 _setTokenQuantity, IERC20 _component, bool _isEquity) external override onlyModule(_setToken) {
+    function componentRedeemHook(
+        ISetToken _setToken,
+        uint256 _setTokenQuantity,
+        IERC20 _component,
+        bool _isEquity
+    )
+        external
+        override
+        onlyModule(_setToken)
+    {
         IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
         if (_isEquity && setMarketParams.collateralToken == address(_component)) {
             int256 componentCollateral = _setToken.getExternalPositionRealUnit(address(_component), address(this));
@@ -564,13 +614,36 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
     /* ============ Internal Functions ============ */
 
-    function _getCollateralAndBorrowPositions(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _setTotalSupply) internal returns (int256 collateralPosition, int256 borrowPosition){
+    /**
+     * @dev Reads outstanding borrow token debt and collateral token balance from Morpho
+     * and normalizes them  by the sets total supply to get the per token equivalent (position)
+     */
+    function _getCollateralAndBorrowPositions(
+        ISetToken _setToken,
+        IMorpho.MarketParams memory _marketParams,
+        uint256 _setTotalSupply
+    )
+        internal
+        view
+        returns(int256 collateralPosition, int256 borrowPosition)
+    {
         (uint256 collateralBalance, uint256 borrowBalance, ) = _getCollateralAndBorrowBalances(_setToken, _marketParams);
         collateralPosition = collateralBalance.preciseDiv(_setTotalSupply).toInt256();
         borrowPosition = borrowBalance.preciseDivCeil(_setTotalSupply).toInt256().mul(-1);
     }
 
-    function _getCollateralAndBorrowBalances(ISetToken _setToken, IMorpho.MarketParams memory _marketParams) internal returns (uint256 collateralBalance, uint256 borrowBalance, uint256 borrowSharesU256){
+    /**
+     * @dev Reads outstanding borrow token debt and collateral token balance from Morpho
+     */
+    function _getCollateralAndBorrowBalances(
+        ISetToken _setToken,
+        IMorpho.MarketParams memory _marketParams
+    )
+        internal
+        view 
+        returns(uint256 collateralBalance, uint256 borrowBalance, uint256 borrowSharesU256)
+    {
+        // TODO: Review if it is more efficient to generate this id once and save in storage
         bytes32 marketId = _marketParams.id();
         ( , , uint128 totalBorrowAssets, uint128 totalBorrowShares, , ) = morpho.market(marketId);
         ( , uint128 borrowShares, uint128 collateral) = morpho.position(marketId, address(_setToken));
@@ -584,7 +657,13 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /**
      * @dev Updates external position unit for given borrow asset on SetToken
      */
-    function _updateExternalPosition(ISetToken _setToken,  address _underlyingAsset, int256 _newPositionUnit) internal {
+    function _updateExternalPosition(
+        ISetToken _setToken, 
+        address _underlyingAsset,
+        int256 _newPositionUnit
+    )
+        internal
+    {
         _setToken.editExternalPosition(_underlyingAsset, address(this), _newPositionUnit, "");
     }
 
@@ -592,7 +671,13 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /**
      * @dev Invoke deposit (as collateral) from SetToken using Morpho Blue
      */
-    function _deposit(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
+    function _deposit(
+        ISetToken _setToken,
+        IMorpho.MarketParams memory _marketParams,
+        uint256 _notionalQuantity
+    )
+        internal
+    {
         _setToken.invokeApprove(_marketParams.collateralToken, address(morpho), _notionalQuantity);
         _setToken.invokeSupplyCollateral(
             morpho,
@@ -604,7 +689,13 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /**
      * @dev Invoke withdraw from SetToken using Morpho Blue
      */
-    function _withdraw(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
+    function _withdraw(
+        ISetToken _setToken,
+        IMorpho.MarketParams memory _marketParams,
+        uint256 _notionalQuantity
+    )
+        internal
+    {
         _setToken.invokeWithdrawCollateral(
             morpho,
             _marketParams,
@@ -615,7 +706,14 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /**
      * @dev Invoke repay from SetToken using Morpho Blue
      */
-    function _repayBorrow(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity, uint256 _shares) internal {
+    function _repayBorrow(
+        ISetToken _setToken,
+        IMorpho.MarketParams memory _marketParams,
+        uint256 _notionalQuantity,
+        uint256 _shares
+    )
+        internal
+    {
         // Only ever set shares or assets to avoid "inconsistent input" error when there is a rounding error
         if(_shares > 0) {
             // TODO: Check why the additional 1 has to be added here despite the asset balance already being generated with ceil
@@ -641,7 +739,13 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /**
      * @dev Invoke borrow from the SetToken using Morpho 
      */
-    function _borrow(ISetToken _setToken, IMorpho.MarketParams memory _marketParams, uint256 _notionalQuantity) internal {
+    function _borrow(
+        ISetToken _setToken,
+        IMorpho.MarketParams memory _marketParams,
+        uint256 _notionalQuantity
+    )
+        internal
+    {
         _setToken.invokeBorrow(
             morpho,
             _marketParams,
@@ -775,8 +879,13 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     /**
      * @dev Validates and sets given market params for given set token
      */
-    function _setMarketParams(ISetToken _setToken, IMorpho.MarketParams memory _newMarketParams) internal {
-        bytes32 marketId = _validateMarketParams(_setToken, _newMarketParams);
+    function _setMarketParams(
+        ISetToken _setToken,
+        IMorpho.MarketParams memory _newMarketParams
+    ) 
+        internal
+    {
+        bytes32 marketId = _validateMarketParams(_newMarketParams);
         marketParams[_setToken] = _newMarketParams;
         emit MorphoMarketUpdated(
             _setToken,
@@ -788,12 +897,11 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @dev Validates market params by checking that the resulting marketId exists on morpho with > 0 assets supplied
      */
     function _validateMarketParams(
-        ISetToken _setToken,
         IMorpho.MarketParams memory _newMarketParams
     )
-    internal
-    view
-    returns(bytes32 marketId)
+        internal
+        view
+        returns(bytes32 marketId)
     {
         marketId = _newMarketParams.id();
         (uint128 totalSupplyAssets,,,,,) = morpho.market(marketId);
