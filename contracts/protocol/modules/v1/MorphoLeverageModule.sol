@@ -117,7 +117,15 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         bool indexed _anySetAllowed
     );
 
-    // TODO: Event for changing the market params
+    /**
+     * @dev Emitted on updateAnySetAllowed()
+     * @param _setToken SetToken whose Morpho Market params are updated
+     * @param _marketId Morpho Market Id corresponding to the Market Params that have been set 
+     */
+    event MorphoMarketUpdated(
+        ISetToken indexed _setToken,
+        bytes32 _marketId
+    );
 
     /* ============ Constants ============ */
 
@@ -768,15 +776,26 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @dev Validates and sets given market params for given set token
      */
     function _setMarketParams(ISetToken _setToken, IMorpho.MarketParams memory _newMarketParams) internal {
-        _validateMarketParams(_setToken, _newMarketParams);
+        bytes32 marketId = _validateMarketParams(_setToken, _newMarketParams);
         marketParams[_setToken] = _newMarketParams;
+        emit MorphoMarketUpdated(
+            _setToken,
+            marketId
+        );
     }
 
     /**
      * @dev Validates market params by checking that the resulting marketId exists on morpho with > 0 assets supplied
      */
-    function _validateMarketParams(ISetToken _setToken, IMorpho.MarketParams memory _newMarketParams) internal view {
-        bytes32 marketId = _newMarketParams.id();
+    function _validateMarketParams(
+        ISetToken _setToken,
+        IMorpho.MarketParams memory _newMarketParams
+    )
+    internal
+    view
+    returns(bytes32 marketId)
+    {
+        marketId = _newMarketParams.id();
         (uint128 totalSupplyAssets,,,,,) = morpho.market(marketId);
         require(totalSupplyAssets > 0, "Market not enabled");
     }
