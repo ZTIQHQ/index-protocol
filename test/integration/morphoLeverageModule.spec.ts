@@ -409,6 +409,35 @@ describe("MorphoLeverageModule integration", () => {
     let subjectSetToken: Address;
     let subjectCaller: Account;
 
+    async function checkSetComponentsAgainstMorphoPosition() {
+      const currentPositions = await setToken.getPositions();
+      const [supplyShares, borrowShares, collateral] = await morpho.position(
+        marketId,
+        setToken.address,
+      );
+      console.log("collateral", collateral.toString());
+      const collateralNotional = await convertPositionToNotional(
+        currentPositions[0].unit,
+        setToken,
+      );
+      console.log("collateralNotional", collateralNotional.toString());
+      const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
+      console.log("collateralTokenBalance", collateralTokenBalance.toString());
+      expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
+
+      const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
+      console.log("totalBorrowAssets", totalBorrowAssets.toString());
+      const borrowAssets = sharesToAssetsUp(borrowShares, totalBorrowAssets, totalBorrowShares);
+      console.log("borrowAssets", borrowAssets.toString());
+      if (borrowAssets.gt(0)) {
+        const borrowNotional = await convertPositionToNotional(currentPositions[1].unit, setToken);
+        console.log("borrowNotional", borrowNotional.toString());
+        expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
+      }
+
+      expect(supplyShares).to.eq(0);
+    }
+
     cacheBeforeEach(async () => {
       setToken = await createSetToken(
         [wsteth.address],
@@ -464,35 +493,7 @@ describe("MorphoLeverageModule integration", () => {
         });
         it("positions should align with token balances", async () => {
           await subject();
-          const currentPositions = await setToken.getPositions();
-          const [supplyShares, borrowShares, collateral] = await morpho.position(
-            marketId,
-            setToken.address,
-          );
-          console.log("collateral", collateral.toString());
-          const collateralNotional = await convertPositionToNotional(
-            currentPositions[0].unit,
-            setToken,
-          );
-          console.log("collateralNotional", collateralNotional.toString());
-          const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
-          console.log("collateralTokenBalance", collateralTokenBalance.toString());
-          expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
-
-          const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
-          console.log("totalBorrowAssets", totalBorrowAssets.toString());
-          const borrowAssets = sharesToAssetsUp(borrowShares, totalBorrowAssets, totalBorrowShares);
-          console.log("borrowAssets", borrowAssets.toString());
-          if (borrowAssets.gt(0)) {
-            const borrowNotional = await convertPositionToNotional(
-              currentPositions[1].unit,
-              setToken,
-            );
-            console.log("borrowNotional", borrowNotional.toString());
-            expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
-          }
-
-          expect(supplyShares).to.eq(0);
+          await checkSetComponentsAgainstMorphoPosition();
         });
       });
       context("when collateral has been deposited into morpho", async () => {
@@ -566,37 +567,7 @@ describe("MorphoLeverageModule integration", () => {
 
           it("positions should align with token balances", async () => {
             await subject();
-            const currentPositions = await setToken.getPositions();
-            const [supplyShares, borrowShares, collateral] = await morpho.position(
-              marketId,
-              setToken.address,
-            );
-            console.log("collateral", collateral.toString());
-            const collateralNotional = await convertPositionToNotional(
-              currentPositions[0].unit,
-              setToken,
-            );
-            console.log("collateralNotional", collateralNotional.toString());
-            const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
-            console.log("collateralTokenBalance", collateralTokenBalance.toString());
-            expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
-
-            const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
-            console.log("totalBorrowAssets", totalBorrowAssets.toString());
-            const borrowAssets = sharesToAssetsUp(
-              borrowShares,
-              totalBorrowAssets,
-              totalBorrowShares,
-            );
-            console.log("borrowAssets", borrowAssets.toString());
-            const borrowNotional = await convertPositionToNotional(
-              currentPositions[1].unit,
-              setToken,
-            );
-            console.log("borrowNotional", borrowNotional.toString());
-            expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
-
-            expect(supplyShares).to.eq(0);
+            await checkSetComponentsAgainstMorphoPosition();
           });
         });
         context("when token is levered", async () => {
@@ -673,37 +644,7 @@ describe("MorphoLeverageModule integration", () => {
             });
             it("positions should align with token balances", async () => {
               await subject();
-              const currentPositions = await setToken.getPositions();
-              const [supplyShares, borrowShares, collateral] = await morpho.position(
-                marketId,
-                setToken.address,
-              );
-              console.log("collateral", collateral.toString());
-              const collateralNotional = await convertPositionToNotional(
-                currentPositions[0].unit,
-                setToken,
-              );
-              console.log("collateralNotional", collateralNotional.toString());
-              const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
-              console.log("collateralTokenBalance", collateralTokenBalance.toString());
-              expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
-
-              const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
-              console.log("totalBorrowAssets", totalBorrowAssets.toString());
-              const borrowAssets = sharesToAssetsUp(
-                borrowShares,
-                totalBorrowAssets,
-                totalBorrowShares,
-              );
-              console.log("borrowAssets", borrowAssets.toString());
-              const borrowNotional = await convertPositionToNotional(
-                currentPositions[1].unit,
-                setToken,
-              );
-              console.log("borrowNotional", borrowNotional.toString());
-              expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
-
-              expect(supplyShares).to.eq(0);
+              await checkSetComponentsAgainstMorphoPosition();
             });
           });
 
@@ -756,24 +697,7 @@ describe("MorphoLeverageModule integration", () => {
 
             it("positions should align with token balances", async () => {
               await subject();
-              const [supplyShares, borrowShares, collateral] = await morpho.position(
-                marketId,
-                setToken.address,
-              );
-              console.log("collateral", collateral.toString());
-              const currentPositions = await setToken.getPositions();
-              const collateralNotional = await convertPositionToNotional(
-                currentPositions[0].unit,
-                setToken,
-              );
-              console.log("collateralNotional", collateralNotional.toString());
-              const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
-              // TODO: Understand why token balance is exactly 0
-              console.log("collateralTokenBalance", collateralTokenBalance.toString());
-              expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
-              expect(borrowShares).to.eq(0);
-              expect(supplyShares).to.eq(0);
-              expect(collateral).to.gt(0);
+              await checkSetComponentsAgainstMorphoPosition();
             });
           });
 
@@ -824,39 +748,7 @@ describe("MorphoLeverageModule integration", () => {
               await subject();
               // TODO: Check that the positions not getting synced in hook itself is correct
               await morphoLeverageModule.sync(setToken.address);
-              const currentPositions = await setToken.getPositions();
-              const [supplyShares, borrowShares, collateral] = await morpho.position(
-                marketId,
-                setToken.address,
-              );
-              console.log("collateral", collateral.toString());
-              const collateralNotional = await convertPositionToNotional(
-                currentPositions[0].unit,
-                setToken,
-              );
-              console.log("collateralNotional", collateralNotional.toString());
-              const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
-              console.log("collateralTokenBalance", collateralTokenBalance.toString());
-              expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
-
-              const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
-              console.log("totalBorrowAssets", totalBorrowAssets.toString());
-              const borrowAssets = sharesToAssetsUp(
-                borrowShares,
-                totalBorrowAssets,
-                totalBorrowShares,
-              );
-              console.log("borrowAssets", borrowAssets.toString());
-              if (borrowAssets.gt(0)) {
-                const borrowNotional = await convertPositionToNotional(
-                  currentPositions[1].unit,
-                  setToken,
-                );
-                console.log("borrowNotional", borrowNotional.toString());
-                expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
-              }
-
-              expect(supplyShares).to.eq(0);
+              await checkSetComponentsAgainstMorphoPosition();
             });
 
             describe("when isEquity is false and component has positive unit (should not happen)", async () => {
@@ -917,7 +809,9 @@ describe("MorphoLeverageModule integration", () => {
               await controller.addModule(mockModule.address);
               await setToken.addModule(mockModule.address);
               await setToken.connect(mockModule.wallet).initializeModule();
-              await usdc.connect(await impersonateAccount(whales.usdc)).transfer(setToken.address, utils.parseUnits("1000", 6));
+              await usdc
+                .connect(await impersonateAccount(whales.usdc))
+                .transfer(setToken.address, utils.parseUnits("1000", 6));
             });
 
             beforeEach(() => {
@@ -952,39 +846,7 @@ describe("MorphoLeverageModule integration", () => {
               await subject();
               // TODO: Check that the positions not getting synced in hook itself is correct
               await morphoLeverageModule.sync(setToken.address);
-              const currentPositions = await setToken.getPositions();
-              const [supplyShares, borrowShares, collateral] = await morpho.position(
-                marketId,
-                setToken.address,
-              );
-              console.log("collateral", collateral.toString());
-              const collateralNotional = await convertPositionToNotional(
-                currentPositions[0].unit,
-                setToken,
-              );
-              console.log("collateralNotional", collateralNotional.toString());
-              const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
-              console.log("collateralTokenBalance", collateralTokenBalance.toString());
-              expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
-
-              const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
-              console.log("totalBorrowAssets", totalBorrowAssets.toString());
-              const borrowAssets = sharesToAssetsUp(
-                borrowShares,
-                totalBorrowAssets,
-                totalBorrowShares,
-              );
-              console.log("borrowAssets", borrowAssets.toString());
-              if (borrowAssets.gt(0)) {
-                const borrowNotional = await convertPositionToNotional(
-                  currentPositions[1].unit,
-                  setToken,
-                );
-                console.log("borrowNotional", borrowNotional.toString());
-                expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
-              }
-
-              expect(supplyShares).to.eq(0);
+              await checkSetComponentsAgainstMorphoPosition();
             });
 
             describe("when isEquity is false and component has positive unit (should not happen)", async () => {
