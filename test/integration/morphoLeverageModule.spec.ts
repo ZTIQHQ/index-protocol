@@ -917,6 +917,7 @@ describe("MorphoLeverageModule integration", () => {
               await controller.addModule(mockModule.address);
               await setToken.addModule(mockModule.address);
               await setToken.connect(mockModule.wallet).initializeModule();
+              await usdc.connect(await impersonateAccount(whales.usdc)).transfer(setToken.address, utils.parseUnits("1000", 6));
             });
 
             beforeEach(() => {
