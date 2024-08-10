@@ -599,53 +599,49 @@ describe("MorphoLeverageModule integration", () => {
             expect(supplyShares).to.eq(0);
           });
         });
-
-        describe("#delever", async () => {
-          let subjectRedeemQuantity: BigNumber;
-          let subjectMinRepayQuantity: BigNumber;
-          let subjectTradeAdapterName: string;
-          let subjectTradeData: Bytes;
-
-          async function subject(): Promise<any> {
-            return morphoLeverageModule
-              .connect(subjectCaller.wallet)
-              .delever(
-                subjectSetToken,
-                subjectRedeemQuantity,
-                subjectMinRepayQuantity,
-                subjectTradeAdapterName,
-                subjectTradeData,
-                { gasLimit: 2000000 },
-              );
-          }
-
-          beforeEach(async () => {
-            subjectSetToken = setToken.address;
-            subjectRedeemQuantity = utils.parseEther("0.05");
-            subjectMinRepayQuantity = utils.parseUnits("100", 6);
-            subjectTradeAdapterName = "UNISWAPV3";
-            subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-              [wsteth.address, usdc.address], // Swap path
+        context("when token is levered", async () => {
+          cacheBeforeEach(async () => {
+            const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+              [usdc.address, wsteth.address], // Swap path
               [500], // Fees
               true,
             );
+            const borrowQuantity = utils.parseUnits("1000", 6);
+            const tradeAdapterName = "UNISWAPV3";
+            await morphoLeverageModule
+              .connect(owner.wallet)
+              .lever(subjectSetToken, borrowQuantity, 0, tradeAdapterName, leverTradeData);
           });
-          context("when token is levered", async () => {
-            cacheBeforeEach(async () => {
-              const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-                [usdc.address, wsteth.address], // Swap path
+
+          describe("#delever", async () => {
+            let subjectRedeemQuantity: BigNumber;
+            let subjectMinRepayQuantity: BigNumber;
+            let subjectTradeAdapterName: string;
+            let subjectTradeData: Bytes;
+
+            async function subject(): Promise<any> {
+              return morphoLeverageModule
+                .connect(subjectCaller.wallet)
+                .delever(
+                  subjectSetToken,
+                  subjectRedeemQuantity,
+                  subjectMinRepayQuantity,
+                  subjectTradeAdapterName,
+                  subjectTradeData,
+                  { gasLimit: 2000000 },
+                );
+            }
+
+            beforeEach(async () => {
+              subjectSetToken = setToken.address;
+              subjectRedeemQuantity = utils.parseEther("0.05");
+              subjectMinRepayQuantity = utils.parseUnits("100", 6);
+              subjectTradeAdapterName = "UNISWAPV3";
+              subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+                [wsteth.address, usdc.address], // Swap path
                 [500], // Fees
                 true,
               );
-              await morphoLeverageModule
-                .connect(owner.wallet)
-                .lever(
-                  subjectSetToken,
-                  subjectMinRepayQuantity.mul(2),
-                  0,
-                  subjectTradeAdapterName,
-                  leverTradeData,
-                );
             });
 
             it("should update the positions on the SetToken correctly", async () => {
@@ -710,46 +706,32 @@ describe("MorphoLeverageModule integration", () => {
               expect(supplyShares).to.eq(0);
             });
           });
-        });
 
-        describe("#deleverToZeroBorrowBalance", async () => {
-          let subjectRedeemQuantity: BigNumber;
-          let borrowBalance: BigNumber;
-          let subjectTradeAdapterName: string;
-          let subjectTradeData: Bytes;
+          describe("#deleverToZeroBorrowBalance", async () => {
+            let subjectRedeemQuantity: BigNumber;
+            let subjectTradeAdapterName: string;
+            let subjectTradeData: Bytes;
 
-          async function subject(): Promise<any> {
-            return morphoLeverageModule
-              .connect(subjectCaller.wallet)
-              .deleverToZeroBorrowBalance(
-                subjectSetToken,
-                subjectRedeemQuantity,
-                subjectTradeAdapterName,
-                subjectTradeData,
-              );
-          }
+            async function subject(): Promise<any> {
+              return morphoLeverageModule
+                .connect(subjectCaller.wallet)
+                .deleverToZeroBorrowBalance(
+                  subjectSetToken,
+                  subjectRedeemQuantity,
+                  subjectTradeAdapterName,
+                  subjectTradeData,
+                );
+            }
 
-          beforeEach(async () => {
-            subjectSetToken = setToken.address;
-            subjectRedeemQuantity = utils.parseEther("0.5");
-            borrowBalance = utils.parseUnits("100", 6);
-            subjectTradeAdapterName = "UNISWAPV3";
-            subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-              [wsteth.address, usdc.address], // Swap path
-              [500], // Fees
-              true,
-            );
-          });
-          context("when token is levered", async () => {
-            cacheBeforeEach(async () => {
-              const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-                [usdc.address, wsteth.address], // Swap path
+            beforeEach(async () => {
+              subjectSetToken = setToken.address;
+              subjectRedeemQuantity = utils.parseEther("0.5");
+              subjectTradeAdapterName = "UNISWAPV3";
+              subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
+                [wsteth.address, usdc.address], // Swap path
                 [500], // Fees
                 true,
               );
-              await morphoLeverageModule
-                .connect(owner.wallet)
-                .lever(subjectSetToken, borrowBalance, 0, subjectTradeAdapterName, leverTradeData);
             });
 
             it("should update the positions on the SetToken correctly", async () => {
@@ -794,52 +776,38 @@ describe("MorphoLeverageModule integration", () => {
               expect(collateral).to.gt(0);
             });
           });
-        });
 
-        describe("#componentIssueHook", async () => {
-          let subjectSetToken: Address;
-          let subjectSetQuantity: BigNumber;
-          let subjectComponent: Address;
-          let subjectIsEquity: boolean;
-          let subjectCaller: Account;
+          describe("#componentIssueHook", async () => {
+            let subjectSetToken: Address;
+            let subjectSetQuantity: BigNumber;
+            let subjectComponent: Address;
+            let subjectIsEquity: boolean;
+            let subjectCaller: Account;
 
-          cacheBeforeEach(async () => {
-            await controller.addModule(mockModule.address);
-            await setToken.addModule(mockModule.address);
-            await setToken.connect(mockModule.wallet).initializeModule();
-          });
-
-          beforeEach(() => {
-            subjectSetToken = setToken.address;
-            subjectSetQuantity = ether(0.1);
-            subjectComponent = usdc.address;
-            subjectIsEquity = false;
-            subjectCaller = mockModule;
-          });
-
-          async function subject(): Promise<any> {
-            return morphoLeverageModule
-              .connect(subjectCaller.wallet)
-              .componentIssueHook(
-                subjectSetToken,
-                subjectSetQuantity,
-                subjectComponent,
-                subjectIsEquity,
-              );
-          }
-          context("when token is levered", async () => {
             cacheBeforeEach(async () => {
-              const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-                [usdc.address, wsteth.address], // Swap path
-                [500], // Fees
-                true,
-              );
-              const borrowBalance = utils.parseUnits("100", 6);
-              const tradeAdapterName = "UNISWAPV3";
-              await morphoLeverageModule
-                .connect(owner.wallet)
-                .lever(subjectSetToken, borrowBalance, 0, tradeAdapterName, leverTradeData);
+              await controller.addModule(mockModule.address);
+              await setToken.addModule(mockModule.address);
+              await setToken.connect(mockModule.wallet).initializeModule();
             });
+
+            beforeEach(() => {
+              subjectSetToken = setToken.address;
+              subjectSetQuantity = ether(0.1);
+              subjectComponent = usdc.address;
+              subjectIsEquity = false;
+              subjectCaller = mockModule;
+            });
+
+            async function subject(): Promise<any> {
+              return morphoLeverageModule
+                .connect(subjectCaller.wallet)
+                .componentIssueHook(
+                  subjectSetToken,
+                  subjectSetQuantity,
+                  subjectComponent,
+                  subjectIsEquity,
+                );
+            }
 
             it("should increase borrowed quantity on the SetToken", async () => {
               const previousUsdcBalance = await usdc.balanceOf(setToken.address);
@@ -938,53 +906,37 @@ describe("MorphoLeverageModule integration", () => {
               });
             });
           });
-        });
-        describe("#componentRedeemHook", async () => {
-          let subjectSetToken: Address;
-          let subjectSetQuantity: BigNumber;
-          let subjectComponent: Address;
-          let subjectIsEquity: boolean;
-          let subjectCaller: Account;
+          describe("#componentRedeemHook", async () => {
+            let subjectSetToken: Address;
+            let subjectSetQuantity: BigNumber;
+            let subjectComponent: Address;
+            let subjectIsEquity: boolean;
+            let subjectCaller: Account;
 
-          cacheBeforeEach(async () => {
-            await controller.addModule(mockModule.address);
-            await setToken.addModule(mockModule.address);
-            await setToken.connect(mockModule.wallet).initializeModule();
-          });
-
-          beforeEach(() => {
-            subjectSetToken = setToken.address;
-            subjectSetQuantity = ether(0.1);
-            subjectComponent = usdc.address;
-            subjectIsEquity = false;
-            subjectCaller = mockModule;
-          });
-
-          async function subject(): Promise<any> {
-            return morphoLeverageModule
-              .connect(subjectCaller.wallet)
-              .componentRedeemHook(
-                subjectSetToken,
-                subjectSetQuantity,
-                subjectComponent,
-                subjectIsEquity,
-              );
-          }
-          context("when token is levered", async () => {
             cacheBeforeEach(async () => {
-              const leverTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
-                [usdc.address, wsteth.address], // Swap path
-                [500], // Fees
-                true,
-              );
-              const borrowBalance = utils.parseUnits("100", 6);
-              const tradeAdapterName = "UNISWAPV3";
-              await morphoLeverageModule
-                .connect(owner.wallet)
-                .lever(subjectSetToken, borrowBalance, 0, tradeAdapterName, leverTradeData);
-              await usdc.connect(await impersonateAccount(whales.usdc)).transfer(setToken.address, utils.parseUnits("1000", 6));
+              await controller.addModule(mockModule.address);
+              await setToken.addModule(mockModule.address);
+              await setToken.connect(mockModule.wallet).initializeModule();
             });
 
+            beforeEach(() => {
+              subjectSetToken = setToken.address;
+              subjectSetQuantity = ether(0.1);
+              subjectComponent = usdc.address;
+              subjectIsEquity = false;
+              subjectCaller = mockModule;
+            });
+
+            async function subject(): Promise<any> {
+              return morphoLeverageModule
+                .connect(subjectCaller.wallet)
+                .componentRedeemHook(
+                  subjectSetToken,
+                  subjectSetQuantity,
+                  subjectComponent,
+                  subjectIsEquity,
+                );
+            }
             it("should decrease borrowed quantity on the SetToken", async () => {
               const previousUsdcBalance = await usdc.balanceOf(setToken.address);
 
