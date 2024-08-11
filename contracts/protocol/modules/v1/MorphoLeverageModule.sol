@@ -716,8 +716,8 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     {
         // Only ever set shares or assets to avoid "inconsistent input" error when there is a rounding error
         if(_shares > 0) {
-            // TODO: Check why the additional 1 has to be added here despite the asset balance already being generated with ceil
-            _setToken.invokeApprove(_marketParams.loanToken, address(morpho), _notionalQuantity + 1);
+            // TODO: Check why the additional 2 has to be added here despite the asset balance already being generated with ceil
+            _setToken.invokeApprove(_marketParams.loanToken, address(morpho), _notionalQuantity + 2);
             _setToken.invokeRepay(
                 morpho,
                 _marketParams,
