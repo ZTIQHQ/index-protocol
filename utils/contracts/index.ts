@@ -94,6 +94,7 @@ export { PositionV2 } from "../../typechain/PositionV2";
 export { PreciseUnitMathMock } from "../../typechain/PreciseUnitMathMock";
 export { PriceOracle } from "../../typechain/PriceOracle";
 export { ProtocolViewer } from "../../typechain/ProtocolViewer";
+export { RebasingComponentModule } from "../../typechain/RebasingComponentModule";
 export { ResourceIdentifierMock } from "../../typechain/ResourceIdentifierMock";
 export { RgtMigrationWrapAdapter } from "../../typechain/RgtMigrationWrapAdapter";
 export { SetToken } from "../../typechain/SetToken";
