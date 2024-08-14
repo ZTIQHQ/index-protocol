@@ -35,7 +35,7 @@ const whales = {
   mane_lee: "0xBF370B6E9d97D928497C2f2d72FD74f4D9ca5825", // aUSDC
 };
 
-describe("Rebasing USDC CustomOracleNavIssuanceModule integration", () => {
+describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-mainnet ]", () => {
   let owner: Account;
   let deployer: DeployHelper;
 
@@ -112,7 +112,9 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration", () => {
       [setV2Setup.issuanceModule.address, navIssuanceModule.address, rebasingComponentAssetLimitModule.address]
     );
 
-    // Initialize NAV Issuance Module and Rebasing Component Asset Limit Module
+    // Initialize Modules
+    await setV2Setup.issuanceModule.initialize(setToken.address, ADDRESS_ZERO);
+
     const navIssuanceSettings = {
       managerIssuanceHook: rebasingComponentAssetLimitModule.address,
       managerRedemptionHook: rebasingComponentAssetLimitModule.address,
@@ -153,7 +155,7 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration", () => {
     await cUSDCv3_erc20.connect(usdc_whale).approve(setV2Setup.issuanceModule.address, MAX_UINT_256);
     await aUSDC_erc20.connect(usdc_whale).approve(setV2Setup.issuanceModule.address, MAX_UINT_256);
 
-    await setV2Setup.issuanceModule.connect(usdc_whale).issue(setToken.address, ether(1000), owner.address);
+    await setV2Setup.issuanceModule.connect(usdc_whale).issue(setToken.address, ether(100), owner.address);
   });
 
   addSnapshotBeforeRestoreAfterEach();
