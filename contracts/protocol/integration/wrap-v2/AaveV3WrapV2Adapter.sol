@@ -57,9 +57,9 @@ contract AaveV3WrapV2Adapter {
      * Generates the calldata to wrap an underlying asset into a wrappedToken.
      *
      * @param _underlyingToken      Address of the component to be wrapped
-     * @param _wrappedToken         Address of the desired wrapped token
+     * @param _wrappedToken         Address of the desired aToken
      * @param _underlyingUnits      Total quantity of underlying units to wrap
-     * @param _to                   Address to send the wrapped tokens to
+     * @param _to                   Address to send the aTokens to
      *
      * @return address              Target contract address
      * @return uint256              Total quantity of underlying units (if underlying is ETH)
@@ -92,12 +92,12 @@ contract AaveV3WrapV2Adapter {
      * Generates the calldata to unwrap a wrapped asset into its underlying.
      *
      * @param _underlyingToken      Address of the underlying asset
-     * @param _wrappedToken         Address of the component to be unwrapped
-     * @param _wrappedTokenUnits    Total quantity of wrapped token units to unwrap
+     * @param _wrappedToken         Address of the aToken to be unwrapped
+     * @param _wrappedTokenUnits    Total quantity of aToken units to unwrap
      * @param _to                   Address to send the unwrapped tokens to
      *
      * @return address              Target contract address
-     * @return uint256              Total quantity of wrapped token units to unwrap. This will always be 0 for unwrapping
+     * @return uint256              Total quantity of aToken units to unwrap. This will always be 0 for unwrapping
      * @return bytes                Unwrap calldata
      */
     function getUnwrapCallData(
@@ -137,9 +137,9 @@ contract AaveV3WrapV2Adapter {
      * Validates the underlying and wrapped token pair
      *
      * @param _underlyingToken     Address of the underlying asset
-     * @param _wrappedToken        Address of the wrapped asset
+     * @param _wrappedToken        Address of the aToken
      *
-     * @return bool                Whether or not the wrapped token accepts the underlying token as collateral
+     * @return bool                Whether or not the aToken accepts the underlying token as collateral
      */
     function validTokenPair(address _underlyingToken, address _wrappedToken) internal view returns(bool) {
         return IAToken(_wrappedToken).UNDERLYING_ASSET_ADDRESS() == _underlyingToken;
