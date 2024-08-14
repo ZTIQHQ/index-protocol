@@ -11,11 +11,13 @@ import { ether, usdc } from "@utils/index";
 import { network } from "hardhat";
 import { forkingConfig } from "../../hardhat.config";
 import {
+  DebtIssuanceModuleV3,
   CustomOracleNavIssuanceModule,
   IERC20,
   IERC20__factory,
   SetToken,
   RebasingComponentAssetLimitModule,
+  RebasingComponentModule,
 } from "@typechain/index";
 import { SystemFixture } from "@utils/fixtures";
 
@@ -36,10 +38,15 @@ const whales = {
 };
 
 describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-mainnet ]", () => {
+  const TOKEN_TRANSFER_BUFFER = 10;
+
   let owner: Account;
   let deployer: DeployHelper;
 
   let setV2Setup: SystemFixture;
+
+  let debtIssuanceModule: DebtIssuanceModuleV3;
+  let rebasingComponentModule: RebasingComponentModule;
 
   let navIssuanceModule: CustomOracleNavIssuanceModule;
   let rebasingComponentAssetLimitModule: RebasingComponentAssetLimitModule;
@@ -88,6 +95,15 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
     aUSDC_erc20 = IERC20__factory.connect(tokenAddresses.aUSDC, owner.wallet);
 
     // Index Protocol setup
+    debtIssuanceModule = await deployer.modules.deployDebtIssuanceModuleV3(
+      setV2Setup.controller.address,
+      TOKEN_TRANSFER_BUFFER,
+    );
+    await setV2Setup.controller.addModule(debtIssuanceModule.address);
+
+    rebasingComponentModule = await deployer.modules.deployRebasingComponentModule(setV2Setup.controller.address);
+    await setV2Setup.controller.addModule(rebasingComponentModule.address);
+
     navIssuanceModule = await deployer.modules.deployCustomOracleNavIssuanceModule(
       setV2Setup.controller.address,
       setV2Setup.weth.address
@@ -101,6 +117,8 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
 
     // Oracle setup
     const unitOracle = await deployer.mocks.deployOracleMock(ether(1));
+    await setV2Setup.priceOracle.editMasterQuoteAsset(tokenAddresses.usdc);
+    await setV2Setup.priceOracle.addPair(tokenAddresses.usdc, tokenAddresses.usdc, unitOracle.address);
     await setV2Setup.priceOracle.addPair(tokenAddresses.aEthUSDC, tokenAddresses.usdc, unitOracle.address);
     await setV2Setup.priceOracle.addPair(tokenAddresses.cUSDCv3, tokenAddresses.usdc, unitOracle.address);
     await setV2Setup.priceOracle.addPair(tokenAddresses.aUSDC, tokenAddresses.usdc, unitOracle.address);
@@ -109,11 +127,28 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
     setToken = await setV2Setup.createSetToken(
       [tokenAddresses.usdc, tokenAddresses.aEthUSDC, tokenAddresses.cUSDCv3, tokenAddresses.aUSDC],
       [usdc(5), usdc(35), usdc(30), usdc(30)],
-      [setV2Setup.issuanceModule.address, navIssuanceModule.address, rebasingComponentAssetLimitModule.address]
+      [
+        debtIssuanceModule.address,
+        rebasingComponentModule.address,
+        navIssuanceModule.address,
+        rebasingComponentAssetLimitModule.address
+      ]
     );
 
     // Initialize Modules
-    await setV2Setup.issuanceModule.initialize(setToken.address, ADDRESS_ZERO);
+    await debtIssuanceModule.initialize(
+      setToken.address,
+      ZERO,
+      ZERO,
+      ZERO,
+      owner.address,
+      ADDRESS_ZERO
+    );
+
+    await rebasingComponentModule.initialize(
+      setToken.address,
+      [tokenAddresses.aEthUSDC, tokenAddresses.cUSDCv3, tokenAddresses.aUSDC]
+    );
 
     const navIssuanceSettings = {
       managerIssuanceHook: rebasingComponentAssetLimitModule.address,
@@ -136,26 +171,23 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
     await rebasingComponentAssetLimitModule.initialize(
       setToken.address,
       [tokenAddresses.aEthUSDC, tokenAddresses.cUSDCv3, tokenAddresses.aUSDC],
-      [setV2Setup.usdc.address],
-      [usdc(1000000)]
+      [tokenAddresses.usdc, setToken.address],
+      [usdc(1000000), ether(1000000)],
     );
 
-    // Issue initial units via the basic issuance module
-    const usdc_whale = await impersonateAccount(whales.usdc);
+    // Issue initial units via the debt issuance module V3
     const justin_sun = await impersonateAccount(whales.justin_sun);
     const wan_liang = await impersonateAccount(whales.wan_liang);
     const mane_lee = await impersonateAccount(whales.mane_lee);
-
-    await aEthUSDC_erc20.connect(justin_sun).transfer(whales.usdc, usdc(10000));
-    await cUSDCv3_erc20.connect(wan_liang).transfer(whales.usdc, usdc(10000));
-    await aUSDC_erc20.connect(mane_lee).transfer(whales.usdc, usdc(10000));
-
-    await usdc_erc20.connect(usdc_whale).approve(setV2Setup.issuanceModule.address, MAX_UINT_256);
-    await aEthUSDC_erc20.connect(usdc_whale).approve(setV2Setup.issuanceModule.address, MAX_UINT_256);
-    await cUSDCv3_erc20.connect(usdc_whale).approve(setV2Setup.issuanceModule.address, MAX_UINT_256);
-    await aUSDC_erc20.connect(usdc_whale).approve(setV2Setup.issuanceModule.address, MAX_UINT_256);
-
-    await setV2Setup.issuanceModule.connect(usdc_whale).issue(setToken.address, ether(100), owner.address);
+    await usdc_erc20.connect(justin_sun).transfer(owner.address, usdc(1000));
+    await aEthUSDC_erc20.connect(justin_sun).transfer(owner.address, usdc(10000));
+    await cUSDCv3_erc20.connect(wan_liang).transfer(owner.address, usdc(10000));
+    await aUSDC_erc20.connect(mane_lee).transfer(owner.address, usdc(10000));
+    await usdc_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+    await aEthUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+    await cUSDCv3_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+    await aUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+    await debtIssuanceModule.issue(setToken.address, ether(150), owner.address);
   });
 
   addSnapshotBeforeRestoreAfterEach();
@@ -169,12 +201,14 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
 
     before(async () => {
       subjectSetToken = setToken.address;
-      subjectReserveAsset = setV2Setup.usdc.address;
+      subjectReserveAsset = tokenAddresses.usdc;
       subjectReserveQuantity = usdc(1000);
       subjectMinSetTokenReceived = ZERO;
       subjectTo = owner;
 
-      await setV2Setup.usdc.approve(navIssuanceModule.address, subjectReserveQuantity);
+      const justin_sun = await impersonateAccount(whales.justin_sun);
+      await usdc_erc20.connect(justin_sun).transfer(owner.address, subjectReserveQuantity);
+      await usdc_erc20.approve(navIssuanceModule.address, subjectReserveQuantity);
     });
 
     async function subject(): Promise<any> {
@@ -188,13 +222,13 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
     }
 
     it("should sync rebasing components", async () => {
-      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(setV2Setup.usdc.address);
+      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const initialAEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const initialCUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const initialAUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
       const initialPositionMultiplier = await setToken.positionMultiplier();
 
-      const expectedOutputBeforeRebase = navIssuanceModule.connect(owner.wallet).getExpectedSetTokenIssueQuantity(
+      const expectedOutputBeforeRebase = await navIssuanceModule.connect(owner.wallet).getExpectedSetTokenIssueQuantity(
         subjectSetToken,
         subjectReserveAsset,
         subjectReserveQuantity
@@ -204,7 +238,7 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
 
       await subject();
 
-      const usdcUnit = await setToken.getDefaultPositionRealUnit(setV2Setup.usdc.address);
+      const usdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const aEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const cUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
@@ -232,8 +266,8 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
 
     before(async () => {
       subjectSetToken = setToken.address;
-      subjectReserveAsset = setV2Setup.usdc.address;
-      subjectSetTokenQuantity = ether(500);
+      subjectReserveAsset = tokenAddresses.usdc;
+      subjectSetTokenQuantity = ether(4);
       subjectMinReserveQuantityReceived = ZERO;
       subjectTo = owner;
 
@@ -251,38 +285,35 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
     }
 
     it("should sync rebasing components", async () => {
-      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(setV2Setup.usdc.address);
+      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const initialAEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const initialCUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const initialAUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
       const initialPositionMultiplier = await setToken.positionMultiplier();
 
-      const expectedOutputBeforeRebase = navIssuanceModule.connect(owner.wallet).getExpectedReserveRedeemQuantity(
+      const expectedOutputBeforeRebase = await navIssuanceModule.connect(owner.wallet).getExpectedReserveRedeemQuantity(
         subjectSetToken,
         subjectReserveAsset,
         subjectSetTokenQuantity
       );
-
       const usdcBalanceBefore = await usdc_erc20.balanceOf(owner.address);
 
       await subject();
 
-      const usdcUnit = await setToken.getDefaultPositionRealUnit(setV2Setup.usdc.address);
+      const usdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const aEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const cUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
       const positionMultiplier = await setToken.positionMultiplier();
-
       const usdcBalanceAfter = await usdc_erc20.balanceOf(owner.address);
-
       const actualOutput = usdcBalanceAfter.sub(usdcBalanceBefore);
 
       expect(usdcUnit).to.be.lt(initialUsdcUnit);
       expect(aEthUsdcUnit).to.be.gt(initialAEthUsdcUnit);
       expect(cUsdcV3Unit).to.be.gt(initialCUsdcV3Unit);
       expect(aUsdcUnit).to.be.gt(initialAUsdcUnit);
-      expect(positionMultiplier).to.be.lt(initialPositionMultiplier);
-      expect(actualOutput).to.be.lt(expectedOutputBeforeRebase);
+      expect(positionMultiplier).to.be.gt(initialPositionMultiplier);
+      expect(actualOutput).to.be.gt(expectedOutputBeforeRebase);
     });
   });
 });
