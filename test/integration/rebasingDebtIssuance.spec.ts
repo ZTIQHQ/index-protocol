@@ -34,7 +34,7 @@ const whales = {
   mane_lee: "0xBF370B6E9d97D928497C2f2d72FD74f4D9ca5825", // aUSDC
 };
 
-describe.only("Rebasing USDC DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => {
+describe("Rebasing USDC DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => {
   const ROUNDING_ERROR = 2;
   const TOKEN_TRANSFER_BUFFER = 10;
 

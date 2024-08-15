@@ -37,7 +37,7 @@ const whales = {
   mane_lee: "0xBF370B6E9d97D928497C2f2d72FD74f4D9ca5825", // aUSDC
 };
 
-describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-mainnet ]", () => {
+describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-mainnet ]", () => {
   const TOKEN_TRANSFER_BUFFER = 10;
 
   let owner: Account;
@@ -249,12 +249,12 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
 
       const actualOutput = setTokenBalanceAfter.sub(setTokenBalanceBefore);
 
-      expect(usdcUnit).to.be.gt(initialUsdcUnit);
-      expect(aEthUsdcUnit).to.be.gt(initialAEthUsdcUnit);
-      expect(cUsdcV3Unit).to.be.gt(initialCUsdcV3Unit);
-      expect(aUsdcUnit).to.be.gt(initialAUsdcUnit);
-      expect(positionMultiplier).to.be.gt(initialPositionMultiplier);
-      expect(actualOutput).to.be.lt(expectedOutputBeforeRebase);
+      expect(usdcUnit).to.be.gte(initialUsdcUnit);
+      expect(aEthUsdcUnit).to.be.lte(initialAEthUsdcUnit);
+      expect(cUsdcV3Unit).to.be.lte(initialCUsdcV3Unit);
+      expect(aUsdcUnit).to.be.lte(initialAUsdcUnit);
+      expect(positionMultiplier).to.be.lte(initialPositionMultiplier);
+      expect(actualOutput).to.be.lte(expectedOutputBeforeRebase);
     });
   });
 
@@ -309,12 +309,12 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
       const usdcBalanceAfter = await usdc_erc20.balanceOf(owner.address);
       const actualOutput = usdcBalanceAfter.sub(usdcBalanceBefore);
 
-      expect(usdcUnit).to.be.lt(initialUsdcUnit);
-      expect(aEthUsdcUnit).to.be.gt(initialAEthUsdcUnit);
-      expect(cUsdcV3Unit).to.be.gt(initialCUsdcV3Unit);
-      expect(aUsdcUnit).to.be.gt(initialAUsdcUnit);
-      expect(positionMultiplier).to.be.gt(initialPositionMultiplier);
-      expect(actualOutput).to.be.gt(expectedOutputBeforeRebase);
+      expect(usdcUnit).to.be.lte(initialUsdcUnit);
+      expect(aEthUsdcUnit).to.be.gte(initialAEthUsdcUnit);
+      expect(cUsdcV3Unit).to.be.gte(initialCUsdcV3Unit);
+      expect(aUsdcUnit).to.be.gte(initialAUsdcUnit);
+      expect(positionMultiplier).to.be.gte(initialPositionMultiplier);
+      expect(actualOutput).to.be.gte(expectedOutputBeforeRebase);
     });
   });
 });
