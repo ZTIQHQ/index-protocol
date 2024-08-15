@@ -2,6 +2,7 @@
 pragma solidity ^0.6.10;
 
 import {MorphoMathLib} from "./MorphoMathLib.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 /// @title SharesMathLib
 /// @author Morpho Labs
@@ -10,6 +11,7 @@ import {MorphoMathLib} from "./MorphoMathLib.sol";
 /// https://docs.openzeppelin.com/contracts/4.x/erc4626#inflation-attack.
 library MorphoSharesMath {
     using MorphoMathLib for uint256;
+    using SafeMath for uint256;
 
     /// @dev The number of virtual shares has been chosen low enough to prevent overflows, and high enough to ensure
     /// high precision computations.
@@ -29,7 +31,7 @@ library MorphoSharesMath {
 
     /// @dev Calculates the value of `shares` quoted in assets, rounding down.
     function toAssetsDown(uint256 shares, uint256 totalAssets, uint256 totalShares) internal pure returns (uint256) {
-        return shares.mulDivDown(totalAssets + VIRTUAL_ASSETS, totalShares + VIRTUAL_SHARES);
+        return shares.mulDivDown(totalAssets.add(VIRTUAL_ASSETS), totalShares.add(VIRTUAL_SHARES));
     }
 
     // /// @dev Calculates the value of `assets` quoted in shares, rounding up.
@@ -39,7 +41,7 @@ library MorphoSharesMath {
 
     /// @dev Calculates the value of `shares` quoted in assets, rounding up.
     function toAssetsUp(uint256 shares, uint256 totalAssets, uint256 totalShares) internal pure returns (uint256) {
-        return shares.mulDivUp(totalAssets + VIRTUAL_ASSETS, totalShares + VIRTUAL_SHARES);
+        return shares.mulDivUp(totalAssets.add(VIRTUAL_ASSETS), totalShares.add(VIRTUAL_SHARES));
     }
 }
 
