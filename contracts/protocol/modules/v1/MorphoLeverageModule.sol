@@ -28,10 +28,11 @@ import { IDebtIssuanceModule } from "../../../interfaces/IDebtIssuanceModule.sol
 import { IExchangeAdapter } from "../../../interfaces/IExchangeAdapter.sol";
 import { IModuleIssuanceHook } from "../../../interfaces/IModuleIssuanceHook.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
-import { IMorpho } from "../../../interfaces/external/morpho/IMorpho.sol";
+import { MarketParams, Market, IMorpho, Position } from "../../../interfaces/external/morpho/IMorpho.sol";
 import { Morpho } from "../../../protocol/integration/lib/Morpho.sol";
 import { MorphoMarketParams } from "../../../protocol/integration/lib/MorphoMarketParams.sol";
 import { MorphoSharesMath } from "../../../protocol/integration/lib/MorphoSharesMath.sol";
+import { MorphoBalancesLib } from "../../../protocol/integration/lib/MorphoBalancesLib.sol";
 import { ModuleBase } from "../../lib/ModuleBase.sol";
 
 /**
@@ -41,8 +42,9 @@ import { ModuleBase } from "../../lib/ModuleBase.sol";
  */
 contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssuanceHook {
     using Morpho for ISetToken;
-    using MorphoMarketParams for IMorpho.MarketParams;
+    using MorphoMarketParams for MarketParams;
     using MorphoSharesMath for uint128;
+    using MorphoBalancesLib for  IMorpho;
 
     /* ============ Structs ============ */
 
@@ -143,7 +145,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
 
     // Mapping of SetToken to Morpho MarketParams defining the market on which to leverage
-    mapping(ISetToken => IMorpho.MarketParams) public marketParams;
+    mapping(ISetToken => MarketParams) public marketParams;
 
     // Mapping of SetToken to boolean indicating if SetToken is on allow list. Updateable by governance
     mapping(ISetToken => bool) public allowedSetTokens;
@@ -193,7 +195,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         nonReentrant
         onlyManagerAndValidSet(_setToken)
     {
-        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken]; 
+        MarketParams memory setMarketParams = marketParams[_setToken]; 
         require(setMarketParams.collateralToken != address(0), "Collateral not set");
 
         // For levering up, send quantity is derived from borrow asset and receive quantity is derived from
@@ -253,7 +255,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         nonReentrant
         onlyManagerAndValidSet(_setToken)
     {
-        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken]; 
+        MarketParams memory setMarketParams = marketParams[_setToken]; 
         require(setMarketParams.collateralToken != address(0), "Collateral not set");
 
         // Note: for delevering, send quantity is derived from collateral asset and receive quantity is derived from
@@ -313,7 +315,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         onlyManagerAndValidSet(_setToken)
         returns (uint256)
     {
-        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken]; 
+        MarketParams memory setMarketParams = marketParams[_setToken]; 
         require(setMarketParams.collateralToken != address(0), "Collateral not set");
        
         uint256 setTotalSupply = _setToken.totalSupply();
@@ -361,7 +363,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     }
 
     function _sync(ISetToken _setToken) internal {
-        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
+        MarketParams memory setMarketParams = marketParams[_setToken];
         require(setMarketParams.collateralToken != address(0), "Collateral not set");
         morpho.accrueInterest(setMarketParams);
 
@@ -389,7 +391,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      */
     function initialize(
         ISetToken _setToken,
-        IMorpho.MarketParams memory _marketParams
+        MarketParams memory _marketParams
     )
         external
         onlySetManager(_setToken, msg.sender)
@@ -427,7 +429,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         onlyManagerAndValidSet(_setToken)
     {
         // TODO: Check if this function should be called as part of the initialize method
-        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
+        MarketParams memory setMarketParams = marketParams[_setToken];
         uint256 collateralBalance = IERC20(setMarketParams.collateralToken).balanceOf(address(_setToken));
         require(collateralBalance > 0, "Collateral balance is 0");
         _deposit(_setToken, setMarketParams, collateralBalance);
@@ -556,7 +558,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         // TODO: Check if this old comment from aave version is still relevant here
         // Check hook not being called for an equity position. If hook is called with equity position and outstanding borrow position 
         // exists the loan would be taken out twice potentially leading to liquidation
-        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
+        MarketParams memory setMarketParams = marketParams[_setToken];
         if (_isEquity && setMarketParams.collateralToken == address(_component)) {
             int256 componentCollateral = _setToken.getExternalPositionRealUnit(address(_component), address(this));
 
@@ -593,7 +595,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         override
         onlyModule(_setToken)
     {
-        IMorpho.MarketParams memory setMarketParams = marketParams[_setToken];
+        MarketParams memory setMarketParams = marketParams[_setToken];
         if (_isEquity && setMarketParams.collateralToken == address(_component)) {
             int256 componentCollateral = _setToken.getExternalPositionRealUnit(address(_component), address(this));
             require(componentCollateral > 0, "Component must be negative");
@@ -620,7 +622,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      */
     function _getCollateralAndBorrowPositions(
         ISetToken _setToken,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _setTotalSupply
     )
         internal
@@ -637,7 +639,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      */
     function _getCollateralAndBorrowBalances(
         ISetToken _setToken,
-        IMorpho.MarketParams memory _marketParams
+        MarketParams memory _marketParams
     )
         internal
         view 
@@ -645,13 +647,13 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     {
         // TODO: Review if it is more efficient to generate this id once and save in storage
         bytes32 marketId = _marketParams.id();
-        ( , , uint128 totalBorrowAssets, uint128 totalBorrowShares, , ) = morpho.market(marketId);
-        ( , uint128 borrowShares, uint128 collateral) = morpho.position(marketId, address(_setToken));
-        uint256 borrowAssets = borrowShares.toAssetsUp(totalBorrowAssets, totalBorrowShares);
+        Position memory position = morpho.position(marketId, address(_setToken));
+        (,, uint256 totalBorrowAssets, uint256 totalBorrowShares) = morpho.expectedMarketBalances(_marketParams);
 
-        collateralBalance = uint256(collateral);
-        borrowSharesU256 = uint256(borrowShares);
-        borrowBalance = borrowAssets;
+        borrowBalance = position.borrowShares.toAssetsUp(totalBorrowAssets, totalBorrowShares);
+
+        collateralBalance = uint256(position.collateral);
+        borrowSharesU256 = uint256(position.borrowShares);
     }
 
     /**
@@ -673,7 +675,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      */
     function _deposit(
         ISetToken _setToken,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _notionalQuantity
     )
         internal
@@ -691,7 +693,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      */
     function _withdraw(
         ISetToken _setToken,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _notionalQuantity
     )
         internal
@@ -708,7 +710,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      */
     function _repayBorrow(
         ISetToken _setToken,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _notionalQuantity,
         uint256 _shares
     )
@@ -741,7 +743,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      */
     function _borrow(
         ISetToken _setToken,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _notionalQuantity
     )
         internal
@@ -881,7 +883,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      */
     function _setMarketParams(
         ISetToken _setToken,
-        IMorpho.MarketParams memory _newMarketParams
+        MarketParams memory _newMarketParams
     ) 
         internal
     {
@@ -897,15 +899,15 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
      * @dev Validates market params by checking that the resulting marketId exists on morpho
      */
     function _validateMarketParams(
-        IMorpho.MarketParams memory _newMarketParams
+        MarketParams memory _newMarketParams
     )
         internal
         view
         returns(bytes32 marketId)
     {
         marketId = _newMarketParams.id();
-        (,,,,uint128 lastUpdate,) = morpho.market(marketId);
-        require(lastUpdate != 0, "Market not created");
+        Market memory market = morpho.market(marketId);
+        require(market.lastUpdate != 0, "Market not created");
     }
 
     /**

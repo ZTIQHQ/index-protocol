@@ -20,7 +20,7 @@ pragma solidity 0.6.10;
 pragma experimental ABIEncoderV2;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IMorpho } from "../../../interfaces/external/morpho/IMorpho.sol";
+import { MarketParams, IMorpho } from "../../../interfaces/external/morpho/IMorpho.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 
 /**
@@ -34,7 +34,7 @@ library Morpho {
     
     function getSupplyCollateralCalldata(
         IMorpho _morpho,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _assets,
         address _onBehalfOf,
         bytes memory _data
@@ -57,7 +57,7 @@ library Morpho {
     function invokeSupplyCollateral(
         ISetToken _setToken,
         IMorpho _morpho,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _amountNotional
     )
         external
@@ -76,7 +76,7 @@ library Morpho {
 
     function getBorrowCalldata(
         IMorpho _morpho,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _assets,
         uint256 _shares,
         address _onBehalfOf,
@@ -101,7 +101,7 @@ library Morpho {
     function invokeBorrow(
         ISetToken _setToken,
         IMorpho _morpho,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _amountNotional
     )
         external
@@ -120,7 +120,7 @@ library Morpho {
 
     function getWithdrawCollateralCalldata(
         IMorpho _morpho,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _assets,
         address _onBehalfOf,
         address _receiver
@@ -143,7 +143,7 @@ library Morpho {
     function invokeWithdrawCollateral(
         ISetToken _setToken,
         IMorpho _morpho,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _amountNotional
     )
         external
@@ -162,7 +162,7 @@ library Morpho {
     
      function getRepayCalldata(
         IMorpho _morpho,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _assets,
         uint256 _shares,
         address _onBehalfOf
@@ -187,7 +187,7 @@ library Morpho {
     function invokeRepay(
         ISetToken _setToken,
         IMorpho _morpho,
-        IMorpho.MarketParams memory _marketParams,
+        MarketParams memory _marketParams,
         uint256 _assets,
         uint256 _shares
     )
