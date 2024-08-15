@@ -894,7 +894,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     }
 
     /**
-     * @dev Validates market params by checking that the resulting marketId exists on morpho with > 0 assets supplied
+     * @dev Validates market params by checking that the resulting marketId exists on morpho
      */
     function _validateMarketParams(
         IMorpho.MarketParams memory _newMarketParams
@@ -904,8 +904,8 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         returns(bytes32 marketId)
     {
         marketId = _newMarketParams.id();
-        (uint128 totalSupplyAssets,,,,,) = morpho.market(marketId);
-        require(totalSupplyAssets > 0, "Market not enabled");
+        (,,,,uint128 lastUpdate,) = morpho.market(marketId);
+        require(lastUpdate != 0, "Market not created");
     }
 
     /**
