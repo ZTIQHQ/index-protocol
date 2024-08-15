@@ -41,6 +41,7 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
   const TOKEN_TRANSFER_BUFFER = 10;
 
   let owner: Account;
+  let feeRecipient: Account;
   let deployer: DeployHelper;
 
   let setV2Setup: SystemFixture;
@@ -81,7 +82,7 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
   });
 
   before(async () => {
-    [ owner ] = await getAccounts();
+    [ owner, feeRecipient ] = await getAccounts();
 
     // System setup
     deployer = new DeployHelper(owner.wallet);
@@ -155,7 +156,7 @@ describe.only("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked
       managerRedemptionHook: rebasingComponentAssetLimitModule.address,
       setValuer: ADDRESS_ZERO,
       reserveAssets: [tokenAddresses.usdc],
-      feeRecipient: owner.address,
+      feeRecipient: feeRecipient.address,
       managerFees: [ether(0.001), ether(0.002)],
       maxManagerFee: ether(0.02),
       premiumPercentage: ether(0.01),
