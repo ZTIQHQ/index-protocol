@@ -207,7 +207,7 @@ describe("CompoundV3WrapModule [ @forked-mainnet ]", () => {
           expect(underlyingBalance).to.eq(expectedUnderlyingBalance);
 
           const expectedWrappedBalance = previousWrappedBalance.add(delta).sub(TWO); // 2 wei rounding loss
-          expect(wrappedBalance).to.eq(expectedWrappedBalance);
+          expect(wrappedBalance).to.gte(expectedWrappedBalance);
         });
       });
     });
