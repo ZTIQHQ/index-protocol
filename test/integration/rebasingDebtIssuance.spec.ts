@@ -37,7 +37,6 @@ const whales = {
 };
 
 describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => {
-  const ROUNDING_ERROR = 2;
   const TOKEN_TRANSFER_BUFFER = 10;
 
   let owner: Account;
@@ -112,7 +111,7 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
         tokenAddresses.aUSDC,
         tokenAddresses.gtUSDC,
       ],
-      [usdc(5), usdc(25), usdc(25), usdc(25), ether(25)],
+      [usdc(20), usdc(20), usdc(20), usdc(20), ether(20)],
       [debtIssuanceModule.address, rebasingComponentModule.address]
     );
 
@@ -134,6 +133,70 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
 
   addSnapshotBeforeRestoreAfterEach();
 
+  describe("#sync", async () => {
+    let subjectSetToken: Address;
+    let subjectCaller: Account;
+
+    before(async () => {
+      const justin_sun = await impersonateAccount(whales.justin_sun);
+      const wan_liang = await impersonateAccount(whales.wan_liang);
+      const mane_lee = await impersonateAccount(whales.mane_lee);
+      const morpho_seeding = await impersonateAccount(whales.morpho_seeding);
+
+      await usdc_erc20.connect(justin_sun).transfer(owner.address, usdc(21));
+      await aEthUSDC_erc20.connect(justin_sun).transfer(owner.address, usdc(21));
+      await cUSDCv3_erc20.connect(wan_liang).transfer(owner.address, usdc(21));
+      await aUSDC_erc20.connect(mane_lee).transfer(owner.address, usdc(21));
+      await gtUSDC_erc20.connect(morpho_seeding).transfer(owner.address, ether(21));
+
+      await usdc_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+      await aEthUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+      await cUSDCv3_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+      await aUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+      await gtUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+
+      await debtIssuanceModule.connect(owner.wallet).issue(
+        setToken.address,
+        ether(1),
+        owner.address
+      );
+
+      subjectSetToken = setToken.address;
+      subjectCaller = owner;
+    });
+
+    async function subject(): Promise<any> {
+      return rebasingComponentModule.connect(subjectCaller.wallet).sync(subjectSetToken);
+    }
+
+    it("should sync rebasing components", async () => {
+      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
+      const initialAEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
+      const initialCUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
+      const initialAUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
+      const initialGTUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
+      const initialPositionMultiplier = await setToken.positionMultiplier();
+
+      await increaseTimeAsync(usdc(100));
+
+      await subject();
+
+      const usdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
+      const aEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
+      const cUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
+      const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
+      const gtUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
+      const positionMultiplier = await setToken.positionMultiplier();
+
+      expect(usdcUnit).to.be.eq(initialUsdcUnit);
+      expect(aEthUsdcUnit).to.be.gt(initialAEthUsdcUnit); // aEthUSDC is rebasing
+      expect(cUsdcV3Unit).to.be.gt(initialCUsdcV3Unit); // cUSDCv3 is rebasing
+      expect(aUsdcUnit).to.be.gt(initialAUsdcUnit); // aUSDC is rebasing
+      expect(gtUsdcUnit).to.be.eq(initialGTUsdcUnit);
+      expect(positionMultiplier).to.be.eq(initialPositionMultiplier);
+    });
+  });
+
   describe("#issue", async () => {
     let subjectSetToken: Address;
     let subjectQuantity: BigNumber;
@@ -146,11 +209,11 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
       const mane_lee = await impersonateAccount(whales.mane_lee);
       const morpho_seeding = await impersonateAccount(whales.morpho_seeding);
 
-      await usdc_erc20.connect(justin_sun).transfer(owner.address, usdc(1000));
-      await aEthUSDC_erc20.connect(justin_sun).transfer(owner.address, usdc(10000));
-      await cUSDCv3_erc20.connect(wan_liang).transfer(owner.address, usdc(10000));
-      await aUSDC_erc20.connect(mane_lee).transfer(owner.address, usdc(10000));
-      await gtUSDC_erc20.connect(morpho_seeding).transfer(owner.address, ether(10000));
+      await usdc_erc20.connect(justin_sun).transfer(owner.address, usdc(21));
+      await aEthUSDC_erc20.connect(justin_sun).transfer(owner.address, usdc(21));
+      await cUSDCv3_erc20.connect(wan_liang).transfer(owner.address, usdc(21));
+      await aUSDC_erc20.connect(mane_lee).transfer(owner.address, usdc(21));
+      await gtUSDC_erc20.connect(morpho_seeding).transfer(owner.address, ether(21));
 
       await usdc_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
       await aEthUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
@@ -159,7 +222,7 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
       await gtUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
 
       subjectSetToken = setToken.address;
-      subjectQuantity = ether(100);
+      subjectQuantity = ether(1);
       subjectTo = owner;
       subjectCaller = owner;
     });
@@ -173,19 +236,19 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
     }
 
     it("should sync rebasing components", async () => {
-      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(setV2Setup.usdc.address);
+      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const initialAEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const initialCUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const initialAUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
       const initialGTUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
       const initialPositionMultiplier = await setToken.positionMultiplier();
 
+      await increaseTimeAsync(usdc(100));
+
       const [,expectedIssuanceUnits] = await debtIssuanceModule.connect(owner.wallet).getRequiredComponentIssuanceUnits(
         subjectSetToken,
         subjectQuantity
       );
-
-      increaseTimeAsync(usdc(100));
 
       const usdcBalanceBefore = await usdc_erc20.balanceOf(owner.address);
       const aEthUSDCBalanceBefore = await aEthUSDC_erc20.balanceOf(owner.address);
@@ -196,7 +259,7 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
 
       await subject();
 
-      const usdcUnit = await setToken.getDefaultPositionRealUnit(setV2Setup.usdc.address);
+      const usdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const aEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const cUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
@@ -210,18 +273,18 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
       const gtUSDCBalanceAfter = await gtUSDC_erc20.balanceOf(owner.address);
       const setTokenBalanceAfter = await setToken.balanceOf(owner.address);
 
-      expect(usdcUnit).to.be.gte(initialUsdcUnit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(aEthUsdcUnit).to.be.gte(initialAEthUsdcUnit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(cUsdcV3Unit).to.be.gte(initialCUsdcV3Unit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(aUsdcUnit).to.be.gte(initialAUsdcUnit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(gtUsdcUnit).to.be.gte(initialGTUsdcUnit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
+      expect(usdcUnit).to.be.eq(initialUsdcUnit);
+      expect(aEthUsdcUnit).to.be.gt(initialAEthUsdcUnit);
+      expect(cUsdcV3Unit).to.be.gt(initialCUsdcV3Unit);
+      expect(aUsdcUnit).to.be.gt(initialAUsdcUnit);
+      expect(gtUsdcUnit).to.be.eq(initialGTUsdcUnit);
       expect(positionMultiplier).to.be.eq(initialPositionMultiplier);
 
-      expect(usdcBalanceBefore.sub(usdcBalanceAfter)).to.be.gte(expectedIssuanceUnits[0].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(aEthUSDCBalanceBefore.sub(aEthUSDCBalanceAfter)).to.be.gte(expectedIssuanceUnits[1].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(cUSDCv3BalanceBefore.sub(cUSDCv3BalanceAfter)).to.be.gte(expectedIssuanceUnits[2].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(aUSDCBalanceBefore.sub(aUSDCBalanceAfter)).to.be.gte(expectedIssuanceUnits[3].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(gtUSDCBalanceBefore.sub(gtUSDCBalanceAfter)).to.be.gte(expectedIssuanceUnits[4].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
+      expect(usdcBalanceBefore.sub(usdcBalanceAfter)).to.be.eq(expectedIssuanceUnits[0].sub(TOKEN_TRANSFER_BUFFER));
+      expect(aEthUSDCBalanceBefore.sub(aEthUSDCBalanceAfter)).to.be.gte(expectedIssuanceUnits[1].sub(TOKEN_TRANSFER_BUFFER));
+      expect(cUSDCv3BalanceBefore.sub(cUSDCv3BalanceAfter)).to.be.gte(expectedIssuanceUnits[2].sub(TOKEN_TRANSFER_BUFFER));
+      expect(aUSDCBalanceBefore.sub(aUSDCBalanceAfter)).to.be.gte(expectedIssuanceUnits[3].sub(TOKEN_TRANSFER_BUFFER));
+      expect(gtUSDCBalanceBefore.sub(gtUSDCBalanceAfter)).to.be.eq(expectedIssuanceUnits[4].sub(TOKEN_TRANSFER_BUFFER));
       expect(setTokenBalanceAfter.sub(setTokenBalanceBefore)).to.be.eq(subjectQuantity);
     });
   });
@@ -238,11 +301,11 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
       const mane_lee = await impersonateAccount(whales.mane_lee);
       const morpho_seeding = await impersonateAccount(whales.morpho_seeding);
 
-      await usdc_erc20.connect(justin_sun).transfer(owner.address, usdc(1000));
-      await aEthUSDC_erc20.connect(justin_sun).transfer(owner.address, usdc(10000));
-      await cUSDCv3_erc20.connect(wan_liang).transfer(owner.address, usdc(10000));
-      await aUSDC_erc20.connect(mane_lee).transfer(owner.address, usdc(10000));
-      await gtUSDC_erc20.connect(morpho_seeding).transfer(owner.address, ether(10000));
+      await usdc_erc20.connect(justin_sun).transfer(owner.address, usdc(21));
+      await aEthUSDC_erc20.connect(justin_sun).transfer(owner.address, usdc(21));
+      await cUSDCv3_erc20.connect(wan_liang).transfer(owner.address, usdc(21));
+      await aUSDC_erc20.connect(mane_lee).transfer(owner.address, usdc(21));
+      await gtUSDC_erc20.connect(morpho_seeding).transfer(owner.address, ether(21));
 
       await usdc_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
       await aEthUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
@@ -252,14 +315,14 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
 
       await debtIssuanceModule.connect(owner.wallet).issue(
         setToken.address,
-        ether(100),
+        ether(1),
         owner.address
       );
 
       await setToken.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
 
       subjectSetToken = setToken.address;
-      subjectQuantity = ether(100);
+      subjectQuantity = ether(1);
       subjectTo = owner;
       subjectCaller = owner;
     });
@@ -273,19 +336,19 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
     }
 
     it("should sync rebasing components", async () => {
-      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(setV2Setup.usdc.address);
+      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const initialAEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const initialCUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const initialAUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
       const initialGTUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
       const initialPositionMultiplier = await setToken.positionMultiplier();
 
+      await increaseTimeAsync(usdc(100));
+
       const [,expectedRedemptionUnits] = await debtIssuanceModule.connect(owner.wallet).getRequiredComponentRedemptionUnits(
         subjectSetToken,
         subjectQuantity
       );
-
-      increaseTimeAsync(usdc(100));
 
       const usdcBalanceBefore = await usdc_erc20.balanceOf(owner.address);
       const aEthUSDCBalanceBefore = await aEthUSDC_erc20.balanceOf(owner.address);
@@ -296,7 +359,7 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
 
       await subject();
 
-      const usdcUnit = await setToken.getDefaultPositionRealUnit(setV2Setup.usdc.address);
+      const usdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const aEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const cUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
@@ -310,18 +373,18 @@ describe("Rebasing DebtIssuanceModuleV3 integration [ @forked-mainnet ]", () => 
       const gtUSDCBalanceAfter = await gtUSDC_erc20.balanceOf(owner.address);
       const setTokenBalanceAfter = await setToken.balanceOf(owner.address);
 
-      expect(usdcUnit).to.be.gte(initialUsdcUnit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(aEthUsdcUnit).to.be.gte(initialAEthUsdcUnit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(cUsdcV3Unit).to.be.gte(initialCUsdcV3Unit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(aUsdcUnit).to.be.gte(initialAUsdcUnit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(gtUsdcUnit).to.be.gte(initialGTUsdcUnit.sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
+      expect(usdcUnit).to.be.eq(initialUsdcUnit);
+      expect(aEthUsdcUnit).to.be.gt(initialAEthUsdcUnit); // aEthUSDC is rebasing
+      expect(cUsdcV3Unit).to.be.gt(initialCUsdcV3Unit); // cUSDCv3 is rebasing
+      expect(aUsdcUnit).to.be.gt(initialAUsdcUnit); // aUSDC is rebasing
+      expect(gtUsdcUnit).to.be.eq(initialGTUsdcUnit);
       expect(positionMultiplier).to.be.eq(initialPositionMultiplier);
 
-      expect(usdcBalanceAfter.sub(usdcBalanceBefore)).to.be.gte(expectedRedemptionUnits[0].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(aEthUSDCBalanceAfter.sub(aEthUSDCBalanceBefore)).to.be.gte(expectedRedemptionUnits[1].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(cUSDCv3BalanceAfter.sub(cUSDCv3BalanceBefore)).to.be.gte(expectedRedemptionUnits[2].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(aUSDCBalanceAfter.sub(aUSDCBalanceBefore)).to.be.gte(expectedRedemptionUnits[3].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
-      expect(gtUSDCBalanceAfter.sub(gtUSDCBalanceBefore)).to.be.gte(expectedRedemptionUnits[4].sub(TOKEN_TRANSFER_BUFFER).sub(ROUNDING_ERROR));
+      expect(usdcBalanceAfter.sub(usdcBalanceBefore)).to.be.eq(expectedRedemptionUnits[0]);
+      expect(aEthUSDCBalanceAfter.sub(aEthUSDCBalanceBefore)).to.be.gt(expectedRedemptionUnits[1]);
+      expect(cUSDCv3BalanceAfter.sub(cUSDCv3BalanceBefore)).to.be.gt(expectedRedemptionUnits[2]);
+      expect(aUSDCBalanceAfter.sub(aUSDCBalanceBefore)).to.be.gt(expectedRedemptionUnits[3]);
+      expect(gtUSDCBalanceAfter.sub(gtUSDCBalanceBefore)).to.be.eq(expectedRedemptionUnits[4]);
       expect(setTokenBalanceBefore.sub(setTokenBalanceAfter)).to.be.eq(subjectQuantity);
     });
   });

@@ -3,7 +3,7 @@ import { BigNumber} from "ethers";
 import { getSystemFixture } from "@utils/test";
 import { Account } from "@utils/test/types";
 import { Address, CustomOracleNAVIssuanceSettings } from "@utils/types";
-import { addSnapshotBeforeRestoreAfterEach, impersonateAccount } from "@utils/test/testingUtils";
+import { addSnapshotBeforeRestoreAfterEach, impersonateAccount, increaseTimeAsync } from "@utils/test/testingUtils";
 import DeployHelper from "@utils/deploys";
 import { getAccounts, getWaffleExpect } from "@utils/test/index";
 import { ADDRESS_ZERO, MAX_UINT_256, ZERO } from "@utils/constants";
@@ -147,7 +147,7 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
         tokenAddresses.aUSDC,
         tokenAddresses.gtUSDC,
       ],
-      [usdc(5), usdc(25), usdc(25), usdc(25), ether(25)],
+      [usdc(20), usdc(20), usdc(20), usdc(20), ether(20)],
       [
         debtIssuanceModule.address,
         rebasingComponentModule.address,
@@ -181,7 +181,7 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       maxManagerFee: ether(0.02),
       premiumPercentage: ether(0.01),
       maxPremiumPercentage: ether(0.1),
-      minSetTokenSupply: ether(100),
+      minSetTokenSupply: ether(5),
     } as CustomOracleNAVIssuanceSettings;
 
     await navIssuanceModule.initialize(
@@ -211,10 +211,49 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
     await cUSDCv3_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
     await aUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
     await gtUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
-    await debtIssuanceModule.issue(setToken.address, ether(150), owner.address);
+    await debtIssuanceModule.issue(setToken.address, ether(10), owner.address);
   });
 
   addSnapshotBeforeRestoreAfterEach();
+
+  describe("#sync", async () => {
+    let subjectSetToken: Address;
+
+    before(async () => {
+      subjectSetToken = setToken.address;
+    });
+
+    async function subject(): Promise<any> {
+      return rebasingComponentAssetLimitModule.sync(subjectSetToken);
+    }
+
+    it("should sync rebasing components", async () => {
+      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
+      const initialAEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
+      const initialCUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
+      const initialAUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
+      const initialGTUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
+      const initialPositionMultiplier = await setToken.positionMultiplier();
+
+      await increaseTimeAsync(usdc(10));
+
+      await subject();
+
+      const usdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
+      const aEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
+      const cUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
+      const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
+      const gtUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
+      const positionMultiplier = await setToken.positionMultiplier();
+
+      expect(usdcUnit).to.be.eq(initialUsdcUnit);
+      expect(aEthUsdcUnit).to.be.gt(initialAEthUsdcUnit);
+      expect(cUsdcV3Unit).to.be.gt(initialCUsdcV3Unit);
+      expect(aUsdcUnit).to.be.gt(initialAUsdcUnit);
+      expect(gtUsdcUnit).to.be.eq(initialGTUsdcUnit);
+      expect(positionMultiplier).to.be.eq(initialPositionMultiplier);
+    });
+  });
 
   describe("#issue", async () => {
     let subjectSetToken: Address;
@@ -226,7 +265,7 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
     before(async () => {
       subjectSetToken = setToken.address;
       subjectReserveAsset = tokenAddresses.usdc;
-      subjectReserveQuantity = usdc(1000);
+      subjectReserveQuantity = usdc(100);
       subjectMinSetTokenReceived = ZERO;
       subjectTo = owner;
 
@@ -253,12 +292,14 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       const initialGTUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
       const initialPositionMultiplier = await setToken.positionMultiplier();
 
+      await increaseTimeAsync(usdc(10));
+
       const expectedOutputBeforeRebase = await navIssuanceModule.connect(owner.wallet).getExpectedSetTokenIssueQuantity(
         subjectSetToken,
         subjectReserveAsset,
         subjectReserveQuantity
       );
-
+      const usdcBalanceBefore = await usdc_erc20.balanceOf(owner.address);
       const setTokenBalanceBefore = await setToken.balanceOf(owner.address);
 
       await subject();
@@ -269,18 +310,19 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
       const gtUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
       const positionMultiplier = await setToken.positionMultiplier();
-
+      const usdcBalanceAfter = await usdc_erc20.balanceOf(owner.address);
+      const usdcSpent = usdcBalanceBefore.sub(usdcBalanceAfter);
       const setTokenBalanceAfter = await setToken.balanceOf(owner.address);
-
       const actualOutput = setTokenBalanceAfter.sub(setTokenBalanceBefore);
 
-      expect(usdcUnit).to.be.gte(initialUsdcUnit);
-      expect(aEthUsdcUnit).to.be.lte(initialAEthUsdcUnit);
-      expect(cUsdcV3Unit).to.be.lte(initialCUsdcV3Unit);
-      expect(aUsdcUnit).to.be.lte(initialAUsdcUnit);
-      expect(gtUsdcUnit).to.be.lte(initialGTUsdcUnit);
-      expect(positionMultiplier).to.be.lte(initialPositionMultiplier);
-      expect(actualOutput).to.be.lte(expectedOutputBeforeRebase);
+      expect(usdcUnit).to.be.gt(initialUsdcUnit);
+      expect(aEthUsdcUnit).to.be.lt(initialAEthUsdcUnit);
+      expect(cUsdcV3Unit).to.be.lt(initialCUsdcV3Unit);
+      expect(aUsdcUnit).to.be.lt(initialAUsdcUnit);
+      expect(gtUsdcUnit).to.be.lt(initialGTUsdcUnit);
+      expect(positionMultiplier).to.be.lt(initialPositionMultiplier);
+      expect(actualOutput).to.be.lt(expectedOutputBeforeRebase);
+      expect(usdcSpent).to.be.eq(subjectReserveQuantity);
     });
   });
 
@@ -294,7 +336,7 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
     before(async () => {
       subjectSetToken = setToken.address;
       subjectReserveAsset = tokenAddresses.usdc;
-      subjectSetTokenQuantity = ether(4);
+      subjectSetTokenQuantity = ether(1);
       subjectMinReserveQuantityReceived = ZERO;
       subjectTo = owner;
 
@@ -319,12 +361,15 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       const initialGTUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
       const initialPositionMultiplier = await setToken.positionMultiplier();
 
+      await increaseTimeAsync(usdc(10));
+
       const expectedOutputBeforeRebase = await navIssuanceModule.connect(owner.wallet).getExpectedReserveRedeemQuantity(
         subjectSetToken,
         subjectReserveAsset,
         subjectSetTokenQuantity
       );
       const usdcBalanceBefore = await usdc_erc20.balanceOf(owner.address);
+      const setTokenBalanceBefore = await setToken.balanceOf(owner.address);
 
       await subject();
 
@@ -336,14 +381,17 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       const positionMultiplier = await setToken.positionMultiplier();
       const usdcBalanceAfter = await usdc_erc20.balanceOf(owner.address);
       const actualOutput = usdcBalanceAfter.sub(usdcBalanceBefore);
+      const setTokenBalanceAfter = await setToken.balanceOf(owner.address);
+      const setTokenBalanceChange = setTokenBalanceBefore.sub(setTokenBalanceAfter);
 
-      expect(usdcUnit).to.be.lte(initialUsdcUnit);
-      expect(aEthUsdcUnit).to.be.gte(initialAEthUsdcUnit);
-      expect(cUsdcV3Unit).to.be.gte(initialCUsdcV3Unit);
-      expect(aUsdcUnit).to.be.gte(initialAUsdcUnit);
-      expect(gtUsdcUnit).to.be.gte(initialGTUsdcUnit);
-      expect(positionMultiplier).to.be.gte(initialPositionMultiplier);
-      expect(actualOutput).to.be.gte(expectedOutputBeforeRebase);
+      expect(usdcUnit).to.be.lt(initialUsdcUnit);
+      expect(aEthUsdcUnit).to.be.gt(initialAEthUsdcUnit);
+      expect(cUsdcV3Unit).to.be.gt(initialCUsdcV3Unit);
+      expect(aUsdcUnit).to.be.gt(initialAUsdcUnit);
+      expect(gtUsdcUnit).to.be.gt(initialGTUsdcUnit);
+      expect(positionMultiplier).to.be.gt(initialPositionMultiplier);
+      expect(actualOutput).to.be.gt(expectedOutputBeforeRebase);
+      expect(setTokenBalanceChange).to.be.eq(subjectSetTokenQuantity);
     });
   });
 });
