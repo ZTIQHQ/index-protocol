@@ -2,9 +2,10 @@ import { Signer } from "ethers";
 import { Address } from "../types";
 import { BigNumber } from "ethers";
 
-import { CTokenOracle, YearnVaultOracle } from "../contracts";
+import { CTokenOracle, ERC4626Oracle, YearnVaultOracle } from "../contracts";
 
 import { CTokenOracle__factory } from "../../typechain/factories/CTokenOracle__factory";
+import { ERC4626Oracle__factory } from "../../typechain/factories/ERC4626Oracle__factory";
 import { YearnVaultOracle__factory } from "../../typechain/factories/YearnVaultOracle__factory";
 
 export default class DeployOracles {
@@ -30,6 +31,12 @@ export default class DeployOracles {
     underlyingFullUnit: BigNumber,
     dataDescription: string): Promise<YearnVaultOracle> {
     return await new YearnVaultOracle__factory(this._deployerSigner).deploy(vault, underlyingOracle, underlyingFullUnit, dataDescription);
+  }
+
+  public async deployERC4626Oracle(
+    vault: Address,
+    dataDescription: string): Promise<ERC4626Oracle> {
+    return await new ERC4626Oracle__factory(this._deployerSigner).deploy(vault, dataDescription);
   }
 
 }
