@@ -13,6 +13,7 @@ import { forkingConfig } from "../../hardhat.config";
 import {
   DebtIssuanceModuleV3,
   CustomOracleNavIssuanceModule,
+  ERC4626Oracle,
   IERC20,
   IERC20__factory,
   SetToken,
@@ -28,6 +29,7 @@ const tokenAddresses = {
   aEthUSDC: "0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c",
   cUSDCv3: "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
   aUSDC: "0xBcca60bB61934080951369a648Fb03DF4F96263C",
+  gtUSDC: "0xdd0f28e19C1780eb6396170735D45153D261490d",
 };
 
 const whales = {
@@ -35,9 +37,10 @@ const whales = {
   justin_sun: "0x3DdfA8eC3052539b6C9549F12cEA2C295cfF5296", // aEthUSDC
   wan_liang: "0xCcb12611039c7CD321c0F23043c841F1d97287A5", // cUSDCv3
   mane_lee: "0xBF370B6E9d97D928497C2f2d72FD74f4D9ca5825", // aUSDC
+  morpho_seeding: "0x6ABfd6139c7C3CC270ee2Ce132E309F59cAaF6a2", // gtUSDC
 };
 
-describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-mainnet ]", () => {
+describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @forked-mainnet ]", () => {
   const TOKEN_TRANSFER_BUFFER = 10;
 
   let owner: Account;
@@ -52,12 +55,15 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
   let navIssuanceModule: CustomOracleNavIssuanceModule;
   let rebasingComponentAssetLimitModule: RebasingComponentAssetLimitModule;
 
+  let erc4626Oracle: ERC4626Oracle;
+
   let setToken: SetToken;
 
   let usdc_erc20: IERC20;
   let aEthUSDC_erc20: IERC20;
   let cUSDCv3_erc20: IERC20;
   let aUSDC_erc20: IERC20;
+  let gtUSDC_erc20: IERC20;
 
   const blockNumber = 20528609;
   before(async () => {
@@ -94,6 +100,7 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
     aEthUSDC_erc20 = IERC20__factory.connect(tokenAddresses.aEthUSDC, owner.wallet);
     cUSDCv3_erc20 = IERC20__factory.connect(tokenAddresses.cUSDCv3, owner.wallet);
     aUSDC_erc20 = IERC20__factory.connect(tokenAddresses.aUSDC, owner.wallet);
+    gtUSDC_erc20 = IERC20__factory.connect(tokenAddresses.gtUSDC, owner.wallet);
 
     // Index Protocol setup
     debtIssuanceModule = await deployer.modules.deployDebtIssuanceModuleV3(
@@ -124,10 +131,23 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
     await setV2Setup.priceOracle.addPair(tokenAddresses.cUSDCv3, tokenAddresses.usdc, unitOracle.address);
     await setV2Setup.priceOracle.addPair(tokenAddresses.aUSDC, tokenAddresses.usdc, unitOracle.address);
 
+    erc4626Oracle = await deployer.oracles.deployERC4626Oracle(
+      tokenAddresses.gtUSDC,
+      "gtUSDC - USDC Calculated Oracle",
+    );
+    await setV2Setup.priceOracle.addAdapter(erc4626Oracle.address);
+    await setV2Setup.priceOracle.addPair(tokenAddresses.gtUSDC, tokenAddresses.usdc, erc4626Oracle.address);
+
     // SetToken setup
     setToken = await setV2Setup.createSetToken(
-      [tokenAddresses.usdc, tokenAddresses.aEthUSDC, tokenAddresses.cUSDCv3, tokenAddresses.aUSDC],
-      [usdc(5), usdc(35), usdc(30), usdc(30)],
+      [
+        tokenAddresses.usdc,
+        tokenAddresses.aEthUSDC,
+        tokenAddresses.cUSDCv3,
+        tokenAddresses.aUSDC,
+        tokenAddresses.gtUSDC,
+      ],
+      [usdc(5), usdc(25), usdc(25), usdc(25), ether(25)],
       [
         debtIssuanceModule.address,
         rebasingComponentModule.address,
@@ -180,14 +200,17 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
     const justin_sun = await impersonateAccount(whales.justin_sun);
     const wan_liang = await impersonateAccount(whales.wan_liang);
     const mane_lee = await impersonateAccount(whales.mane_lee);
+    const morpho_seeding = await impersonateAccount(whales.morpho_seeding);
     await usdc_erc20.connect(justin_sun).transfer(owner.address, usdc(1000));
     await aEthUSDC_erc20.connect(justin_sun).transfer(owner.address, usdc(10000));
     await cUSDCv3_erc20.connect(wan_liang).transfer(owner.address, usdc(10000));
     await aUSDC_erc20.connect(mane_lee).transfer(owner.address, usdc(10000));
+    await gtUSDC_erc20.connect(morpho_seeding).transfer(owner.address, ether(10000));
     await usdc_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
     await aEthUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
     await cUSDCv3_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
     await aUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+    await gtUSDC_erc20.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
     await debtIssuanceModule.issue(setToken.address, ether(150), owner.address);
   });
 
@@ -227,6 +250,7 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
       const initialAEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const initialCUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const initialAUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
+      const initialGTUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
       const initialPositionMultiplier = await setToken.positionMultiplier();
 
       const expectedOutputBeforeRebase = await navIssuanceModule.connect(owner.wallet).getExpectedSetTokenIssueQuantity(
@@ -243,6 +267,7 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
       const aEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const cUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
+      const gtUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
       const positionMultiplier = await setToken.positionMultiplier();
 
       const setTokenBalanceAfter = await setToken.balanceOf(owner.address);
@@ -253,6 +278,7 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
       expect(aEthUsdcUnit).to.be.lte(initialAEthUsdcUnit);
       expect(cUsdcV3Unit).to.be.lte(initialCUsdcV3Unit);
       expect(aUsdcUnit).to.be.lte(initialAUsdcUnit);
+      expect(gtUsdcUnit).to.be.lte(initialGTUsdcUnit);
       expect(positionMultiplier).to.be.lte(initialPositionMultiplier);
       expect(actualOutput).to.be.lte(expectedOutputBeforeRebase);
     });
@@ -290,6 +316,7 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
       const initialAEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const initialCUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const initialAUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
+      const initialGTUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
       const initialPositionMultiplier = await setToken.positionMultiplier();
 
       const expectedOutputBeforeRebase = await navIssuanceModule.connect(owner.wallet).getExpectedReserveRedeemQuantity(
@@ -305,6 +332,7 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
       const aEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const cUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
+      const gtUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.gtUSDC);
       const positionMultiplier = await setToken.positionMultiplier();
       const usdcBalanceAfter = await usdc_erc20.balanceOf(owner.address);
       const actualOutput = usdcBalanceAfter.sub(usdcBalanceBefore);
@@ -313,6 +341,7 @@ describe("Rebasing USDC CustomOracleNavIssuanceModule integration [ @forked-main
       expect(aEthUsdcUnit).to.be.gte(initialAEthUsdcUnit);
       expect(cUsdcV3Unit).to.be.gte(initialCUsdcV3Unit);
       expect(aUsdcUnit).to.be.gte(initialAUsdcUnit);
+      expect(gtUsdcUnit).to.be.gte(initialGTUsdcUnit);
       expect(positionMultiplier).to.be.gte(initialPositionMultiplier);
       expect(actualOutput).to.be.gte(expectedOutputBeforeRebase);
     });
