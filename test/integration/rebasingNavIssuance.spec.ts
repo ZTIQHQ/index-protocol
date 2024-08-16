@@ -124,12 +124,14 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
     await setV2Setup.controller.addModule(rebasingComponentAssetLimitModule.address);
 
     // Oracle setup
-    const unitOracle = await deployer.mocks.deployOracleMock(ether(1));
     await setV2Setup.priceOracle.editMasterQuoteAsset(tokenAddresses.usdc);
-    await setV2Setup.priceOracle.addPair(tokenAddresses.usdc, tokenAddresses.usdc, unitOracle.address);
-    await setV2Setup.priceOracle.addPair(tokenAddresses.aEthUSDC, tokenAddresses.usdc, unitOracle.address);
-    await setV2Setup.priceOracle.addPair(tokenAddresses.cUSDCv3, tokenAddresses.usdc, unitOracle.address);
-    await setV2Setup.priceOracle.addPair(tokenAddresses.aUSDC, tokenAddresses.usdc, unitOracle.address);
+
+    const preciseUnitOracle = await deployer.oracles.deployPreciseUnitOracle("Rebasing USDC Oracle");
+    await setV2Setup.priceOracle.addAdapter(preciseUnitOracle.address);
+    await setV2Setup.priceOracle.addPair(tokenAddresses.usdc, tokenAddresses.usdc, preciseUnitOracle.address);
+    await setV2Setup.priceOracle.addPair(tokenAddresses.aEthUSDC, tokenAddresses.usdc, preciseUnitOracle.address);
+    await setV2Setup.priceOracle.addPair(tokenAddresses.cUSDCv3, tokenAddresses.usdc, preciseUnitOracle.address);
+    await setV2Setup.priceOracle.addPair(tokenAddresses.aUSDC, tokenAddresses.usdc, preciseUnitOracle.address);
 
     erc4626Oracle = await deployer.oracles.deployERC4626Oracle(
       tokenAddresses.gtUSDC,

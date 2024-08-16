@@ -94,6 +94,7 @@ export { PerpV2BasisTradingModule } from "../../typechain/PerpV2BasisTradingModu
 export { PerpV2LeverageModuleViewer } from "../../typechain/PerpV2LeverageModuleViewer";
 export { PositionV2 } from "../../typechain/PositionV2";
 export { PreciseUnitMathMock } from "../../typechain/PreciseUnitMathMock";
+export { PreciseUnitOracle } from "../../typechain/PreciseUnitOracle";
 export { PriceOracle } from "../../typechain/PriceOracle";
 export { ProtocolViewer } from "../../typechain/ProtocolViewer";
 export { RebasingComponentAssetLimitModule } from "../../typechain/RebasingComponentAssetLimitModule";
