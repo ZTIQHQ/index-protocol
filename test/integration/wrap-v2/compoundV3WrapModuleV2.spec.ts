@@ -3,7 +3,7 @@ import { BigNumber } from "ethers";
 
 import { Address } from "@utils/types";
 import { Account } from "@utils/test/types";
-import { ADDRESS_ZERO, ONE, ZERO, ZERO_BYTES } from "@utils/constants";
+import { ADDRESS_ZERO, MAX_UINT_256, ONE, ZERO, ZERO_BYTES } from "@utils/constants";
 import { SetToken, WrapModuleV2 } from "@utils/contracts";
 import DeployHelper from "@utils/deploys";
 import {
@@ -31,23 +31,29 @@ const expect = getWaffleExpect();
 const tokenAddresses = {
   usdc: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
   cUSDCv3: "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
+  weth: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  cWETHv3: "0xA17581A9E3356d9A858b789D68B4d866e593aE94",
 };
 
 const whales = {
   usdc: "0xf584F8728B874a6a5c7A8d4d387C9aae9172D621",
+  fantom: "0x431e81E5dfB5A24541b5Ff8762bDEF3f32F96354",
 };
 
-describe("CompoundV3WrapModule", () => {
+describe("CompoundV3WrapModule [ @forked-mainnet ]", () => {
   let owner: Account;
   let deployer: DeployHelper;
   let setup: SystemFixture;
 
   let wrapModule: WrapModuleV2;
 
-  let underlyingToken: IERC20;
-  let wrappedToken: IERC20;
+  let usdc_erc20: IERC20;
+  let cUSDCv3: IERC20;
+  let weth_erc20: IERC20;
+  let cWETHv3: IERC20;
 
-  const compoundV3WrapAdapterIntegrationName: string = "COMPOUND_V3_USDC_WRAPPER";
+  const usdcCompoundV3WrapAdapterIntegrationName: string = "COMPOUND_V3_USDC_WRAPPER";
+  const wethCompoundV3WrapAdapterIntegrationName: string = "COMPOUND_V3_WETH_WRAPPER";
 
   const blockNumber = 20420724;
   before(async () => {
@@ -82,16 +88,21 @@ describe("CompoundV3WrapModule", () => {
     await setup.initialize();
 
     // Token setup
-    underlyingToken = IERC20__factory.connect(tokenAddresses.usdc, owner.wallet);
-    wrappedToken = IERC20__factory.connect(tokenAddresses.cUSDCv3, owner.wallet);
+    usdc_erc20 = IERC20__factory.connect(tokenAddresses.usdc, owner.wallet);
+    cUSDCv3 = IERC20__factory.connect(tokenAddresses.cUSDCv3, owner.wallet);
+    weth_erc20 = IERC20__factory.connect(tokenAddresses.weth, owner.wallet);
+    cWETHv3 = IERC20__factory.connect(tokenAddresses.cWETHv3, owner.wallet);
 
     // WrapModule setup
     wrapModule = await deployer.modules.deployWrapModuleV2(setup.controller.address, setup.weth.address);
     await setup.controller.addModule(wrapModule.address);
 
     // CompoundV3WrapAdapter setup
-    const compoundV3WrapAdapter = await deployer.adapters.deployCompoundV3WrapV2Adapter(tokenAddresses.cUSDCv3);
-    await setup.integrationRegistry.addIntegration(wrapModule.address, compoundV3WrapAdapterIntegrationName, compoundV3WrapAdapter.address);
+    const usdcCompoundV3WrapAdapter = await deployer.adapters.deployCompoundV3WrapV2Adapter(tokenAddresses.cUSDCv3);
+    await setup.integrationRegistry.addIntegration(wrapModule.address, usdcCompoundV3WrapAdapterIntegrationName, usdcCompoundV3WrapAdapter.address);
+
+    const wethCompoundV3WrapAdapter = await deployer.adapters.deployCompoundV3WrapV2Adapter(tokenAddresses.cWETHv3);
+    await setup.integrationRegistry.addIntegration(wrapModule.address, wethCompoundV3WrapAdapterIntegrationName, wethCompoundV3WrapAdapter.address);
   });
 
   addSnapshotBeforeRestoreAfterEach();
@@ -102,8 +113,8 @@ describe("CompoundV3WrapModule", () => {
 
     beforeEach(async () => {
       setToken = await setup.createSetToken(
-        [tokenAddresses.usdc],
-        [usdc(100)],
+        [tokenAddresses.usdc, tokenAddresses.weth],
+        [usdc(100), ether(1)],
         [setup.issuanceModule.address, wrapModule.address]
       );
 
@@ -112,12 +123,17 @@ describe("CompoundV3WrapModule", () => {
       await wrapModule.initialize(setToken.address);
 
       // Issue some Sets
-      setTokensIssued = ether(1000);
-      const underlyingRequired = setTokensIssued;
+      setTokensIssued = ether(10);
 
       const usdcWhale = await impersonateAccount(whales.usdc);
-      await underlyingToken.connect(usdcWhale).approve(setup.issuanceModule.address, underlyingRequired);
-      await setup.issuanceModule.connect(usdcWhale).issue(setToken.address, setTokensIssued, owner.address);
+      await usdc_erc20.connect(usdcWhale).transfer(owner.address, usdc(10000));
+
+      const wethWhale = await impersonateAccount(whales.fantom);
+      await weth_erc20.connect(wethWhale).transfer(owner.address, ether(100));
+
+      await usdc_erc20.connect(owner.wallet).approve(setup.issuanceModule.address, MAX_UINT_256);
+      await weth_erc20.connect(owner.wallet).approve(setup.issuanceModule.address, MAX_UINT_256);
+      await setup.issuanceModule.connect(owner.wallet).issue(setToken.address, setTokensIssued, owner.address);
     });
 
     describe("#wrap", async () => {
@@ -134,7 +150,7 @@ describe("CompoundV3WrapModule", () => {
         subjectUnderlyingToken = tokenAddresses.usdc;
         subjectWrappedToken = tokenAddresses.cUSDCv3;
         subjectUnderlyingUnits = usdc(100);
-        subjectIntegrationName = compoundV3WrapAdapterIntegrationName;
+        subjectIntegrationName = usdcCompoundV3WrapAdapterIntegrationName;
         subjectCaller = owner;
         subjectWrapData = ZERO_BYTES;
       });
@@ -151,13 +167,13 @@ describe("CompoundV3WrapModule", () => {
       }
 
       it("should reduce the underlying quantity and mint the wrapped asset to the SetToken", async () => {
-        const previousUnderlyingBalance = await underlyingToken.balanceOf(setToken.address);
-        const previousWrappedBalance = await wrappedToken.balanceOf(setToken.address);
+        const previousUnderlyingBalance = await usdc_erc20.balanceOf(setToken.address);
+        const previousWrappedBalance = await cUSDCv3.balanceOf(setToken.address);
 
         await subject();
 
-        const underlyingBalance = await underlyingToken.balanceOf(setToken.address);
-        const wrappedBalance = await wrappedToken.balanceOf(setToken.address);
+        const underlyingBalance = await usdc_erc20.balanceOf(setToken.address);
+        const wrappedBalance = await cUSDCv3.balanceOf(setToken.address);
 
         const delta = preciseMul(setTokensIssued, subjectUnderlyingUnits);
 
@@ -166,6 +182,33 @@ describe("CompoundV3WrapModule", () => {
 
         const expectedWrappedBalance = previousWrappedBalance.add(delta).sub(ONE); // 1 wei rounding loss
         expect(wrappedBalance).to.eq(expectedWrappedBalance);
+      });
+
+      describe("when the underlying token is WETH", async () => {
+        beforeEach(async () => {
+          subjectUnderlyingToken = tokenAddresses.weth;
+          subjectWrappedToken = tokenAddresses.cWETHv3;
+          subjectUnderlyingUnits = ether(1);
+          subjectIntegrationName = wethCompoundV3WrapAdapterIntegrationName;
+        });
+
+        it("should reduce the underlying quantity and mint the wrapped asset to the SetToken", async () => {
+          const previousUnderlyingBalance = await weth_erc20.balanceOf(setToken.address);
+          const previousWrappedBalance = await cWETHv3.balanceOf(setToken.address);
+
+          await subject();
+
+          const underlyingBalance = await weth_erc20.balanceOf(setToken.address);
+          const wrappedBalance = await cWETHv3.balanceOf(setToken.address);
+
+          const delta = preciseMul(setTokensIssued, subjectUnderlyingUnits);
+
+          const expectedUnderlyingBalance = previousUnderlyingBalance.sub(delta);
+          expect(underlyingBalance).to.eq(expectedUnderlyingBalance);
+
+          const expectedWrappedBalance = previousWrappedBalance.add(delta).sub(ONE); // 1 wei rounding loss
+          expect(wrappedBalance).to.eq(expectedWrappedBalance);
+        });
       });
     });
 
@@ -185,7 +228,7 @@ describe("CompoundV3WrapModule", () => {
         subjectUnderlyingToken = tokenAddresses.usdc;
         subjectWrappedToken = tokenAddresses.cUSDCv3;
         subjectWrappedTokenUnits = usdc(50);
-        subjectIntegrationName = compoundV3WrapAdapterIntegrationName;
+        subjectIntegrationName = usdcCompoundV3WrapAdapterIntegrationName;
         subjectUnwrapData = ZERO_BYTES;
         subjectCaller = owner;
 
@@ -213,13 +256,13 @@ describe("CompoundV3WrapModule", () => {
       }
 
       it("should burn the wrapped asset to the SetToken and increase the underlying quantity", async () => {
-        const previousUnderlyingBalance = await underlyingToken.balanceOf(setToken.address);
-        const previousWrappedBalance = await wrappedToken.balanceOf(setToken.address);
+        const previousUnderlyingBalance = await usdc_erc20.balanceOf(setToken.address);
+        const previousWrappedBalance = await cUSDCv3.balanceOf(setToken.address);
 
         await subject();
 
-        const underlyingBalance = await underlyingToken.balanceOf(setToken.address);
-        const wrappedBalance = await wrappedToken.balanceOf(setToken.address);
+        const underlyingBalance = await usdc_erc20.balanceOf(setToken.address);
+        const wrappedBalance = await cUSDCv3.balanceOf(setToken.address);
 
         const delta = preciseMul(setTokensIssued, wrappedQuantity.sub(subjectWrappedTokenUnits));
 
@@ -233,9 +276,50 @@ describe("CompoundV3WrapModule", () => {
       it("should revoke the unwrapping spender allowance", async () => {
         await subject();
 
-        const allowance = await wrappedToken.allowance(setToken.address, wrappedToken.address);
+        const allowance = await cUSDCv3.allowance(setToken.address, cUSDCv3.address);
 
         expect(allowance).to.eq(ZERO);
+      });
+
+      describe("when the underlying token is WETH", async () => {
+        beforeEach(async () => {
+          subjectSetToken = setToken.address;
+          subjectUnderlyingToken = tokenAddresses.weth;
+          subjectWrappedToken = tokenAddresses.cWETHv3;
+          subjectWrappedTokenUnits = ether(0.5);
+          subjectIntegrationName = wethCompoundV3WrapAdapterIntegrationName;
+          subjectUnwrapData = ZERO_BYTES;
+          subjectCaller = owner;
+
+          wrappedQuantity = ether(1);
+
+          await wrapModule.wrap(
+            subjectSetToken,
+            subjectUnderlyingToken,
+            subjectWrappedToken,
+            wrappedQuantity,
+            subjectIntegrationName,
+            ZERO_BYTES
+          );
+        });
+
+        it("should reduce the underlying quantity and mint the wrapped asset to the SetToken", async () => {
+          const previousUnderlyingBalance = await weth_erc20.balanceOf(setToken.address);
+          const previousWrappedBalance = await cWETHv3.balanceOf(setToken.address);
+
+          await subject();
+
+          const underlyingBalance = await weth_erc20.balanceOf(setToken.address);
+          const wrappedBalance = await cWETHv3.balanceOf(setToken.address);
+
+          const delta = preciseMul(setTokensIssued, wrappedQuantity.sub(subjectWrappedTokenUnits));
+
+          const expectedUnderlyingBalance = previousUnderlyingBalance.add(delta);
+          expect(underlyingBalance).to.gte(expectedUnderlyingBalance);
+
+          const expectedWrappedBalance = previousWrappedBalance.sub(delta);
+          expect(wrappedBalance).to.gte(expectedWrappedBalance);
+        });
       });
     });
   });
