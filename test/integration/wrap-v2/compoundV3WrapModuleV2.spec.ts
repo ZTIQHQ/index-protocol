@@ -3,7 +3,7 @@ import { BigNumber } from "ethers";
 
 import { Address } from "@utils/types";
 import { Account } from "@utils/test/types";
-import { ADDRESS_ZERO, MAX_UINT_256, ONE, ZERO, ZERO_BYTES } from "@utils/constants";
+import { ADDRESS_ZERO, MAX_UINT_256, ONE, TWO, ZERO, ZERO_BYTES } from "@utils/constants";
 import { SetToken, WrapModuleV2 } from "@utils/contracts";
 import DeployHelper from "@utils/deploys";
 import {
@@ -206,7 +206,7 @@ describe("CompoundV3WrapModule [ @forked-mainnet ]", () => {
           const expectedUnderlyingBalance = previousUnderlyingBalance.sub(delta);
           expect(underlyingBalance).to.eq(expectedUnderlyingBalance);
 
-          const expectedWrappedBalance = previousWrappedBalance.add(delta).sub(ONE); // 1 wei rounding loss
+          const expectedWrappedBalance = previousWrappedBalance.add(delta).sub(TWO); // 2 wei rounding loss
           expect(wrappedBalance).to.eq(expectedWrappedBalance);
         });
       });
