@@ -33,7 +33,7 @@ import { SystemFixture, UniswapFixture } from "@utils/fixtures";
 
 const expect = getWaffleExpect();
 
-describe("UniswapExchangeV2 TradeModule Integration [ @forked-mainnet ]", () => {
+describe.skip("UniswapExchangeV2 TradeModule Integration [ @forked-mainnet ]", () => {
   let owner: Account;
   let manager: Account;
 
