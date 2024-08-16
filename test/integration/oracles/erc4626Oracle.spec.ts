@@ -16,7 +16,7 @@ import { SystemFixture } from "@utils/fixtures";
 
 const expect = getWaffleExpect();
 
-describe.only("ERC4626Oracle", () => {
+describe("ERC4626Oracle", () => {
   let owner: Account;
   let deployer: DeployHelper;
   let setup: SystemFixture;
