@@ -726,6 +726,16 @@ describe("MorphoLeverageModule integration", () => {
 
             it("positions should align with token balances", async () => {
               await subject();
+              // NOTE: When
+              // 1. The withdrawn amount of collateral tokens exceeds the maximum amount that can be sold on uni given current liquidity
+              // AND
+              // 2. The obtained loan token amount still is enough to repay the loan
+              // The set will be in a state where it has a positive collateral token balance that is not deposited into morpho and therefore also not reflected in positions
+              // Calling `enterCollateralPosition` will fix that by depositing said tokens and updating positions, but any user that would have redeemed set tokens in between would have made a loss (vice versa anyone depositing / minting would have made a profit
+              // This problem comes from `exactInput` on uniswap not really being that exact in above scenario and therefore should also exist on existing leverage modules
+              // TODO: Verify that this is not a problem
+              // TODO: Verify that this also exists on AaveLeverageModule
+              await morphoLeverageModule.enterCollateralPosition(setToken.address);
               await checkSetComponentsAgainstMorphoPosition();
             });
           });
