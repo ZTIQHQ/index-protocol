@@ -367,7 +367,9 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     function _sync(ISetToken _setToken) internal {
         MarketParams memory setMarketParams = marketParams[_setToken];
         require(setMarketParams.collateralToken != address(0), "Collateral not set");
-        morpho.accrueInterest(setMarketParams);
+        // Since we now use the MorphoBalancesLib to calculate unaccrued interest we should not need to call this method
+        // TODO: Review if this assumption holds
+        // morpho.accrueInterest(setMarketParams);
 
         uint256 setTotalSupply = _setToken.totalSupply();
         (int256 newCollateralPositionUnit, int256 newBorrowPositionUnit) = _getCollateralAndBorrowPositions(_setToken, setMarketParams, setTotalSupply);
