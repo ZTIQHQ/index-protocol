@@ -551,6 +551,14 @@ describe("WrapModule", () => {
         expect(receivedUnderlyingPosition.unit).to.eq(ether(0.5));
       });
 
+      it("should revoke the unwrapping spender allowance", async () => {
+        await subject();
+
+        const allowance = await wrapAdapterMock.allowance(setToken.address, wrapAdapterMock.address);
+
+        expect(allowance).to.eq(ZERO);
+      });
+
       it("emits the correct ComponentUnwrapped event", async () => {
         await expect(subject()).to.emit(wrapModule, "ComponentUnwrapped").withArgs(
           setToken.address,

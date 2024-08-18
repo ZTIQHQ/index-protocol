@@ -3,6 +3,7 @@ import { BigNumber, Signer } from "ethers";
 import {
   AaveGovernanceV2Adapter,
   AaveV2WrapV2Adapter,
+  AaveV3WrapV2Adapter,
   BalancerV1IndexExchangeAdapter,
   BalancerV2ExchangeAdapter,
   BoundedStepwiseExponentialPriceAdapter,
@@ -17,6 +18,7 @@ import {
   KyberV3IndexExchangeAdapter,
   OneInchExchangeAdapter,
   CompoundWrapV2Adapter,
+  CompoundV3WrapV2Adapter,
   YearnWrapV2Adapter,
   UniswapPairPriceAdapter,
   UniswapV2AmmAdapter,
@@ -42,6 +44,7 @@ import {
 
 import { AaveGovernanceV2Adapter__factory } from "../../typechain/factories/AaveGovernanceV2Adapter__factory";
 import { AaveV2WrapV2Adapter__factory } from "../../typechain/factories/AaveV2WrapV2Adapter__factory";
+import { AaveV3WrapV2Adapter__factory } from "../../typechain/factories/AaveV3WrapV2Adapter__factory";
 import { BalancerV1IndexExchangeAdapter__factory } from "../../typechain/factories/BalancerV1IndexExchangeAdapter__factory";
 import { BalancerV2ExchangeAdapter__factory } from "../../typechain/factories/BalancerV2ExchangeAdapter__factory";
 import { BoundedStepwiseExponentialPriceAdapter__factory } from "../../typechain/factories/BoundedStepwiseExponentialPriceAdapter__factory";
@@ -57,6 +60,7 @@ import { KyberV3IndexExchangeAdapter__factory } from "../../typechain/factories/
 import { OneInchExchangeAdapter__factory } from "../../typechain/factories/OneInchExchangeAdapter__factory";
 import { ZeroExApiAdapter__factory } from "../../typechain/factories/ZeroExApiAdapter__factory";
 import { CompoundWrapV2Adapter__factory } from "../../typechain/factories/CompoundWrapV2Adapter__factory";
+import { CompoundV3WrapV2Adapter__factory } from "../../typechain/factories/CompoundV3WrapV2Adapter__factory";
 import { YearnWrapV2Adapter__factory } from "../../typechain/factories/YearnWrapV2Adapter__factory";
 import { UniswapPairPriceAdapter__factory } from "../../typechain/factories/UniswapPairPriceAdapter__factory";
 import { UniswapV2ExchangeAdapter__factory } from "../../typechain/factories/UniswapV2ExchangeAdapter__factory";
@@ -287,12 +291,20 @@ export default class DeployAdapters {
     ).deploy();
   }
 
+  public async deployCompoundV3WrapV2Adapter(comet: Address): Promise<CompoundV3WrapV2Adapter> {
+    return await new CompoundV3WrapV2Adapter__factory(this._deployerSigner).deploy(comet);
+  }
+
   public async deployYearnWrapV2Adapter(): Promise<YearnWrapV2Adapter> {
     return await new YearnWrapV2Adapter__factory(this._deployerSigner).deploy();
   }
 
   public async deployAaveV2WrapV2Adapter(lendingPool: Address): Promise<AaveV2WrapV2Adapter> {
     return await new AaveV2WrapV2Adapter__factory(this._deployerSigner).deploy(lendingPool);
+  }
+
+  public async deployAaveV3WrapV2Adapter(pool: Address): Promise<AaveV3WrapV2Adapter> {
+    return await new AaveV3WrapV2Adapter__factory(this._deployerSigner).deploy(pool);
   }
 
   public async deployERC4626WrapV2Adapter(): Promise<ERC4626WrapV2Adapter> {

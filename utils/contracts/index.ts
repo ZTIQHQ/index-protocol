@@ -5,6 +5,7 @@ export { AaveLeverageModule } from "../../typechain/AaveLeverageModule";
 export { AaveV2 } from "../../typechain/AaveV2";
 export { AaveV2Mock } from "../../typechain/AaveV2Mock";
 export { AaveV2WrapV2Adapter } from "../../typechain/AaveV2WrapV2Adapter";
+export { AaveV3WrapV2Adapter } from "../../typechain/AaveV3WrapV2Adapter";
 export { AddressArrayUtilsMock } from "../../typechain/AddressArrayUtilsMock";
 export { AirdropModule } from "../../typechain/AirdropModule";
 export { AmmAdapterMock } from "../../typechain/AmmAdapterMock";
@@ -28,6 +29,7 @@ export { CompoundLikeGovernanceAdapter } from "../../typechain/CompoundLikeGover
 export { CompoundLeverageModule } from "../../typechain/CompoundLeverageModule";
 export { CompoundMock } from "../../typechain/CompoundMock";
 export { CompoundWrapV2Adapter } from "../../typechain/CompoundWrapV2Adapter";
+export { CompoundV3WrapV2Adapter } from "../../typechain/CompoundV3WrapV2Adapter";
 export { CompClaimAdapter } from "../../typechain/CompClaimAdapter";
 export { ComptrollerMock } from "../../typechain/ComptrollerMock";
 export { ContractCallerMock } from "../../typechain/ContractCallerMock";
