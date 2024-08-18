@@ -17,7 +17,6 @@ import {
   NotionalTradeModule,
   PerpV2LeverageModuleV2,
   PerpV2BasisTradingModule,
-  RebasingComponentAssetLimitModule,
   RebasingComponentModule,
   SingleIndexModule,
   SlippageIssuanceModule,
@@ -49,7 +48,6 @@ import { IssuanceModule__factory } from "../../typechain/factories/IssuanceModul
 import { NotionalTradeModule__factory } from "../../typechain/factories/NotionalTradeModule__factory";
 import { PerpV2LeverageModuleV2__factory } from "../../typechain/factories/PerpV2LeverageModuleV2__factory";
 import { PerpV2BasisTradingModule__factory } from "../../typechain/factories/PerpV2BasisTradingModule__factory";
-import { RebasingComponentAssetLimitModule__factory } from "../../typechain/factories/RebasingComponentAssetLimitModule__factory";
 import { RebasingComponentModule__factory } from "../../typechain/factories/RebasingComponentModule__factory";
 import { SingleIndexModule__factory } from "../../typechain/factories/SingleIndexModule__factory";
 import { StakingModule__factory } from "../../typechain/factories/StakingModule__factory";
@@ -123,10 +121,6 @@ export default class DeployModules {
 
   public async deployStakingModule(controller: Address): Promise<StakingModule> {
     return await new StakingModule__factory(this._deployerSigner).deploy(controller);
-  }
-
-  public async deployRebasingComponentAssetLimitModule(controller: Address): Promise<RebasingComponentAssetLimitModule> {
-    return await new RebasingComponentAssetLimitModule__factory(this._deployerSigner).deploy(controller);
   }
 
   public async deployRebasingComponentModule(controller: Address): Promise<RebasingComponentModule> {

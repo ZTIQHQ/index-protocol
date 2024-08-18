@@ -97,7 +97,6 @@ export { PreciseUnitMathMock } from "../../typechain/PreciseUnitMathMock";
 export { PreciseUnitOracle } from "../../typechain/PreciseUnitOracle";
 export { PriceOracle } from "../../typechain/PriceOracle";
 export { ProtocolViewer } from "../../typechain/ProtocolViewer";
-export { RebasingComponentAssetLimitModule } from "../../typechain/RebasingComponentAssetLimitModule";
 export { RebasingComponentModule } from "../../typechain/RebasingComponentModule";
 export { ResourceIdentifierMock } from "../../typechain/ResourceIdentifierMock";
 export { RgtMigrationWrapAdapter } from "../../typechain/RgtMigrationWrapAdapter";

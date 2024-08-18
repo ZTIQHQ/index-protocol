@@ -2,6 +2,8 @@ import "module-alias/register";
 import { Address } from "@utils/types";
 import { Account } from "@utils/test/types";
 import {
+  CustomOracleNavIssuanceModule,
+  CustomSetValuerMock,
   DebtIssuanceMock,
   RebasingComponentModule,
   SetToken,
@@ -16,7 +18,7 @@ import {
   getRandomAddress,
 } from "@utils/test/index";
 import { SystemFixture } from "@utils/fixtures";
-import { ether } from "@utils/index";
+import { bitcoin, ether, usdc } from "@utils/index";
 import { ADDRESS_ZERO, ZERO } from "@utils/constants";
 import { BigNumber } from "ethers";
 
@@ -25,16 +27,24 @@ const expect = getWaffleExpect();
 describe("RebasingComponentModule", () => {
   let owner: Account;
   let mockModule: Account;
+  let feeRecipient: Account;
+  let recipient: Account;
   let deployer: DeployHelper;
   let setup: SystemFixture;
 
   let rebasingComponentModule: RebasingComponentModule;
+
   let debtIssuanceMock: DebtIssuanceMock;
+  let navIssuanceModule: CustomOracleNavIssuanceModule;
+  let setToken: SetToken;
+  let setValuer: CustomSetValuerMock;
 
   cacheBeforeEach(async () => {
     [
       owner,
       mockModule,
+      feeRecipient,
+      recipient,
     ] = await getAccounts();
 
     deployer = new DeployHelper(owner.wallet);
@@ -45,8 +55,44 @@ describe("RebasingComponentModule", () => {
     debtIssuanceMock = await deployer.mocks.deployDebtIssuanceMock();
     await setup.controller.addModule(debtIssuanceMock.address);
 
+    navIssuanceModule = await deployer.modules.deployCustomOracleNavIssuanceModule(
+      setup.controller.address,
+      setup.weth.address
+    );
+    await setup.controller.addModule(navIssuanceModule.address);
+
     rebasingComponentModule = await deployer.modules.deployRebasingComponentModule(setup.controller.address);
     await setup.controller.addModule(rebasingComponentModule.address);
+
+    setToken = await setup.createSetToken(
+      [setup.weth.address],
+      [ether(1)],
+      [navIssuanceModule.address, setup.issuanceModule.address, rebasingComponentModule.address]
+    );
+
+    setValuer = await deployer.mocks.deployCustomSetValuerMock();
+
+    const navIssuanceSettings = {
+      managerIssuanceHook: rebasingComponentModule.address,
+      managerRedemptionHook: rebasingComponentModule.address,
+      setValuer: setValuer.address,
+      reserveAssets: [setup.usdc.address, setup.weth.address],
+      feeRecipient: feeRecipient.address,
+      managerFees: [ether(0.001), ether(0.002)],
+      maxManagerFee: ether(0.02),
+      premiumPercentage: ether(0.01),
+      maxPremiumPercentage: ether(0.1),
+      minSetTokenSupply: ether(100),
+    } as CustomOracleNAVIssuanceSettings;
+
+    await navIssuanceModule.initialize(
+      setToken.address,
+      navIssuanceSettings
+    );
+
+    await setup.weth.approve(setup.issuanceModule.address, ether(100));
+    await setup.issuanceModule.initialize(setToken.address, ADDRESS_ZERO);
+    await setup.issuanceModule.issue(setToken.address, ether(1), owner.address);
   });
 
   describe("#constructor", async () => {
@@ -1062,6 +1108,149 @@ describe("RebasingComponentModule", () => {
       it("should revert", async () => {
         await expect(subject()).to.be.revertedWith("Must be a valid and initialized SetToken");
       });
+    });
+  });
+
+  describe("#invokePreIssueHook", async () => {
+    let subjectSetToken: Address;
+    let subjectReserveAsset: Address;
+    let subjectReserveQuantity: BigNumber;
+    let subjectMinSetTokenReceived: BigNumber;
+    let subjectTo: Account;
+
+    beforeEach(async () => {
+      await rebasingComponentModule.initialize(
+        setToken.address,
+        [setup.weth.address, setup.wbtc.address],
+      );
+
+      await setup.issuanceModule.issue(setToken.address, ether(99), owner.address);
+
+      subjectSetToken = setToken.address;
+      subjectReserveAsset = setup.usdc.address;
+      subjectReserveQuantity = usdc(100000);
+      subjectMinSetTokenReceived = ZERO;
+      subjectTo = recipient;
+
+      await setup.usdc.approve(navIssuanceModule.address, subjectReserveQuantity);
+    });
+
+    async function subject(): Promise<any> {
+      return navIssuanceModule.issue(
+        subjectSetToken,
+        subjectReserveAsset,
+        subjectReserveQuantity,
+        subjectMinSetTokenReceived,
+        subjectTo.address
+      );
+    }
+
+    it("should sync rebasing components", async () => {
+      const initialPositions = await setToken.getPositions();
+      const initialFirstPosition = (await setToken.getPositions())[0];
+
+      // Send units to SetToken to simulate rebasing
+      await setup.wbtc.transfer(setToken.address, bitcoin(100));
+      await subject();
+
+      const currentPositions = await setToken.getPositions();
+      const newFirstPosition = (await setToken.getPositions())[0];
+      const newSecondPosition = (await setToken.getPositions())[1];
+      const newThirdPosition = (await setToken.getPositions())[2];
+
+      expect(initialPositions.length).to.eq(1);
+      expect(currentPositions.length).to.eq(3);
+
+      expect(newFirstPosition.component).to.eq(setup.weth.address);
+      expect(newFirstPosition.positionState).to.eq(0); // Default
+      expect(newFirstPosition.unit).to.lt(initialFirstPosition.unit);
+      expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
+
+      expect(newSecondPosition.component).to.eq(setup.wbtc.address);
+      expect(newSecondPosition.positionState).to.eq(0); // Default
+      expect(newSecondPosition.unit).to.gt(ZERO);
+      expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
+
+      expect(newThirdPosition.component).to.eq(setup.usdc.address);
+      expect(newThirdPosition.positionState).to.eq(0); // Default
+      expect(newThirdPosition.unit).to.gt(ZERO);
+      expect(newThirdPosition.module).to.eq(ADDRESS_ZERO);
+    });
+  });
+
+  describe("#invokePreRedeemHook", async () => {
+    let subjectSetToken: Address;
+    let subjectReserveAsset: Address;
+    let subjectSetTokenQuantity: BigNumber;
+    let subjectMinReserveQuantityReceived: BigNumber;
+    let subjectTo: Account;
+
+    beforeEach(async () => {
+      await rebasingComponentModule.initialize(
+        setToken.address,
+        [setup.weth.address, setup.wbtc.address],
+      );
+
+      await setup.issuanceModule.issue(setToken.address, ether(99), owner.address);
+
+      await setup.usdc.approve(navIssuanceModule.address, usdc(100000));
+      await navIssuanceModule.issue(
+        setToken.address,
+        setup.usdc.address,
+        usdc(100000),
+        ZERO,
+        owner.address
+      );
+
+      subjectSetToken = setToken.address;
+      subjectReserveAsset = setup.usdc.address;
+      subjectSetTokenQuantity = ether(400);
+      subjectMinReserveQuantityReceived = ZERO;
+      subjectTo = recipient;
+    });
+
+    async function subject(): Promise<any> {
+      return navIssuanceModule.redeem(
+        subjectSetToken,
+        subjectReserveAsset,
+        subjectSetTokenQuantity,
+        subjectMinReserveQuantityReceived,
+        subjectTo.address
+      );
+    }
+
+    it("should sync rebasing components", async () => {
+      const initialPositions = await setToken.getPositions();
+      const initialFirstPosition = (await setToken.getPositions())[0];
+      const initialSecondPosition = (await setToken.getPositions())[1];
+
+      // Send units to SetToken to simulate rebasing
+      await setup.wbtc.transfer(setToken.address, bitcoin(100));
+
+      await subject();
+
+      const currentPositions = await setToken.getPositions();
+      const newFirstPosition = (await setToken.getPositions())[0];
+      const newSecondPosition = (await setToken.getPositions())[1];
+      const newThirdPosition = (await setToken.getPositions())[2];
+
+      expect(initialPositions.length).to.eq(2);
+      expect(currentPositions.length).to.eq(3);
+
+      expect(newFirstPosition.component).to.eq(setup.weth.address);
+      expect(newFirstPosition.positionState).to.eq(0); // Default
+      expect(newFirstPosition.unit).to.gt(initialFirstPosition.unit);
+      expect(newFirstPosition.module).to.eq(ADDRESS_ZERO);
+
+      expect(newSecondPosition.component).to.eq(setup.usdc.address);
+      expect(newSecondPosition.positionState).to.eq(0); // Default
+      expect(newSecondPosition.unit).to.gt(initialSecondPosition.unit);
+      expect(newSecondPosition.module).to.eq(ADDRESS_ZERO);
+
+      expect(newThirdPosition.component).to.eq(setup.wbtc.address);
+      expect(newThirdPosition.positionState).to.eq(0); // Default
+      expect(newThirdPosition.unit).to.gt(ZERO);
+      expect(newThirdPosition.module).to.eq(ADDRESS_ZERO);
     });
   });
 });

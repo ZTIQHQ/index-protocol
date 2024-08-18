@@ -26,15 +26,16 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { IController } from "../../../interfaces/IController.sol";
 import { IDebtIssuanceModule } from "../../../interfaces/IDebtIssuanceModule.sol";
 import { IModuleIssuanceHook } from "../../../interfaces/IModuleIssuanceHook.sol";
+import { INAVIssuanceHook } from "../../../interfaces/INAVIssuanceHook.sol";
 import { ISetToken } from "../../../interfaces/ISetToken.sol";
 import { ModuleBase } from "../../lib/ModuleBase.sol";
 
 /**
  * @title RebasingComponentModule
  * @author Index Coop
- * @notice Module for syncing rebasing components before issuance and redemption via DebtIssuanceModule.
+ * @notice Module for syncing rebasing components before issuance and redemption via DebtIssuanceModule and NAVIssuanceModule.
  */
-contract RebasingComponentModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssuanceHook {
+contract RebasingComponentModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIssuanceHook, INAVIssuanceHook {
 
     /* ============ Events ============ */
 
@@ -186,7 +187,7 @@ contract RebasingComponentModule is ModuleBase, ReentrancyGuard, Ownable, IModul
     }
 
     /**
-     * @dev MODULE ONLY: Hook called prior to issuance to sync positions on SetToken. Only callable by valid module.
+     * @dev MODULE ONLY: Hook called prior to debt issuance module issuance to sync rebasing components position on SetToken.
      * @param _setToken    Instance of the SetToken
      */
     function moduleIssueHook(ISetToken _setToken, uint256 /* _setTokenQuantity */) external override onlyModule(_setToken) {
@@ -194,7 +195,7 @@ contract RebasingComponentModule is ModuleBase, ReentrancyGuard, Ownable, IModul
     }
 
     /**
-     * @dev MODULE ONLY: Hook called prior to redemption to sync positions on SetToken. Only callable by valid module.
+     * @dev MODULE ONLY: Hook called prior to debt issuance module redemption to sync rebasing components position on SetToken.
      * @param _setToken    Instance of the SetToken
      */
     function moduleRedeemHook(ISetToken _setToken, uint256 /* _setTokenQuantity */) external override onlyModule(_setToken) {
@@ -213,6 +214,41 @@ contract RebasingComponentModule is ModuleBase, ReentrancyGuard, Ownable, IModul
      */
     function componentRedeemHook(ISetToken _setToken, uint256 /* _setTokenQuantity */, IERC20 /* _component */, bool _isEquity) external override onlyModule(_setToken) {
         require(_isEquity, "Must be equity");
+    }
+
+    /**
+     * @dev MODULE ONLY: Hook called prior to NAV issuance to sync rebasing components position on SetToken.
+     * @param _setToken               Instance of the SetToken
+     */
+    function invokePreIssueHook(
+        ISetToken _setToken,
+        address /* _reserveAsset */,
+        uint256 /* _reserveAssetQuantity */,
+        address /* _sender */,
+        address /* _to */
+    )
+        external
+        override
+        onlyModule(_setToken)
+    {
+        sync(_setToken);
+    }
+
+    /**
+     * @dev MODULE ONLY: Hook called prior to NAV redemption.
+     * @param _setToken         Instance of the SetToken
+     */
+    function invokePreRedeemHook(
+        ISetToken _setToken,
+        uint256 /* _redeemQuantity */,
+        address /* _sender */,
+        address /* _to */
+    )
+        external
+        override
+        onlyModule(_setToken)
+    {
+        sync(_setToken);
     }
 
     /* ============ External Getter Functions ============ */

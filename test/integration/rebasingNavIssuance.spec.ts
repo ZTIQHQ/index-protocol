@@ -17,7 +17,6 @@ import {
   IERC20,
   IERC20__factory,
   SetToken,
-  RebasingComponentAssetLimitModule,
   RebasingComponentModule,
 } from "@typechain/index";
 import { SystemFixture } from "@utils/fixtures";
@@ -53,7 +52,6 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
   let rebasingComponentModule: RebasingComponentModule;
 
   let navIssuanceModule: CustomOracleNavIssuanceModule;
-  let rebasingComponentAssetLimitModule: RebasingComponentAssetLimitModule;
 
   let erc4626Oracle: ERC4626Oracle;
 
@@ -118,11 +116,6 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
     );
     await setV2Setup.controller.addModule(navIssuanceModule.address);
 
-    rebasingComponentAssetLimitModule = await deployer.modules.deployRebasingComponentAssetLimitModule(
-      setV2Setup.controller.address
-    );
-    await setV2Setup.controller.addModule(rebasingComponentAssetLimitModule.address);
-
     // Oracle setup
     await setV2Setup.priceOracle.editMasterQuoteAsset(tokenAddresses.usdc);
 
@@ -153,8 +146,7 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       [
         debtIssuanceModule.address,
         rebasingComponentModule.address,
-        navIssuanceModule.address,
-        rebasingComponentAssetLimitModule.address
+        navIssuanceModule.address
       ]
     );
 
@@ -174,8 +166,8 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
     );
 
     const navIssuanceSettings = {
-      managerIssuanceHook: rebasingComponentAssetLimitModule.address,
-      managerRedemptionHook: rebasingComponentAssetLimitModule.address,
+      managerIssuanceHook: rebasingComponentModule.address,
+      managerRedemptionHook: rebasingComponentModule.address,
       setValuer: ADDRESS_ZERO,
       reserveAssets: [tokenAddresses.usdc],
       feeRecipient: feeRecipient.address,
@@ -189,13 +181,6 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
     await navIssuanceModule.initialize(
       setToken.address,
       navIssuanceSettings
-    );
-
-    await rebasingComponentAssetLimitModule.initialize(
-      setToken.address,
-      [tokenAddresses.aEthUSDC, tokenAddresses.cUSDCv3, tokenAddresses.aUSDC],
-      [tokenAddresses.usdc, setToken.address],
-      [usdc(1000000), ether(1000000)],
     );
 
     // Issue initial units via the debt issuance module V3
@@ -226,7 +211,7 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
     });
 
     async function subject(): Promise<any> {
-      return rebasingComponentAssetLimitModule.sync(subjectSetToken);
+      return rebasingComponentModule.sync(subjectSetToken);
     }
 
     it("should sync rebasing components", async () => {
