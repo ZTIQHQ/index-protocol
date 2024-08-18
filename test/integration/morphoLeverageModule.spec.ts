@@ -9,7 +9,7 @@ import { impersonateAccount } from "@utils/test/testingUtils";
 import DeployHelper from "@utils/deploys";
 import { cacheBeforeEach, getAccounts, getWaffleExpect } from "@utils/test/index";
 import { ADDRESS_ZERO, ZERO } from "@utils/constants";
-import { ether,   preciseDivCeil } from "@utils/index";
+import { ether, preciseDivCeil } from "@utils/index";
 import { network } from "hardhat";
 import { forkingConfig } from "../../hardhat.config";
 
@@ -444,8 +444,12 @@ describe("MorphoLeverageModule integration", () => {
       if (borrowAssets.gt(0)) {
         const borrowNotional = await convertPositionToNotional(currentPositions[1].unit, setToken);
         // TODO: Review that this error margin is correct / expected
-        expect(borrowNotional.mul(-1)).to.gte(borrowAssets.sub(preciseDivCeil(initialSetTokenSupply, ether(1))));
-        expect(borrowNotional.mul(-1)).to.lte(borrowAssets.add(preciseDivCeil(initialSetTokenSupply, ether(1))));
+        expect(borrowNotional.mul(-1)).to.gte(
+          borrowAssets.sub(preciseDivCeil(initialSetTokenSupply, ether(1))),
+        );
+        expect(borrowNotional.mul(-1)).to.lte(
+          borrowAssets.add(preciseDivCeil(initialSetTokenSupply, ether(1))),
+        );
       }
 
       expect(supplyShares).to.eq(0);
@@ -676,7 +680,7 @@ describe("MorphoLeverageModule integration", () => {
 
             beforeEach(async () => {
               subjectSetToken = setToken.address;
-              subjectRedeemQuantity = utils.parseEther("0.3");
+              subjectRedeemQuantity = utils.parseEther("0.5");
               subjectTradeAdapterName = "UNISWAPV3";
               subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
                 [wsteth.address, usdc.address], // Swap path
@@ -704,14 +708,19 @@ describe("MorphoLeverageModule integration", () => {
               expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
 
               // If there was more usdc received than needed to repay the debt, it shoudl now be in the second position as a default position
-              if(currentPositions.length > 1) {
+              if (currentPositions.length > 1) {
                 const newSecondPosition = (await setToken.getPositions())[1];
                 expect(newSecondPosition.component).to.eq(usdc.address);
                 expect(newSecondPosition.positionState).to.eq(0); // Default
-                const loanTokenNotional = await convertPositionToNotional(newSecondPosition.unit, setToken);
+                const loanTokenNotional = await convertPositionToNotional(
+                  newSecondPosition.unit,
+                  setToken,
+                );
                 const loanTokenBalance = await usdc.balanceOf(setToken.address);
                 expect(loanTokenNotional).to.lte(loanTokenBalance);
-                expect(loanTokenNotional).to.gte(loanTokenBalance.sub(initialSetTokenSupply.div(ether(1))));
+                expect(loanTokenNotional).to.gte(
+                  loanTokenBalance.sub(initialSetTokenSupply.div(ether(1))),
+                );
               }
             });
 
