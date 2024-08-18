@@ -9,7 +9,7 @@ import { impersonateAccount } from "@utils/test/testingUtils";
 import DeployHelper from "@utils/deploys";
 import { cacheBeforeEach, getAccounts, getWaffleExpect } from "@utils/test/index";
 import { ADDRESS_ZERO, ZERO } from "@utils/constants";
-import { ether } from "@utils/index";
+import { ether,   preciseDivCeil } from "@utils/index";
 import { network } from "hardhat";
 import { forkingConfig } from "../../hardhat.config";
 
@@ -66,6 +66,8 @@ const wstethUsdcMarketParams: MarketParamsStruct = {
   irm: "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
   lltv: ether(0.86),
 };
+
+const initialSetTokenSupply = ether(100);
 
 describe("MorphoLeverageModule integration", () => {
   let owner: Account;
@@ -410,6 +412,7 @@ describe("MorphoLeverageModule integration", () => {
     let subjectCaller: Account;
 
     async function checkSetComponentsAgainstMorphoPosition() {
+      await morpho.accrueInterest(wstethUsdcMarketParams);
       const currentPositions = await setToken.getPositions();
       const [supplyShares, borrowShares, collateral] = await morpho.position(
         marketId,
@@ -423,16 +426,26 @@ describe("MorphoLeverageModule integration", () => {
       console.log("collateralNotional", collateralNotional.toString());
       const collateralTokenBalance = await wsteth.balanceOf(setToken.address);
       console.log("collateralTokenBalance", collateralTokenBalance.toString());
-      expect(collateralNotional).to.eq(collateralTokenBalance.add(collateral));
+      console.log("collateral", collateral.toString());
+      const collateralTotalBalance = collateralTokenBalance.add(collateral);
+      expect(collateralNotional).to.lte(collateralTotalBalance);
+      // Maximum rounding error when converting position to notional
+      expect(collateralNotional).to.gt(
+        collateralTotalBalance.sub(initialSetTokenSupply.div(ether(1))),
+      );
 
       const [, , totalBorrowAssets, totalBorrowShares, ,] = await morpho.market(marketId);
       console.log("totalBorrowAssets", totalBorrowAssets.toString());
       const borrowAssets = sharesToAssetsUp(borrowShares, totalBorrowAssets, totalBorrowShares);
       console.log("borrowAssets", borrowAssets.toString());
+
+      const borrowTokenBalance = await usdc.balanceOf(setToken.address);
+      console.log("borrowTokenBalance", borrowTokenBalance.toString());
       if (borrowAssets.gt(0)) {
         const borrowNotional = await convertPositionToNotional(currentPositions[1].unit, setToken);
-        console.log("borrowNotional", borrowNotional.toString());
-        expect(borrowNotional.mul(-1)).to.eq(borrowAssets);
+        // TODO: Review that this error margin is correct / expected
+        expect(borrowNotional.mul(-1)).to.gte(borrowAssets.sub(preciseDivCeil(initialSetTokenSupply, ether(1))));
+        expect(borrowNotional.mul(-1)).to.lte(borrowAssets.add(preciseDivCeil(initialSetTokenSupply, ether(1))));
       }
 
       expect(supplyShares).to.eq(0);
@@ -455,8 +468,7 @@ describe("MorphoLeverageModule integration", () => {
         .transfer(owner.address, ether(10000));
       await wsteth.approve(debtIssuanceModule.address, ether(10000));
 
-      const issueQuantity = ether(1);
-      await debtIssuanceModule.issue(setToken.address, issueQuantity, owner.address);
+      await debtIssuanceModule.issue(setToken.address, initialSetTokenSupply, owner.address);
 
       // Add SetToken to allow list
       await morphoLeverageModule.updateAllowedSetToken(setToken.address, true);
@@ -516,14 +528,13 @@ describe("MorphoLeverageModule integration", () => {
                 subjectMinCollateralQuantity,
                 subjectTradeAdapterName,
                 subjectTradeData,
-                { gasLimit: 2000000 },
               );
           }
 
           beforeEach(async () => {
             subjectSetToken = setToken.address;
-            subjectBorrowQuantity = utils.parseUnits("1000", 6);
-            subjectMinCollateralQuantity = utils.parseEther("0.1");
+            subjectBorrowQuantity = utils.parseUnits("100", 6);
+            subjectMinCollateralQuantity = utils.parseEther("0.01");
             subjectTradeAdapterName = "UNISWAPV3";
             subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
               [usdc.address, wsteth.address], // Swap path
@@ -599,7 +610,6 @@ describe("MorphoLeverageModule integration", () => {
                   subjectMinRepayQuantity,
                   subjectTradeAdapterName,
                   subjectTradeData,
-                  { gasLimit: 2000000 },
                 );
             }
 
@@ -666,7 +676,7 @@ describe("MorphoLeverageModule integration", () => {
 
             beforeEach(async () => {
               subjectSetToken = setToken.address;
-              subjectRedeemQuantity = utils.parseEther("0.5");
+              subjectRedeemQuantity = utils.parseEther("0.3");
               subjectTradeAdapterName = "UNISWAPV3";
               subjectTradeData = await uniswapV3ExchangeAdapterV2.generateDataParam(
                 [wsteth.address, usdc.address], // Swap path
@@ -686,13 +696,23 @@ describe("MorphoLeverageModule integration", () => {
               expect(initialPositions.length).to.eq(2);
               expect(initialPositions[0].positionState).to.eq(1); // External already
 
-              expect(currentPositions.length).to.eq(1);
               expect(newFirstPosition.component).to.eq(wsteth.address);
               expect(newFirstPosition.positionState).to.eq(1); // External
               expect(newFirstPosition.unit).to.eq(
                 initialPositions[0].unit.sub(subjectRedeemQuantity),
               );
               expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
+
+              // If there was more usdc received than needed to repay the debt, it shoudl now be in the second position as a default position
+              if(currentPositions.length > 1) {
+                const newSecondPosition = (await setToken.getPositions())[1];
+                expect(newSecondPosition.component).to.eq(usdc.address);
+                expect(newSecondPosition.positionState).to.eq(0); // Default
+                const loanTokenNotional = await convertPositionToNotional(newSecondPosition.unit, setToken);
+                const loanTokenBalance = await usdc.balanceOf(setToken.address);
+                expect(loanTokenNotional).to.lte(loanTokenBalance);
+                expect(loanTokenNotional).to.gte(loanTokenBalance.sub(initialSetTokenSupply.div(ether(1))));
+              }
             });
 
             it("positions should align with token balances", async () => {

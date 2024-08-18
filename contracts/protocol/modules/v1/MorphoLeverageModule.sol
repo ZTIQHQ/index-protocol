@@ -280,6 +280,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         _repayBorrow(deleverInfo.setToken, setMarketParams, repayQuantity, 0);
 
+        _updateRepayDefaultPosition(deleverInfo, IERC20(setMarketParams.loanToken));
         _sync(deleverInfo.setToken);
 
         emit LeverageDecreased(
@@ -339,6 +340,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
 
         _repayBorrow(deleverInfo.setToken, setMarketParams, borrowBalance, borrowShares);
 
+        _updateRepayDefaultPosition(deleverInfo, IERC20(setMarketParams.loanToken));
         _sync(deleverInfo.setToken);
 
         emit LeverageDecreased(
@@ -917,5 +919,20 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         require(marketParams[_actionInfo.setToken].loanToken != address(0), "Borrow not enabled");
         require(_actionInfo.collateralAsset != _actionInfo.borrowAsset, "Collateral and borrow asset must be different");
         require(_actionInfo.notionalSendQuantity > 0, "Quantity is 0");
+    }
+
+    /**
+     * @dev Updates the default (i.e. non-morpho) token balance of the repay / collateral token after delevering if necessary
+     */
+    function _updateRepayDefaultPosition(ActionInfo memory _actionInfo, IERC20 _repayAsset) internal {
+        // if amount of tokens traded for exceeds debt, update default position first to save gas on editing borrow position
+        uint256 repayAssetBalance = _repayAsset.balanceOf(address(_actionInfo.setToken));
+        if (repayAssetBalance != _actionInfo.preTradeReceiveTokenBalance) {
+            _actionInfo.setToken.calculateAndEditDefaultPosition(
+                address(_repayAsset),
+                _actionInfo.setTotalSupply,
+                _actionInfo.preTradeReceiveTokenBalance
+            );
+        }
     }
 }
