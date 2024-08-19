@@ -128,6 +128,7 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
 
     erc4626Oracle = await deployer.oracles.deployERC4626Oracle(
       tokenAddresses.gtUSDC,
+      usdc(1),
       "gtUSDC - USDC Calculated Oracle",
     );
     await setV2Setup.priceOracle.addAdapter(erc4626Oracle.address);
@@ -142,7 +143,13 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
         tokenAddresses.aUSDC,
         tokenAddresses.gtUSDC,
       ],
-      [usdc(20), usdc(20), usdc(20), usdc(20), ether(20)],
+      [
+        usdc(20),
+        usdc(20),
+        usdc(20),
+        usdc(20),
+        ether(20),
+      ],
       [
         debtIssuanceModule.address,
         rebasingComponentModule.address,
@@ -310,6 +317,9 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       expect(positionMultiplier).to.be.lt(initialPositionMultiplier);
       expect(actualOutput).to.be.lt(expectedOutputBeforeRebase);
       expect(usdcSpent).to.be.eq(subjectReserveQuantity);
+
+      expect(actualOutput).to.be.gt(ether(0.95));
+      expect(actualOutput).to.be.lt(ether(1));
     });
   });
 
@@ -379,6 +389,30 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       expect(positionMultiplier).to.be.gt(initialPositionMultiplier);
       expect(actualOutput).to.be.gt(expectedOutputBeforeRebase);
       expect(setTokenBalanceChange).to.be.eq(subjectSetTokenQuantity);
+
+      expect(actualOutput).to.be.gt(usdc(100));
+      expect(actualOutput).to.be.lt(usdc(101));
+    });
+  });
+
+  describe("#calculateSetTokenValuation", async () => {
+    let subjectSetToken: Address;
+    let subjectQuoteAsset: Address;
+
+    before(async () => {
+      subjectSetToken = setToken.address;
+      subjectQuoteAsset = tokenAddresses.usdc;
+    });
+
+    async function subject(): Promise<any> {
+      return setV2Setup.setValuer.calculateSetTokenValuation(subjectSetToken, subjectQuoteAsset);
+    }
+
+    it("should return the correct valuation corresponding to the last sync", async () => {
+      const valuation = await subject();
+
+      expect(valuation).to.be.gt(ether(100));
+      expect(valuation).to.be.lt(ether(101));
     });
   });
 });

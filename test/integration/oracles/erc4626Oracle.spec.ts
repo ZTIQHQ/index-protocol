@@ -5,7 +5,7 @@ import { Address } from "@utils/types";
 import { Account } from "@utils/test/types";
 import { ERC4626ConverterMock, ERC4626Oracle } from "@utils/contracts";
 import DeployHelper from "@utils/deploys";
-import { usdc } from "@utils/index";
+import { ether, usdc } from "@utils/index";
 import {
   getAccounts,
   getWaffleExpect,
@@ -25,7 +25,7 @@ describe("ERC4626Oracle", () => {
 
   let erc4626UsdcOracle: ERC4626Oracle;
 
-  let pricePerShare: BigNumber;
+  let price: number;
 
   before(async () => {
     [
@@ -37,12 +37,13 @@ describe("ERC4626Oracle", () => {
     setup = getSystemFixture(owner.address);
     await setup.initialize();
 
-    pricePerShare = usdc(1.02);
+    price = 1.02;
 
-    usdcVault = await deployer.mocks.deployERC4626ConverterMock(18, pricePerShare);
+    usdcVault = await deployer.mocks.deployERC4626ConverterMock(18, usdc(price));
 
     erc4626UsdcOracle = await deployer.oracles.deployERC4626Oracle(
       usdcVault.address,
+      usdc(1),
       "usdcVault-usdc Oracle"
     );
   });
@@ -61,6 +62,7 @@ describe("ERC4626Oracle", () => {
     async function subject(): Promise<ERC4626Oracle> {
       return deployer.oracles.deployERC4626Oracle(
         subjectVaultAddress,
+        usdc(1),
         subjectDataDescription
       );
     }
@@ -69,6 +71,15 @@ describe("ERC4626Oracle", () => {
       const erc4626UsdcOracle = await subject();
       const vaultAddress = await erc4626UsdcOracle.vault();
       expect(vaultAddress).to.equal(subjectVaultAddress);
+    });
+
+
+    it("sets the correct full units", async () => {
+      const erc4626UsdcOracle = await subject();
+      const underlyingFullUnit = await erc4626UsdcOracle.underlyingFullUnit();
+      const vaultFullUnit = await erc4626UsdcOracle.vaultFullUnit();
+      expect(underlyingFullUnit).to.eq(usdc(1));
+      expect(vaultFullUnit).to.eq(ether(1));
     });
 
     it("sets the correct data description", async () => {
@@ -86,8 +97,7 @@ describe("ERC4626Oracle", () => {
 
     it("returns the correct vault value", async () => {
       const result = await subject();
-      const expectedResult = pricePerShare;
-      expect(result).to.eq(expectedResult);
+      expect(result).to.eq(ether(price));
     });
   });
 });

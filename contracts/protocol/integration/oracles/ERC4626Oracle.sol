@@ -28,21 +28,32 @@ import { IERC4626 } from "../../../interfaces/external/IERC4626.sol";
  */
 contract ERC4626Oracle {
     IERC4626 public immutable vault;
+    uint256 public immutable underlyingFullUnit;
+    uint256 public immutable vaultFullUnit;
     string public dataDescription;
 
     /*
      * @param  _vault               The address of the ERC-4626 vault
+     * @param  _underlyingFullUnit  The full unit of the underlying asset
      * @param  _dataDescription     Human readable description of oracle
      */
-    constructor(IERC4626 _vault, string memory _dataDescription) {
+    constructor(
+        IERC4626 _vault,
+        uint256 _underlyingFullUnit,
+        string memory _dataDescription
+    ) {
         vault = _vault;
         dataDescription = _dataDescription;
+
+        underlyingFullUnit = _underlyingFullUnit;
+        vaultFullUnit = 10 ** _vault.decimals();
     }
 
     /**
      * Returns the assets per one share of the vault
      */
     function read() external view returns (uint256) {
-        return vault.convertToAssets(10 ** vault.decimals());
+        uint256 assetsPerShare = vault.convertToAssets(vaultFullUnit);
+        return assetsPerShare * vaultFullUnit / underlyingFullUnit;
     }
 }

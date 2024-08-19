@@ -36,8 +36,9 @@ export default class DeployOracles {
 
   public async deployERC4626Oracle(
     vault: Address,
+    underlyingFullUnit: BigNumber,
     dataDescription: string): Promise<ERC4626Oracle> {
-    return await new ERC4626Oracle__factory(this._deployerSigner).deploy(vault, dataDescription);
+    return await new ERC4626Oracle__factory(this._deployerSigner).deploy(vault, underlyingFullUnit, dataDescription);
   }
 
   public async deployPreciseUnitOracle(
