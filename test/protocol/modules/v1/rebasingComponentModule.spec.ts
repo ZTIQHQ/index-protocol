@@ -821,18 +821,8 @@ describe("RebasingComponentModule", () => {
       );
     }
 
-    it("should not revert when isEquity is true", async () => {
+    it("should not revert", async () => {
       await expect(subject()).to.not.be.reverted;
-    });
-
-    describe("when isEquity is false", async () => {
-      beforeEach(async () => {
-        subjectIsEquity = false;
-      });
-
-      it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("Must be equity");
-      });
     });
 
     describe("when caller is not module", async () => {
@@ -915,18 +905,8 @@ describe("RebasingComponentModule", () => {
       );
     }
 
-    it("should not revert when isEquity is true", async () => {
+    it("should not revert", async () => {
       await expect(subject()).to.not.be.reverted;
-    });
-
-    describe("when isEquity is false", async () => {
-      beforeEach(async () => {
-        subjectIsEquity = false;
-      });
-
-      it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("Must be equity");
-      });
     });
 
     describe("when caller is not module", async () => {

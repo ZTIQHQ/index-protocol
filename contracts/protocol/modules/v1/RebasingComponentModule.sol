@@ -205,16 +205,12 @@ contract RebasingComponentModule is ModuleBase, ReentrancyGuard, Ownable, IModul
     /**
      * @dev MODULE ONLY: Hook called prior to looping through each component on issuance. Only callable by valid module.
      */
-    function componentIssueHook(ISetToken _setToken, uint256 /* _setTokenQuantity */, IERC20 /* _component */, bool _isEquity) external override onlyModule(_setToken) {
-        require(_isEquity, "Must be equity");
-    }
+    function componentIssueHook(ISetToken _setToken, uint256 /* _setTokenQuantity */, IERC20 /* _component */, bool /* _isEquity */) external override onlyModule(_setToken) { }
 
     /**
      * @dev MODULE ONLY: Hook called prior to looping through each component on redemption. Only callable by valid module.
      */
-    function componentRedeemHook(ISetToken _setToken, uint256 /* _setTokenQuantity */, IERC20 /* _component */, bool _isEquity) external override onlyModule(_setToken) {
-        require(_isEquity, "Must be equity");
-    }
+    function componentRedeemHook(ISetToken _setToken, uint256 /* _setTokenQuantity */, IERC20 /* _component */, bool /* _isEquity */) external override onlyModule(_setToken) { }
 
     /**
      * @dev MODULE ONLY: Hook called prior to NAV issuance to sync rebasing components position on SetToken.
