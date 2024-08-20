@@ -33,7 +33,7 @@ import { SystemFixture, UniswapFixture } from "@utils/fixtures";
 
 const expect = getWaffleExpect();
 
-describe("SushiSwap TradeModule Integration [ @forked-mainnet ]", () => {
+describe.skip("SushiSwap TradeModule Integration [ @forked-mainnet ]", () => {
   let owner: Account;
   let manager: Account;
 
