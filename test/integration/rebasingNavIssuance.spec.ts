@@ -415,4 +415,56 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       expect(valuation).to.be.lt(ether(101));
     });
   });
+
+  describe("#calculateComponentValuation", async () => {
+    let subjectSetToken: Address;
+    let subjectQuoteAsset: Address;
+
+    before(async () => {
+      subjectSetToken = setToken.address;
+      subjectQuoteAsset = tokenAddresses.usdc;
+    });
+
+    async function subject(component: Address): Promise<any> {
+      return setV2Setup.setValuer.calculateComponentValuation(
+        subjectSetToken,
+        component,
+        subjectQuoteAsset
+      );
+    }
+
+    it("should return the correct valuation before and after a sync", async () => {
+      const initialUsdcValuation = await subject(tokenAddresses.usdc);
+      const initialAEthUsdcValuation = await subject(tokenAddresses.aEthUSDC);
+      const initialCUsdcV3Valuation = await subject(tokenAddresses.cUSDCv3);
+      const initialAUsdcValuation = await subject(tokenAddresses.aUSDC);
+      const initialGTUsdcValuation = await subject(tokenAddresses.gtUSDC);
+
+      expect(initialUsdcValuation).to.be.eq(ether(20));
+      expect(initialAEthUsdcValuation).to.be.eq(ether(20));
+      expect(initialCUsdcV3Valuation).to.be.eq(ether(20));
+      expect(initialAUsdcValuation).to.be.eq(ether(20));
+      expect(initialGTUsdcValuation).to.be.gt(ether(20));
+      expect(initialGTUsdcValuation).to.be.lt(ether(21));
+
+      await increaseTimeAsync(usdc(10));
+      await rebasingComponentModule.sync(subjectSetToken);
+
+      const usdcValuation = await subject(tokenAddresses.usdc);
+      const aEthUsdcValuation = await subject(tokenAddresses.aEthUSDC);
+      const cUsdcV3Valuation = await subject(tokenAddresses.cUSDCv3);
+      const aUsdcValuation = await subject(tokenAddresses.aUSDC);
+      const gtUsdcValuation = await subject(tokenAddresses.gtUSDC);
+
+      expect(usdcValuation).to.be.eq(ether(20));
+      expect(aEthUsdcValuation).to.be.gt(ether(20));
+      expect(aEthUsdcValuation).to.be.lt(ether(21));
+      expect(cUsdcV3Valuation).to.be.gt(ether(20));
+      expect(cUsdcV3Valuation).to.be.lt(ether(21));
+      expect(aUsdcValuation).to.be.gt(ether(20));
+      expect(aUsdcValuation).to.be.lt(ether(21));
+      expect(gtUsdcValuation).to.be.gt(ether(20));
+      expect(gtUsdcValuation).to.be.lt(ether(21));
+    });
+  });
 });
