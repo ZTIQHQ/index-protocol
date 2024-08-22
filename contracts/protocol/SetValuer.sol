@@ -39,6 +39,9 @@ import { ResourceIdentifier } from "./lib/ResourceIdentifier.sol";
  * that are external to the system.
  *
  * Note: Prices are returned in preciseUnits (i.e. 18 decimals of precision)
+ * 
+ * CHANGELOG:
+ * - 2024-08: Add calculateComponentValuation function
  */
 contract SetValuer {
     using PreciseUnitMath for int256;
@@ -101,6 +104,46 @@ contract SetValuer {
             // Calculate valuation of the component. Debt positions are effectively subtracted
             valuation = normalizedUnits.preciseMul(componentPrice.toInt256()).add(valuation);
         }
+
+        if (masterQuoteAsset != _quoteAsset) {
+            uint256 quoteToMaster = priceOracle.getPrice(_quoteAsset, masterQuoteAsset);
+            valuation = valuation.preciseDiv(quoteToMaster.toInt256());
+        }
+
+        return valuation.toUint256();
+    }
+
+    /**
+     * Gets the valuation of a component in a SetToken using data from the price oracle. Reverts
+     * if no price exists for the component in the SetToken. Note: this works for external
+     * positions and negative (debt) positions.
+     * 
+     * Note: There is a risk that the valuation is off if airdrops aren't retrieved or
+     * debt builds up via interest and its not reflected in the position
+     *
+     * @param _setToken        SetToken instance to get valuation
+     * @param _component       Address of component to get valuation
+     * @param _quoteAsset      Address of token to quote valuation in
+     *
+     * @return                 SetToken's component valuation in terms of quote asset in precise units 1e18
+     */
+    function calculateComponentValuation(ISetToken _setToken, address _component, address _quoteAsset) external view returns (uint256) {
+        require(_setToken.isComponent(_component), "Component not in SetToken");
+
+        IPriceOracle priceOracle = controller.getPriceOracle();
+        address masterQuoteAsset = priceOracle.masterQuoteAsset();
+        int256 valuation;
+
+        uint256 componentPrice = priceOracle.getPrice(_component, masterQuoteAsset);
+
+        int256 aggregateUnits = _setToken.getTotalComponentRealUnits(_component);
+
+        // Normalize each position unit to preciseUnits 1e18 and cast to signed int
+        uint256 unitDecimals = ERC20(_component).decimals();
+        uint256 baseUnits = 10 ** unitDecimals;
+        int256 normalizedUnits = aggregateUnits.preciseDiv(baseUnits.toInt256());
+
+        valuation = normalizedUnits.preciseMul(componentPrice.toInt256());
 
         if (masterQuoteAsset != _quoteAsset) {
             uint256 quoteToMaster = priceOracle.getPrice(_quoteAsset, masterQuoteAsset);

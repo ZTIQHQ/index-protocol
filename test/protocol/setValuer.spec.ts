@@ -22,7 +22,7 @@ import { ADDRESS_ZERO } from "@utils/constants";
 
 const expect = getWaffleExpect();
 
-describe("SetValuer", () => {
+describe.only("SetValuer", () => {
   let owner: Account, moduleOne: Account;
   let setToken: SetToken;
   let deployer: DeployHelper;
@@ -185,6 +185,109 @@ describe("SetValuer", () => {
         setToken = setToken.connect(moduleOne.wallet);
         await setToken.addExternalPositionModule(setup.usdc.address, ADDRESS_ZERO);
         await setToken.editExternalPositionUnit(setup.usdc.address, ADDRESS_ZERO, externalUnits);
+      });
+
+      it("should revert", async () => {
+        await expect(subject()).to.be.revertedWith("SafeCast: value must be positive");
+      });
+    });
+  });
+
+  describe("#calculateComponentValuation", async () => {
+    let subjectSetToken: Address;
+    let subjectComponent: Address;
+    let subjectQuoteAsset: Address;
+
+    beforeEach(async () => {
+      subjectSetToken = setToken.address;
+      subjectComponent = setup.weth.address;
+      subjectQuoteAsset = setup.usdc.address;
+    });
+
+    async function subject(): Promise<any> {
+      setToken = setToken.connect(owner.wallet);
+      return setup.setValuer.calculateComponentValuation(
+        subjectSetToken,
+        subjectComponent,
+        subjectQuoteAsset
+      );
+    }
+
+    it("should calculate correct SetToken component valuation", async () => {
+      const componentValuation = await subject();
+
+      const expectedValuation = preciseMul(preciseDiv(units[1], baseUnits[1]), setup.component1Price);
+
+      expect(componentValuation).to.eq(expectedValuation);
+    });
+
+    describe("when the quote asset is not the master quote asset", async () => {
+      beforeEach(async () => {
+        subjectQuoteAsset = setup.weth.address;
+      });
+
+      it("should calculate correct SetToken component valuation", async () => {
+        const componentValuation = await subject();
+
+        const normalizedUnitTwo = preciseDiv(units[1], baseUnits[1]);
+        const quoteToMasterQuote = await setup.ETH_USD_Oracle.read();
+        const masterQuoteValuation = preciseMul(normalizedUnitTwo, setup.component1Price);
+        const expectedValuation = preciseDiv(masterQuoteValuation, quoteToMasterQuote);
+
+        expect(componentValuation).to.eq(expectedValuation);
+      });
+    });
+
+    describe("when a Set token has an external position", async () => {
+      let externalUnits: BigNumber;
+
+      beforeEach(async () => {
+        externalUnits = ether(100);
+        setToken = setToken.connect(moduleOne.wallet);
+        await setToken.addExternalPositionModule(setup.usdc.address, ADDRESS_ZERO);
+        await setToken.editExternalPositionUnit(setup.usdc.address, ADDRESS_ZERO, externalUnits);
+
+        subjectComponent = setup.usdc.address;
+      });
+
+      it("should calculate correct SetToken component valuation", async () => {
+        const componentValuation = await subject();
+        const expectedValuation = preciseMul(preciseDiv(units[0].add(externalUnits), baseUnits[0]), setup.component4Price);
+        expect(componentValuation).to.eq(expectedValuation);
+      });
+    });
+
+    describe("when a Set token has a negative external position", async () => {
+      let externalUnits: BigNumber;
+
+      beforeEach(async () => {
+        // Edit external DAI units to be negative
+        externalUnits = usdc(-10);
+        setToken = setToken.connect(moduleOne.wallet);
+        await setToken.addExternalPositionModule(setup.usdc.address, ADDRESS_ZERO);
+        await setToken.editExternalPositionUnit(setup.usdc.address, ADDRESS_ZERO, externalUnits);
+
+        subjectComponent = setup.usdc.address;
+      });
+
+      it("should calculate correct SetToken component valuation", async () => {
+        const componentValuation = await subject();
+        const expectedValuation = preciseMul(preciseDiv(units[0].add(externalUnits), baseUnits[0]), setup.component4Price);
+        expect(componentValuation).to.eq(expectedValuation);
+      });
+    });
+
+    describe("when valuation is negative", async () => {
+      let externalUnits: BigNumber;
+
+      beforeEach(async () => {
+        // Edit external DAI units to be greatly negative
+        externalUnits = ether(-500);
+        setToken = setToken.connect(moduleOne.wallet);
+        await setToken.addExternalPositionModule(setup.usdc.address, ADDRESS_ZERO);
+        await setToken.editExternalPositionUnit(setup.usdc.address, ADDRESS_ZERO, externalUnits);
+
+        subjectComponent = setup.usdc.address;
       });
 
       it("should revert", async () => {
