@@ -624,6 +624,22 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         return setMarketParams.id();
     }
 
+    /**
+     * @dev Reads outstanding borrow token debt and collateral token balance from Morpho
+     */
+    function getCollateralAndBorrowBalances(
+        ISetToken _setToken
+    )
+        external
+        view 
+        returns(uint256 collateralBalance, uint256 borrowBalance, uint256 borrowSharesU256)
+    {
+        MarketParams memory setMarketParams = marketParams[_setToken];
+        require(setMarketParams.collateralToken != address(0), "Collateral not set");
+        return _getCollateralAndBorrowBalances(_setToken, setMarketParams);
+    }
+
+
     /* ============ Internal Functions ============ */
 
     /**
