@@ -618,6 +618,12 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     }
 
 
+    function getMarketId(ISetToken _setToken) external view returns (bytes32) {
+        MarketParams memory setMarketParams = marketParams[_setToken];
+        require(setMarketParams.collateralToken != address(0), "Collateral not set");
+        return setMarketParams.id();
+    }
+
     /* ============ Internal Functions ============ */
 
     /**
