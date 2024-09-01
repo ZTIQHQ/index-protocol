@@ -8,7 +8,7 @@ import { Address, Bytes } from "@utils/types";
 import { impersonateAccount } from "@utils/test/testingUtils";
 import DeployHelper from "@utils/deploys";
 import { cacheBeforeEach, getAccounts, getWaffleExpect } from "@utils/test/index";
-import { ADDRESS_ZERO, ZERO } from "@utils/constants";
+import { ADDRESS_ZERO, ZERO, MAX_UINT_256 } from "@utils/constants";
 import { ether, preciseDivCeil } from "@utils/index";
 import { network } from "hardhat";
 import { forkingConfig } from "../../hardhat.config";
@@ -730,9 +730,13 @@ describe("MorphoLeverageModule integration", () => {
               // 1. The withdrawn amount of collateral tokens exceeds the maximum amount that can be sold on uni given current liquidity
               // AND
               // 2. The obtained loan token amount still is enough to repay the loan
-              // The set will be in a state where it has a positive collateral token balance that is not deposited into morpho and therefore also not reflected in positions
-              // Calling `enterCollateralPosition` will fix that by depositing said tokens and updating positions, but any user that would have redeemed set tokens in between would have made a loss (vice versa anyone depositing / minting would have made a profit
-              // This problem comes from `exactInput` on uniswap not really being that exact in above scenario and therefore should also exist on existing leverage modules
+              // The set will be in a state where it has a positive collateral token balance
+              // that is not deposited into morpho and therefore also not reflected in positions
+              // Calling `enterCollateralPosition` will fix that by depositing said tokens and updating positions,
+              // but any user that would have redeemed set tokens in between would have made a loss
+              // vice versa anyone depositing / minting would have made a profit
+              // This problem comes from `exactInput` on uniswap not really being that exact in above scenario
+              // and therefore should also exist on existing leverage modules
               // TODO: Verify that this is not a problem
               // TODO: Verify that this also exists on AaveLeverageModule
               await morphoLeverageModule.enterCollateralPosition(setToken.address);
@@ -931,6 +935,90 @@ describe("MorphoLeverageModule integration", () => {
 
               it("should revert", async () => {
                 await expect(subject()).to.be.revertedWith("Module must be enabled on controller");
+              });
+            });
+          });
+          describe("DebtIssuanceModuleV2 integration", async () => {
+            describe("#issue", async () => {
+              let subjectSetQuantity: BigNumber;
+              async function subject(): Promise<any> {
+                return debtIssuanceModule
+                  .connect(subjectCaller.wallet)
+                  .issue(subjectSetToken, subjectSetQuantity, subjectCaller.address);
+              }
+
+              beforeEach(async () => {
+                wsteth.connect(owner.wallet).approve(debtIssuanceModule.address, ether(10000));
+                subjectSetToken = setToken.address;
+                subjectSetQuantity = ether(10);
+              });
+
+              it("should not revert", async () => {
+                await subject();
+              });
+
+              it("should maintain positions", async () => {
+                const positions = await setToken.getPositions();
+                await subject();
+                const newPositions = await setToken.getPositions();
+
+                // Small difference, assumed to be due to interest accrued on debt position
+                const debtInterestTolerance = 3;
+                for (let i = 0; i < positions.length; i++) {
+                  if (positions[i].component === usdc.address) {
+                    expect(newPositions[i].unit).to.lte(positions[i].unit);
+                    // NOTE: This position is expected to be negative (debt)
+                    expect(newPositions[i].unit).to.gte(
+                      positions[i].unit.sub(debtInterestTolerance),
+                    );
+                  } else {
+                    expect(newPositions[i].unit).to.eq(positions[i].unit);
+                  }
+                }
+              });
+            });
+            describe("#redeem", async () => {
+              let subjectSetQuantity: BigNumber;
+              async function subject(): Promise<any> {
+                return debtIssuanceModule
+                  .connect(subjectCaller.wallet)
+                  .redeem(subjectSetToken, subjectSetQuantity, subjectCaller.address);
+              }
+
+              beforeEach(async () => {
+                wsteth.connect(owner.wallet).approve(debtIssuanceModule.address, ether(10000));
+                subjectSetToken = setToken.address;
+                subjectSetQuantity = ether(10);
+                await debtIssuanceModule.issue(subjectSetToken, subjectSetQuantity, owner.address);
+                await usdc
+                  .connect(await impersonateAccount(whales.usdc))
+                  .transfer(owner.wallet.address, utils.parseUnits("10000", 6));
+                await usdc.connect(owner.wallet).approve(debtIssuanceModule.address, MAX_UINT_256);
+                // await setToken.approve(debtIssuanceModule.address, subjectSetQuantity);
+              });
+
+              it("should not revert", async () => {
+                await subject();
+              });
+
+              it("should maintain positions", async () => {
+                const positions = await setToken.getPositions();
+                await subject();
+                const newPositions = await setToken.getPositions();
+
+                // Small difference, assumed to be due to interest accrued on debt position
+                const debtInterestTolerance = 6;
+                for (let i = 0; i < positions.length; i++) {
+                  if (positions[i].component === usdc.address) {
+                    expect(newPositions[i].unit).to.lte(positions[i].unit);
+                    // NOTE: This position is expected to be negative (debt)
+                    expect(newPositions[i].unit).to.gte(
+                      positions[i].unit.sub(debtInterestTolerance),
+                    );
+                  } else {
+                    expect(newPositions[i].unit).to.eq(positions[i].unit);
+                  }
+                }
               });
             });
           });
