@@ -655,6 +655,9 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         view
         returns(int256 collateralPosition, int256 borrowPosition)
     {
+        if (_setTotalSupply == 0) {
+            return (0, 0);
+        }
         (uint256 collateralBalance, uint256 borrowBalance, ) = _getCollateralAndBorrowBalances(_setToken, _marketParams);
         collateralPosition = collateralBalance.preciseDiv(_setTotalSupply).toInt256();
         borrowPosition = borrowBalance.preciseDivCeil(_setTotalSupply).toInt256().mul(-1);
