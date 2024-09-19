@@ -22,7 +22,7 @@ import { ADDRESS_ZERO } from "@utils/constants";
 
 const expect = getWaffleExpect();
 
-describe.only("SetValuer", () => {
+describe("SetValuer", () => {
   let owner: Account, moduleOne: Account;
   let setToken: SetToken;
   let deployer: DeployHelper;
