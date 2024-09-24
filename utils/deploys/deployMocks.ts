@@ -515,10 +515,12 @@ export default class DeployMocks {
   }
 
   public async deployERC4626ConverterMock(
+    asset: Address,
     decimals: BigNumberish,
     pricePerShare: BigNumberish,
   ): Promise<ERC4626ConverterMock> {
     return await new ERC4626ConverterMock__factory(this._deployerSigner).deploy(
+      asset,
       decimals,
       pricePerShare,
     );

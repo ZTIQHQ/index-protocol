@@ -16,14 +16,16 @@ import { SystemFixture } from "@utils/fixtures";
 
 const expect = getWaffleExpect();
 
-describe.only("ERC4626Oracle", () => {
+describe("ERC4626Oracle", () => {
   let owner: Account;
   let deployer: DeployHelper;
   let setup: SystemFixture;
 
   let usdcVault: ERC4626ConverterMock;
+  let daiVault: ERC4626ConverterMock;
 
   let erc4626UsdcOracle: ERC4626Oracle;
+  let erc4626DaiOracle: ERC4626Oracle;
 
   let price: BigNumber;
 
@@ -40,10 +42,15 @@ describe.only("ERC4626Oracle", () => {
     price = ether(1.02);
 
     usdcVault = await deployer.mocks.deployERC4626ConverterMock(setup.usdc.address, 18, price);
+    daiVault = await deployer.mocks.deployERC4626ConverterMock(setup.dai.address, 18, price);
 
     erc4626UsdcOracle = await deployer.oracles.deployERC4626Oracle(
       usdcVault.address,
       "usdcVault-usdc Oracle"
+    );
+    erc4626DaiOracle = await deployer.oracles.deployERC4626Oracle(
+      daiVault.address,
+      "daiVault-dai Oracle"
     );
   });
 
@@ -89,13 +96,30 @@ describe.only("ERC4626Oracle", () => {
 
 
   describe("#read", async () => {
+    let subjectOracle: ERC4626Oracle;
+
+    before(async () => {
+      subjectOracle = erc4626DaiOracle;
+    });
+
     async function subject(): Promise<BigNumber> {
-      return erc4626UsdcOracle.read();
+      return subjectOracle.read();
     }
 
-    it("returns the correct vault value", async () => {
+    it("returns the correct value", async () => {
       const result = await subject();
       expect(result).to.eq(price);
+    });
+
+    describe("when the vault has higher decimals than the underlying", async () => {
+      beforeEach(async () => {
+        subjectOracle = erc4626UsdcOracle;
+      });
+
+      it("returns the correct value", async () => {
+        const result = await subject();
+        expect(result).to.eq(price);
+      });
     });
   });
 });
