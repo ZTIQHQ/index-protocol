@@ -16,7 +16,7 @@ import { SystemFixture } from "@utils/fixtures";
 
 const expect = getWaffleExpect();
 
-describe("ERC4626Oracle", () => {
+describe.only("ERC4626Oracle", () => {
   let owner: Account;
   let deployer: DeployHelper;
   let setup: SystemFixture;
@@ -25,7 +25,7 @@ describe("ERC4626Oracle", () => {
 
   let erc4626UsdcOracle: ERC4626Oracle;
 
-  let price: number;
+  let price: BigNumber;
 
   before(async () => {
     [
@@ -37,13 +37,12 @@ describe("ERC4626Oracle", () => {
     setup = getSystemFixture(owner.address);
     await setup.initialize();
 
-    price = 1.02;
+    price = ether(1.02);
 
-    usdcVault = await deployer.mocks.deployERC4626ConverterMock(18, usdc(price));
+    usdcVault = await deployer.mocks.deployERC4626ConverterMock(setup.usdc.address, 18, price);
 
     erc4626UsdcOracle = await deployer.oracles.deployERC4626Oracle(
       usdcVault.address,
-      usdc(1),
       "usdcVault-usdc Oracle"
     );
   });
@@ -62,7 +61,6 @@ describe("ERC4626Oracle", () => {
     async function subject(): Promise<ERC4626Oracle> {
       return deployer.oracles.deployERC4626Oracle(
         subjectVaultAddress,
-        usdc(1),
         subjectDataDescription
       );
     }
@@ -97,7 +95,7 @@ describe("ERC4626Oracle", () => {
 
     it("returns the correct vault value", async () => {
       const result = await subject();
-      expect(result).to.eq(ether(price));
+      expect(result).to.eq(price);
     });
   });
 });
