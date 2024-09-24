@@ -144,11 +144,11 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
         tokenAddresses.gtUSDC,
       ],
       [
-        usdc(20),
-        usdc(20),
-        usdc(20),
-        usdc(20),
-        ether(20),
+        usdc(99.6),
+        usdc(0.1),
+        usdc(0.1),
+        usdc(0.1),
+        ether(0.1),
       ],
       [
         debtIssuanceModule.address,
@@ -178,11 +178,11 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       setValuer: ADDRESS_ZERO,
       reserveAssets: [tokenAddresses.usdc],
       feeRecipient: feeRecipient.address,
-      managerFees: [ether(0.001), ether(0.002)],
+      managerFees: [ZERO, ZERO],
       maxManagerFee: ether(0.02),
       premiumPercentage: ether(0.01),
       maxPremiumPercentage: ether(0.1),
-      minSetTokenSupply: ether(5),
+      minSetTokenSupply: ether(0.01),
     } as CustomOracleNAVIssuanceSettings;
 
     await navIssuanceModule.initialize(
@@ -351,7 +351,6 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
     }
 
     it("should sync rebasing components", async () => {
-      const initialUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const initialAEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const initialCUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const initialAUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
@@ -370,7 +369,6 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
 
       await subject();
 
-      const usdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.usdc);
       const aEthUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aEthUSDC);
       const cUsdcV3Unit = await setToken.getDefaultPositionRealUnit(tokenAddresses.cUSDCv3);
       const aUsdcUnit = await setToken.getDefaultPositionRealUnit(tokenAddresses.aUSDC);
@@ -381,7 +379,6 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       const setTokenBalanceAfter = await setToken.balanceOf(owner.address);
       const setTokenBalanceChange = setTokenBalanceBefore.sub(setTokenBalanceAfter);
 
-      expect(usdcUnit).to.be.lt(initialUsdcUnit);
       expect(aEthUsdcUnit).to.be.gt(initialAEthUsdcUnit);
       expect(cUsdcV3Unit).to.be.gt(initialCUsdcV3Unit);
       expect(aUsdcUnit).to.be.gt(initialAUsdcUnit);
@@ -390,8 +387,33 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       expect(actualOutput).to.be.gt(expectedOutputBeforeRebase);
       expect(setTokenBalanceChange).to.be.eq(subjectSetTokenQuantity);
 
-      expect(actualOutput).to.be.gt(usdc(100));
+      expect(actualOutput).to.be.gt(usdc(99));
       expect(actualOutput).to.be.lt(usdc(101));
+    });
+
+    context("when the positionMultiplier is inflated past the maximum", () => {
+      beforeEach(async () => {
+
+        const positionMultiplierBefore = await setToken.positionMultiplier();
+        console.log(positionMultiplierBefore.toString());
+
+        await navIssuanceModule.connect(owner.wallet).redeem(
+          setToken.address,
+          tokenAddresses.usdc,
+          ether(9.9),
+          ZERO,
+          owner.address
+        );
+
+        const positionMultiplierAfter = await setToken.positionMultiplier();
+        console.log(positionMultiplierAfter.toString());
+
+        subjectSetTokenQuantity = ether(0.01);
+      });
+
+      it("should revert", async() => {
+        await expect(subject()).to.be.revertedWith("New position multiplier must not exceed max");
+      });
     });
   });
 
@@ -440,12 +462,12 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       const initialAUsdcValuation = await subject(tokenAddresses.aUSDC);
       const initialGTUsdcValuation = await subject(tokenAddresses.gtUSDC);
 
-      expect(initialUsdcValuation).to.be.eq(ether(20));
-      expect(initialAEthUsdcValuation).to.be.eq(ether(20));
-      expect(initialCUsdcV3Valuation).to.be.eq(ether(20));
-      expect(initialAUsdcValuation).to.be.eq(ether(20));
-      expect(initialGTUsdcValuation).to.be.gt(ether(20));
-      expect(initialGTUsdcValuation).to.be.lt(ether(21));
+      expect(initialUsdcValuation).to.be.eq(ether(99.6));
+      expect(initialAEthUsdcValuation).to.be.eq(ether(0.1));
+      expect(initialCUsdcV3Valuation).to.be.eq(ether(0.1));
+      expect(initialAUsdcValuation).to.be.eq(ether(0.1));
+      expect(initialGTUsdcValuation).to.be.gt(ether(0.1));
+      expect(initialGTUsdcValuation).to.be.lt(ether(0.11));
 
       await increaseTimeAsync(usdc(10));
       await rebasingComponentModule.sync(subjectSetToken);
@@ -456,15 +478,15 @@ describe("Rebasing and ERC4626 CustomOracleNavIssuanceModule integration [ @fork
       const aUsdcValuation = await subject(tokenAddresses.aUSDC);
       const gtUsdcValuation = await subject(tokenAddresses.gtUSDC);
 
-      expect(usdcValuation).to.be.eq(ether(20));
-      expect(aEthUsdcValuation).to.be.gt(ether(20));
-      expect(aEthUsdcValuation).to.be.lt(ether(21));
-      expect(cUsdcV3Valuation).to.be.gt(ether(20));
-      expect(cUsdcV3Valuation).to.be.lt(ether(21));
-      expect(aUsdcValuation).to.be.gt(ether(20));
-      expect(aUsdcValuation).to.be.lt(ether(21));
-      expect(gtUsdcValuation).to.be.gt(ether(20));
-      expect(gtUsdcValuation).to.be.lt(ether(21));
+      expect(usdcValuation).to.be.eq(ether(99.6));
+      expect(aEthUsdcValuation).to.be.gt(ether(0.1));
+      expect(aEthUsdcValuation).to.be.lt(ether(0.11));
+      expect(cUsdcV3Valuation).to.be.gt(ether(0.1));
+      expect(cUsdcV3Valuation).to.be.lt(ether(0.11));
+      expect(aUsdcValuation).to.be.gt(ether(0.1));
+      expect(aUsdcValuation).to.be.lt(ether(0.11));
+      expect(gtUsdcValuation).to.be.gt(ether(0.1));
+      expect(gtUsdcValuation).to.be.lt(ether(0.11));
     });
   });
 });

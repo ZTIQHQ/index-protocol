@@ -2824,6 +2824,84 @@ describe("CustomOracleNavIssuanceModule", () => {
         });
       });
     });
+
+    context("when the positionMultiplier is inflated past the maximum", async () => {
+      beforeEach(async () => {
+        // Valued at 2000 USDC
+        units = [usdc(1999), ether(1)];
+        setToken = await setup.createSetToken(
+          [setup.usdc.address, setup.dai.address],
+          units, // Set is valued at 2000 USDC
+          [setup.issuanceModule.address, customOracleNavIssuanceModule.address]
+        );
+
+        const setValuerAddress = ADDRESS_ZERO;
+        const managerRedemptionHook = ADDRESS_ZERO;
+        const managerFees = [ether(0.1), ether(0.1)];
+        const premiumPercentage = ether(0.005);
+        const managerIssuanceHook = await getRandomAddress();
+        const reserveAssets = [setup.usdc.address];
+        const managerFeeRecipient = feeRecipient.address;
+        const maxManagerFee = ether(0.2);
+        const maxPremiumPercentage = ether(0.1);
+        const minSetTokenSupply = ether(0.01);
+
+        navIssuanceSettings = {
+          managerIssuanceHook,
+          managerRedemptionHook,
+          reserveAssets,
+          setValuer: setValuerAddress,
+          feeRecipient: managerFeeRecipient,
+          managerFees,
+          maxManagerFee,
+          premiumPercentage,
+          maxPremiumPercentage,
+          minSetTokenSupply,
+        } as CustomOracleNAVIssuanceSettings;
+
+        await customOracleNavIssuanceModule.initialize(setToken.address, navIssuanceSettings);
+        // Approve tokens to the controller
+        await setup.usdc.approve(setup.controller.address, usdc(1000000));
+        await setup.dai.approve(setup.controller.address, ether(1000000));
+
+        // Seed with 10 supply
+        await setup.issuanceModule.connect(owner.wallet).initialize(setToken.address, ADDRESS_ZERO);
+        await setup.issuanceModule.connect(owner.wallet).issue(setToken.address, ether(10), owner.address);
+
+        // Nav redeem 9.9 to inflate positionMultiplier
+        await customOracleNavIssuanceModule.connect(owner.wallet).redeem(
+          setToken.address,
+          setup.usdc.address,
+          ether(9.9),
+          ether(0),
+          owner.address
+        );
+
+        // Redeem 1 SetToken
+        redeemQuantity = ether(0.01);
+
+        subjectSetToken = setToken.address;
+        subjectReserveAsset = setup.usdc.address;
+        subjectSetTokenQuantity = redeemQuantity;
+        subjectMinReserveQuantityReceived = ether(0);
+        subjectTo = recipient;
+        subjectCaller = owner;
+      });
+
+      async function subject(): Promise<any> {
+        return customOracleNavIssuanceModule.connect(subjectCaller.wallet).redeem(
+          subjectSetToken,
+          subjectReserveAsset,
+          subjectSetTokenQuantity,
+          subjectMinReserveQuantityReceived,
+          subjectTo.address
+        );
+      }
+
+      it("should revert", async() => {
+        await expect(subject()).to.be.revertedWith("New position multiplier must not exceed max");
+      });
+    });
   });
 
   describe("#redeemIntoEther", async () => {
@@ -3220,6 +3298,81 @@ describe("CustomOracleNavIssuanceModule", () => {
         it("should reconcile balances", async () => {
           await reconcileBalances(setToken, subject, owner);
         });
+      });
+    });
+
+    context("when the positionMultiplier is inflated past the maximum", async () => {
+      beforeEach(async () => {
+        units = [usdc(1999), ether(0.01)];
+        setToken = await setup.createSetToken(
+          [setup.usdc.address, setup.weth.address],
+          units,
+          [setup.issuanceModule.address, customOracleNavIssuanceModule.address]
+        );
+
+        const setValuerAddress = ADDRESS_ZERO;
+        const managerRedemptionHook = ADDRESS_ZERO;
+        const managerFees = [ether(0.1), ether(0.1)];
+        const premiumPercentage = ether(0.005);
+        const managerIssuanceHook = await getRandomAddress();
+        const reserveAssets = [setup.usdc.address, setup.weth.address];
+        const managerFeeRecipient = feeRecipient.address;
+        const maxManagerFee = ether(0.2);
+        const maxPremiumPercentage = ether(0.1);
+        const minSetTokenSupply = ether(0.01);
+
+        navIssuanceSettings = {
+          managerIssuanceHook,
+          managerRedemptionHook,
+          reserveAssets,
+          setValuer: setValuerAddress,
+          feeRecipient: managerFeeRecipient,
+          managerFees,
+          maxManagerFee,
+          premiumPercentage,
+          maxPremiumPercentage,
+          minSetTokenSupply,
+        } as CustomOracleNAVIssuanceSettings;
+
+        await customOracleNavIssuanceModule.initialize(setToken.address, navIssuanceSettings);
+        // Approve tokens to the controller
+        await setup.usdc.approve(setup.controller.address, usdc(1000000));
+        await setup.weth.approve(setup.controller.address, ether(1000000));
+
+        // Seed with 10 supply
+        await setup.issuanceModule.connect(owner.wallet).initialize(setToken.address, ADDRESS_ZERO);
+        await setup.issuanceModule.connect(owner.wallet).issue(setToken.address, ether(10), owner.address);
+
+        // Nav redeem 9.9 to inflate positionMultiplier
+        await customOracleNavIssuanceModule.connect(owner.wallet).redeem(
+          setToken.address,
+          setup.usdc.address,
+          ether(9.9),
+          ether(0),
+          owner.address
+        );
+
+        // Redeem 1 SetToken
+        redeemQuantity = ether(0.01);
+
+        subjectSetToken = setToken.address;
+        subjectSetTokenQuantity = redeemQuantity;
+        subjectMinReserveQuantityReceived = ether(0);
+        subjectTo = recipient;
+        subjectCaller = owner;
+      });
+
+      async function subject(): Promise<any> {
+        return customOracleNavIssuanceModule.connect(subjectCaller.wallet).redeemIntoEther(
+          subjectSetToken,
+          subjectSetTokenQuantity,
+          subjectMinReserveQuantityReceived,
+          subjectTo.address,
+        );
+      }
+
+      it("should revert", async() => {
+        await expect(subject()).to.be.revertedWith("New position multiplier must not exceed max");
       });
     });
   });
