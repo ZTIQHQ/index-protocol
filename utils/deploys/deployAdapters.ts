@@ -14,6 +14,7 @@ import {
   CurveExchangeAdapter,
   CurveStakingAdapter,
   CurveStEthExchangeAdapter,
+  ERC4626ExchangeAdapter,
   KyberExchangeAdapter,
   KyberV3IndexExchangeAdapter,
   OneInchExchangeAdapter,
@@ -78,6 +79,7 @@ import { CompoundBravoGovernanceAdapter__factory } from "../../typechain/factori
 import { CompClaimAdapter__factory } from "../../typechain";
 import { RgtMigrationWrapAdapter__factory } from "../../typechain/factories/RgtMigrationWrapAdapter__factory";
 import { ERC4626WrapV2Adapter__factory } from "../../typechain/factories/ERC4626WrapV2Adapter__factory";
+import { ERC4626ExchangeAdapter__factory } from "../../typechain/factories/ERC4626ExchangeAdapter__factory";
 
 export default class DeployAdapters {
   private _deployerSigner: Signer;
@@ -309,6 +311,10 @@ export default class DeployAdapters {
 
   public async deployERC4626WrapV2Adapter(): Promise<ERC4626WrapV2Adapter> {
     return await new ERC4626WrapV2Adapter__factory(this._deployerSigner).deploy();
+  }
+
+  public async deployERC4626ExchangeAdapter(vault: Address): Promise<ERC4626ExchangeAdapter> {
+    return await new ERC4626ExchangeAdapter__factory(this._deployerSigner).deploy(vault);
   }
 
   public async deployCurveExchangeAdapter(
