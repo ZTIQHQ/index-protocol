@@ -22,7 +22,11 @@ import { IERC4626 } from "../../../interfaces/external/IERC4626.sol";
  * @title ERC4626WrapV2Adapter
  * @author Index Cooperative
  *
- * Wrap adapter for ERC-4626 Vaults that returns data for wraps/unwraps of tokens
+ * Wrap adapter for ERC-4626 Vaults that returns data for wraps/unwraps of tokens. 
+ * 
+ * Warning: This adapter is intended only for no-loss wrapping and unwrapping of assets. It is not suitable for
+ * use with assets that may incur a loss in value due to fees or other factors. For such operations, 
+ * the TradeModule should be used.
  */
 contract ERC4626WrapV2Adapter {
 
