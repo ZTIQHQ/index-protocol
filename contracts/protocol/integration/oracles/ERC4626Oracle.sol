@@ -26,6 +26,10 @@ import { IERC4626 } from "../../../interfaces/external/IERC4626.sol";
  * @author Index Cooperative
  *
  * Oracle built to retrieve the assets per one share of the ERC-4626 vault
+ * 
+ * @dev WARNING: ERC-4626 vaults using this oracle must be evaluated for potential 
+ * read-only reentrancy vulnerabilities in the convertToAssets function. Vaults 
+ * found to have this vulnerability should not use this oracle.
  */
 contract ERC4626Oracle {
     IERC4626 public immutable vault;

@@ -47,6 +47,10 @@ import { ResourceIdentifier } from "../../lib/ResourceIdentifier.sol";
  * oracle prices. Manager is able to enforce a premium / discount on issuance / redemption to avoid arbitrage and front
  * running when relying on oracle prices. Managers can charge a fee (denominated in reserve asset).
  * 
+ * @dev WARNING: Components using oracle adapters for NAV calculations must be evaluated for potential 
+ * read-only reentrancy vulnerabilities in the oracle's read function. Vulnerable components should 
+ * not use this module. 
+ * 
  * * CHANGELOG:
  * - 9/19/24: Introduce MAX_POSITION_MULTIPLIER to prevent precision loss
  */
