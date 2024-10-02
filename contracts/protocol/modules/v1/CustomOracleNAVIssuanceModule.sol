@@ -46,6 +46,13 @@ import { ResourceIdentifier } from "../../lib/ResourceIdentifier.sol";
  * a proportional amount of SetTokens on issuance or ERC20 token on redemption based on the calculated net asset value using
  * oracle prices. Manager is able to enforce a premium / discount on issuance / redemption to avoid arbitrage and front
  * running when relying on oracle prices. Managers can charge a fee (denominated in reserve asset).
+ * 
+ * @dev WARNING: Components using oracle adapters for NAV calculations must be evaluated for potential 
+ * read-only reentrancy vulnerabilities in the oracle's read function. Vulnerable components should 
+ * not use this module. 
+ * 
+ * * CHANGELOG:
+ * - 9/19/24: Introduce MAX_POSITION_MULTIPLIER to prevent precision loss
  */
 contract CustomOracleNavIssuanceModule is ModuleBase, ReentrancyGuard {
     using AddressArrayUtils for address[];
@@ -154,6 +161,9 @@ contract CustomOracleNavIssuanceModule is ModuleBase, ReentrancyGuard {
     mapping(ISetToken => mapping(address => bool)) public isReserveAsset;
 
     /* ============ Constants ============ */
+
+    // 1e20 is the maximum value the position multiplier can be inflated to. This is a security feature to prevent precision loss
+    int256 constant internal MAX_POSITION_MULTIPLIER = 1e20;
 
     // 0 index stores the manager fee in managerFees array, percentage charged on issue (denominated in reserve asset)
     uint256 constant internal MANAGER_ISSUE_FEE_INDEX = 0;
@@ -1034,6 +1044,9 @@ contract CustomOracleNavIssuanceModule is ModuleBase, ReentrancyGuard {
         int256 newPositionMultiplier = _setToken.positionMultiplier()
             .mul(_redeemInfo.previousSetTokenSupply.toInt256())
             .div(newTotalSupply.toInt256());
+
+        // Require inflated position multiplier does not exceed maximum
+        require(newPositionMultiplier <= MAX_POSITION_MULTIPLIER, "New position multiplier must not exceed max");
 
         return (newTotalSupply, newPositionMultiplier);
     }

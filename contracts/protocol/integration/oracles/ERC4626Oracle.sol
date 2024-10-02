@@ -18,6 +18,7 @@
 
 pragma solidity 0.8.17;
 
+import { IERC20Metadata } from "../../../interfaces/external/IERC20Metadata.sol";
 import { IERC4626 } from "../../../interfaces/external/IERC4626.sol";
 
 /**
@@ -25,6 +26,10 @@ import { IERC4626 } from "../../../interfaces/external/IERC4626.sol";
  * @author Index Cooperative
  *
  * Oracle built to retrieve the assets per one share of the ERC-4626 vault
+ * 
+ * @dev WARNING: ERC-4626 vaults using this oracle must be evaluated for potential 
+ * read-only reentrancy vulnerabilities in the convertToAssets function. Vaults 
+ * found to have this vulnerability should not use this oracle.
  */
 contract ERC4626Oracle {
     IERC4626 public immutable vault;
@@ -34,26 +39,26 @@ contract ERC4626Oracle {
 
     /*
      * @param  _vault               The address of the ERC-4626 vault
-     * @param  _underlyingFullUnit  The full unit of the underlying asset
      * @param  _dataDescription     Human readable description of oracle
      */
     constructor(
         IERC4626 _vault,
-        uint256 _underlyingFullUnit,
         string memory _dataDescription
     ) {
+        vaultFullUnit = 10 ** _vault.decimals();
+
+        IERC20Metadata underlyingAsset = IERC20Metadata(_vault.asset());
+        underlyingFullUnit = 10 ** underlyingAsset.decimals();
+
         vault = _vault;
         dataDescription = _dataDescription;
-
-        underlyingFullUnit = _underlyingFullUnit;
-        vaultFullUnit = 10 ** _vault.decimals();
     }
 
     /**
-     * Returns the assets per one share of the vault
+     * Returns the assets per one share of the vault normalized to 18 decimals
      */
     function read() external view returns (uint256) {
         uint256 assetsPerShare = vault.convertToAssets(vaultFullUnit);
-        return assetsPerShare * vaultFullUnit / underlyingFullUnit;
+        return assetsPerShare * 1e18 / underlyingFullUnit;
     }
 }

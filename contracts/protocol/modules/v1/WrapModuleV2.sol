@@ -44,6 +44,10 @@ import { PreciseUnitMath } from "../../../lib/PreciseUnitMath.sol";
  *
  * Some examples of wrap actions include wrapping, DAI to cDAI (Compound) or Dai to aDai (AAVE).
  * 
+ * Warning: This module is designed solely for no-loss wrapping and unwrapping of assets. It should not be used
+ * for wrapping assets that may experience a loss in value due to fees or other factors. For such operations, 
+ * please use the TradeModule.
+ * 
  * CHANGELOG:
  * - 8/7/24: Grant and revoke max approval when unwrapping
  */
