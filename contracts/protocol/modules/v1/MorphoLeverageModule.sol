@@ -367,9 +367,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
     function _sync(ISetToken _setToken) internal {
         MarketParams memory setMarketParams = marketParams[_setToken];
         require(setMarketParams.collateralToken != address(0), "Collateral not set");
-        // Since we now use the MorphoBalancesLib to calculate unaccrued interest we should not need to call this method
-        // TODO: Review if this assumption holds
-        // morpho.accrueInterest(setMarketParams);
 
         uint256 setTotalSupply = _setToken.totalSupply();
         (int256 newCollateralPositionUnit, int256 newBorrowPositionUnit) = _getCollateralAndBorrowPositions(_setToken, setMarketParams, setTotalSupply);
@@ -432,14 +429,12 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         external
         onlyManagerAndValidSet(_setToken)
     {
-        // TODO: Check if this function should be called as part of the initialize method
         MarketParams memory setMarketParams = marketParams[_setToken];
         uint256 collateralBalance = IERC20(setMarketParams.collateralToken).balanceOf(address(_setToken));
         require(collateralBalance > 0, "Collateral balance is 0");
         _deposit(_setToken, setMarketParams, collateralBalance);
         // Remove default position for collateral token 
         _setToken.editDefaultPosition(setMarketParams.collateralToken, 0);
-        // TODO: This also syncs the borrow position which shouldn't be necessary. Review if we want to adjust
         sync(_setToken);
     }
 
@@ -559,7 +554,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         override
         onlyModule(_setToken)
     {
-        // TODO: Check if this old comment from aave version is still relevant here
         // Check hook not being called for an equity position. If hook is called with equity position and outstanding borrow position 
         // exists the loan would be taken out twice potentially leading to liquidation
         MarketParams memory setMarketParams = marketParams[_setToken];
@@ -674,7 +668,6 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         view 
         returns(uint256 collateralBalance, uint256 borrowBalance, uint256 borrowSharesU256)
     {
-        // TODO: Review if it is more efficient to generate this id once and save in storage
         bytes32 marketId = _marketParams.id();
         Position memory position = morpho.position(marketId, address(_setToken));
         (,, uint256 totalBorrowAssets, uint256 totalBorrowShares) = morpho.expectedMarketBalances(_marketParams);
