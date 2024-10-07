@@ -789,7 +789,6 @@ describe("MorphoLeverageModule integration", () => {
 
             it("positions should align with token balances", async () => {
               await subject();
-              // TODO: Check that the positions not getting synced in hook itself is correct
               await morphoLeverageModule.sync(setToken.address);
               await checkSetComponentsAgainstMorphoPosition();
             });
@@ -887,7 +886,7 @@ describe("MorphoLeverageModule integration", () => {
 
             it("positions should align with token balances", async () => {
               await subject();
-              // TODO: Check that the positions not getting synced in hook itself is correct
+              // Note: This would normally happen in the Module level hook
               await morphoLeverageModule.sync(setToken.address);
               await checkSetComponentsAgainstMorphoPosition();
             });
