@@ -30,6 +30,7 @@ import { Address } from "../types";
 
 import { AaveLeverageModule__factory } from "../../typechain/factories/AaveLeverageModule__factory";
 import { AaveV3LeverageModule, AaveV3LeverageModule__factory } from "../../typechain";
+import { MorphoLeverageModule, MorphoLeverageModule__factory } from "../../typechain";
 import { AirdropModule__factory } from "../../typechain/factories/AirdropModule__factory";
 import { AmmModule__factory } from "../../typechain/factories/AmmModule__factory";
 import { AuctionRebalanceModuleV1__factory } from "../../typechain/factories/AuctionRebalanceModuleV1__factory";
@@ -210,6 +211,21 @@ export default class DeployModules {
       },
       this._deployerSigner,
     ).deploy(controller, lendingPoolAddressesProvider);
+  }
+
+  public async deployMorphoLeverageModule(
+    controller: Address,
+    morphoAddress: Address,
+    libraryName: string,
+    libraryAddress: Address,
+  ): Promise<MorphoLeverageModule> {
+    return await new MorphoLeverageModule__factory(
+      // @ts-ignore
+      {
+        [libraryName]: libraryAddress,
+      },
+      this._deployerSigner,
+    ).deploy(controller, morphoAddress);
   }
 
   public async deployNotionalTradeModule(
