@@ -20,6 +20,7 @@ export { BoundedStepwiseLinearPriceAdapter } from "../../typechain/BoundedStepwi
 export { BoundedStepwiseLogarithmicPriceAdapter } from "../../typechain/BoundedStepwiseLogarithmicPriceAdapter";
 export { BridgedSetToken } from "../../typechain/BridgedSetToken";
 export { BytesArrayUtilsMock } from "../../typechain/BytesArrayUtilsMock";
+export { CachedSetValuer } from "../../typechain/CachedSetValuer";
 export { ChainlinkAggregatorMock } from "../../typechain/ChainlinkAggregatorMock";
 export { ClaimAdapterMock } from "../../typechain/ClaimAdapterMock";
 export { ClaimModule } from "../../typechain/ClaimModule";

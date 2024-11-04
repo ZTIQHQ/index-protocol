@@ -1,5 +1,5 @@
 /*
-    Copyright 2020 Set Labs Inc.
+    Copyright 2024 Index Cooperative
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,15 +15,22 @@
 
     SPDX-License-Identifier: Apache License, Version 2.0
 */
+
 pragma solidity 0.6.10;
 
-interface IController {
-    function addSet(address _setToken) external;
-    function feeRecipient() external view returns(address);
-    function getModuleFee(address _module, uint256 _feeType) external view returns(uint256);
-    function isModule(address _module) external view returns(bool);
-    function isResource(address _resource) external view returns(bool);
-    function isSet(address _setToken) external view returns(bool);
-    function isSystemContract(address _contractAddress) external view returns (bool);
-    function resourceId(uint256 _id) external view returns(address);
+import { ISetToken } from "./ISetToken.sol";
+
+/**
+ * @title IRebasingComponentModule
+ * @author Index Cooperative
+ *
+ * Interface for interacting with RebasingComponentModule
+ */
+interface IRebasingComponentModule {
+    /**
+     * Sync Set positions with ALL enabled rebasing component positions.
+     *
+     * @param _setToken    Instance of the SetToken
+     */
+    function sync(ISetToken _setToken) external;
 }
