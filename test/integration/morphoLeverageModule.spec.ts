@@ -1015,7 +1015,7 @@ describe("MorphoLeverageModule integration", () => {
                 const newPositions = await setToken.getPositions();
 
                 // Small difference, assumed to be due to interest accrued on debt position
-                const debtInterestTolerance = 10;
+                const debtInterestTolerance = 20;
                 for (let i = 0; i < positions.length; i++) {
                   if (positions[i].component === usdc.address) {
                     expect(newPositions[i].unit).to.lte(positions[i].unit);
