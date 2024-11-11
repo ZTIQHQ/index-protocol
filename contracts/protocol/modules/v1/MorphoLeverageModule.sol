@@ -596,7 +596,7 @@ contract MorphoLeverageModule is ModuleBase, ReentrancyGuard, Ownable, IModuleIs
         if (_isEquity && setMarketParams.collateralToken == address(_component)) {
             int256 componentCollateral = _setToken.getExternalPositionRealUnit(address(_component), address(this));
 
-            require(componentCollateral > 0, "Component must be negative");
+            require(componentCollateral > 0, "Component must be positive");
 
             uint256 notionalCollateral = componentCollateral.toUint256().preciseMul(_setTokenQuantity);
             _deposit(_setToken, setMarketParams, notionalCollateral);
