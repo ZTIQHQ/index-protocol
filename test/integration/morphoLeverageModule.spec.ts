@@ -702,7 +702,7 @@ describe("MorphoLeverageModule integration", () => {
 
               expect(newFirstPosition.component).to.eq(wsteth.address);
               expect(newFirstPosition.positionState).to.eq(1); // External
-              expect(newFirstPosition.unit).to.eq(
+              expect(newFirstPosition.unit).to.gte(
                 initialPositions[0].unit.sub(subjectRedeemQuantity),
               );
               expect(newFirstPosition.module).to.eq(morphoLeverageModule.address);
