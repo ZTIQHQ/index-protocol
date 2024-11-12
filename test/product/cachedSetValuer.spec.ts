@@ -3,6 +3,7 @@ import { BigNumber } from "ethers";
 
 import {
   Address,
+  ContractTransaction,
 } from "@utils/types";
 import { Account } from "@utils/test/types";
 import { CachedSetValuer, SetToken, RebasingComponentModule } from "@utils/contracts";
@@ -14,7 +15,9 @@ import {
   getSystemFixture,
   increaseTimeAsync,
   getLastBlockTimestamp,
-  getRandomAddress
+  getRandomAddress,
+  getRandomAccount,
+  getTransactionTimestamp
 } from "@utils/test/index";
 import { SystemFixture } from "@utils/fixtures";
 import { ADDRESS_ZERO, ZERO } from "@utils/constants";
@@ -22,7 +25,7 @@ import { ether, usdc } from "@utils/index";
 
 const expect = getWaffleExpect();
 
-describe.only("CachedSetValuer", () => {
+describe("CachedSetValuer", () => {
   let owner: Account;
   let deployer: DeployHelper;
   let setup: SystemFixture;
@@ -30,32 +33,28 @@ describe.only("CachedSetValuer", () => {
   let setToken: SetToken;
   let cachedSetValuer: CachedSetValuer;
   let rebasingComponentModule: RebasingComponentModule;
-
   let initialMaxStaleness: BigNumber;
 
   before(async () => {
     [owner] = await getAccounts();
-
     deployer = new DeployHelper(owner.wallet);
     setup = getSystemFixture(owner.address);
     await setup.initialize();
 
+    initialMaxStaleness = BigNumber.from(3600);
+  });
+
+  beforeEach(async () => {
     rebasingComponentModule = await deployer.modules.deployRebasingComponentModule(setup.controller.address);
     await setup.controller.addModule(rebasingComponentModule.address);
 
     const components = [setup.weth.address, setup.usdc.address];
     const units = [ether(1), usdc(100)];
     const modules = [setup.issuanceModule.address, rebasingComponentModule.address];
-    setToken = await setup.createSetToken(
-      components,
-      units,
-      modules
-    );
+    setToken = await setup.createSetToken(components, units, modules);
 
     await setup.issuanceModule.initialize(setToken.address, ADDRESS_ZERO);
     await rebasingComponentModule.initialize(setToken.address, components);
-
-    initialMaxStaleness = BigNumber.from(3600);
 
     cachedSetValuer = await deployer.product.deployCachedSetValuer(
       setup.controller.address,
@@ -246,15 +245,17 @@ describe.only("CachedSetValuer", () => {
     });
   });
 
-  describe.skip("#setMaxStaleness", async () => {
+  describe("#setMaxStaleness", async () => {
     let subjectMaxStaleness: BigNumber;
+    let subjectCaller: Account;
 
     beforeEach(async () => {
-      subjectMaxStaleness = await BigNumber.from(7200);
+      subjectMaxStaleness = BigNumber.from(7200);
+      subjectCaller = owner;
     });
 
-    async function subject(): Promise<any> {
-      return cachedSetValuer.connect(owner.wallet).setMaxStaleness(subjectMaxStaleness);
+    async function subject(): Promise<ContractTransaction> {
+      return cachedSetValuer.connect(subjectCaller.wallet).setMaxStaleness(subjectMaxStaleness);
     }
 
     it("should update maxStaleness", async () => {
@@ -263,21 +264,16 @@ describe.only("CachedSetValuer", () => {
       expect(newMaxStaleness).to.eq(subjectMaxStaleness);
     });
 
-    it("should emit correct MaxStalenessUpdated event", async () => {
-      await expect(subject()).to.emit(cachedSetValuer, "MaxStalenessUpdated")
-        .withArgs(initialMaxStaleness, subjectMaxStaleness);
+    it("should emit MaxStalenessUpdated event", async () => {
+      await expect(subject())
+        .to.emit(cachedSetValuer, "MaxStalenessUpdated")
+        .withArgs(subjectMaxStaleness);
     });
 
-    describe("when caller is not owner", async () => {
-      let caller: Account;
-
+    describe("when caller is not owner", () => {
       beforeEach(async () => {
-        [, caller] = await getAccounts();
+        subjectCaller = await getRandomAccount();
       });
-
-      async function subject(): Promise<any> {
-        return cachedSetValuer.connect(caller.wallet).setMaxStaleness(subjectMaxStaleness);
-      }
 
       it("should revert", async () => {
         await expect(subject()).to.be.revertedWith("Ownable: caller is not the owner");
@@ -285,34 +281,33 @@ describe.only("CachedSetValuer", () => {
     });
   });
 
-  describe.skip("#setSetValuer", async () => {
+  describe("#setSetValuer", () => {
     let subjectSetValuer: Address;
+    let subjectCaller: Account;
 
     beforeEach(async () => {
       const newSetValuer = await deployer.core.deploySetValuer(setup.controller.address);
       await setup.controller.addResource(newSetValuer.address, 3);
       subjectSetValuer = newSetValuer.address;
+      subjectCaller = owner;
     });
 
-    async function subject(): Promise<any> {
-      return cachedSetValuer.connect(owner.wallet).setSetValuer(subjectSetValuer);
+    async function subject(): Promise<ContractTransaction> {
+      return cachedSetValuer.connect(subjectCaller.wallet).setSetValuer(subjectSetValuer);
     }
 
-    it("should update SetValuer", async () => {
-      const oldSetValuer = await cachedSetValuer.setValuer();
+    it("should set the new SetValuer", async () => {
       await subject();
       expect(await cachedSetValuer.setValuer()).to.eq(subjectSetValuer);
-      expect(await cachedSetValuer.setValuer()).to.not.eq(oldSetValuer);
     });
 
     it("should emit SetValuerUpdated event", async () => {
-      const oldSetValuer = await cachedSetValuer.setValuer();
       await expect(subject())
         .to.emit(cachedSetValuer, "SetValuerUpdated")
-        .withArgs(oldSetValuer, subjectSetValuer);
+        .withArgs(subjectSetValuer);
     });
 
-    describe("when new SetValuer is not enabled on controller", async () => {
+    describe("when SetValuer is not enabled on controller", () => {
       beforeEach(async () => {
         const newSetValuer = await deployer.core.deploySetValuer(setup.controller.address);
         subjectSetValuer = newSetValuer.address;
@@ -323,38 +318,18 @@ describe.only("CachedSetValuer", () => {
       });
     });
 
-    describe("when new SetValuer is zero address", async () => {
+    describe("when caller is not owner", () => {
       beforeEach(async () => {
-        subjectSetValuer = ADDRESS_ZERO;
+        subjectCaller = await getRandomAccount();
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("Invalid SetValuer address");
+        await expect(subject()).to.be.revertedWith("Ownable: caller is not the owner");
       });
     });
   });
 
-  describe.skip("#setRebasingModule", async () => {
-    let subjectRebasingModule: Address;
-    let newRebasingModule: Account;
-
-    beforeEach(async () => {
-      [, newRebasingModule] = await getAccounts();
-      subjectRebasingModule = newRebasingModule.address;
-    });
-
-    async function subject(): Promise<any> {
-      return cachedSetValuer.connect(owner.wallet).setRebasingModule(subjectRebasingModule);
-    }
-
-    describe("when new RebasingModule is not enabled on controller", async () => {
-      it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("RebasingModule must be enabled on Controller");
-      });
-    });
-  });
-
-  describe.skip("#updateCache", async () => {
+  describe("#updateCache", () => {
     let subjectSetToken: Address;
     let subjectQuoteAsset: Address;
 
@@ -363,20 +338,14 @@ describe.only("CachedSetValuer", () => {
       subjectQuoteAsset = setup.usdc.address;
     });
 
-    async function subject(): Promise<any> {
-      return cachedSetValuer.updateCache(
-        subjectSetToken,
-        subjectQuoteAsset
-      );
+    async function subject(): Promise<ContractTransaction> {
+      return cachedSetValuer.updateCache(subjectSetToken, subjectQuoteAsset);
     }
 
-    it("should update cache with new valuation", async () => {
+    it("should update the cache with current valuation", async () => {
       await subject();
 
-      const cachedValuation = await cachedSetValuer.cachedValuations(
-        subjectSetToken,
-        subjectQuoteAsset
-      );
+      const cachedValuation = await cachedSetValuer.cachedValuations(subjectSetToken, subjectQuoteAsset);
       const expectedValuation = await setup.setValuer.calculateSetTokenValuation(
         subjectSetToken,
         subjectQuoteAsset
@@ -389,10 +358,167 @@ describe.only("CachedSetValuer", () => {
         subjectSetToken,
         subjectQuoteAsset
       );
+      const txn = await subject();
+      const timestamp = await getTransactionTimestamp(txn);
 
       await expect(subject())
         .to.emit(cachedSetValuer, "CacheUpdated")
-        .withArgs(subjectSetToken, subjectQuoteAsset, expectedValuation, await getLastBlockTimestamp());
+        .withArgs(subjectSetToken, subjectQuoteAsset, expectedValuation, timestamp.add(1));
+    });
+
+    describe("when rebasing module is zero address", () => {
+      beforeEach(async () => {
+        cachedSetValuer = await deployer.product.deployCachedSetValuer(
+          setup.controller.address,
+          setup.setValuer.address,
+          ADDRESS_ZERO,
+          initialMaxStaleness
+        );
+      });
+
+      it("should update cache without syncing rebasing components", async () => {
+        await subject();
+
+        const cachedValuation = await cachedSetValuer.cachedValuations(subjectSetToken, subjectQuoteAsset);
+        const expectedValuation = await setup.setValuer.calculateSetTokenValuation(
+          subjectSetToken,
+          subjectQuoteAsset
+        );
+        expect(cachedValuation.value).to.eq(expectedValuation);
+      });
+    });
+  });
+
+  describe("#previewValuation", () => {
+    let subjectSetToken: Address;
+    let subjectQuoteAsset: Address;
+
+    beforeEach(async () => {
+      subjectSetToken = setToken.address;
+      subjectQuoteAsset = setup.usdc.address;
+
+      await cachedSetValuer.calculateSetTokenValuation(subjectSetToken, subjectQuoteAsset);
+    });
+
+    async function subject(): Promise<any> {
+      return cachedSetValuer.previewValuation(subjectSetToken, subjectQuoteAsset);
+    }
+
+    it("should return correct cached and current valuations", async () => {
+      const valuationInfo = await subject();
+      const expectedCurrentValue = await setup.setValuer.calculateSetTokenValuation(
+        subjectSetToken,
+        subjectQuoteAsset
+      );
+
+      expect(valuationInfo.currentValue).to.eq(expectedCurrentValue);
+      expect(valuationInfo.cachedValue).to.eq(expectedCurrentValue);
+      expect(valuationInfo.isStale).to.be.false;
+    });
+
+    describe("when cache is stale", () => {
+      beforeEach(async () => {
+        await increaseTimeAsync(initialMaxStaleness.add(1));
+      });
+
+      it("should indicate cache is stale", async () => {
+        const valuationInfo = await subject();
+        expect(valuationInfo.isStale).to.be.true;
+      });
+    });
+
+    describe("when no cached value exists", () => {
+      let mockSetToken: SetToken;
+
+      beforeEach(async () => {
+        const components = [setup.weth.address];
+        const units = [ether(1)];
+        const modules = [setup.issuanceModule.address];
+        mockSetToken = await setup.createSetToken(
+          components,
+          units,
+          modules,
+          setup.controller.address,
+          "Mock SetToken",
+          "MOCK"
+        );
+
+        subjectSetToken = mockSetToken.address;
+        subjectQuoteAsset = setup.usdc.address;
+      });
+
+      it("should return zero for cached value", async () => {
+        const valuationInfo = await subject();
+        expect(valuationInfo.cachedValue).to.eq(ZERO);
+        expect(valuationInfo.lastUpdateTimestamp).to.eq(ZERO);
+        expect(valuationInfo.isStale).to.be.true;
+        expect(valuationInfo.currentValue).to.gt(ZERO);
+      });
+    });
+  });
+
+  describe("#setRebasingModule", () => {
+    let subjectRebasingModule: Address;
+    let subjectCaller: Account;
+
+    beforeEach(async () => {
+      const newRebasingModule = await deployer.modules.deployRebasingComponentModule(setup.controller.address);
+      await setup.controller.addModule(newRebasingModule.address);
+      subjectRebasingModule = newRebasingModule.address;
+      subjectCaller = owner;
+    });
+
+    async function subject(): Promise<ContractTransaction> {
+      return cachedSetValuer.connect(subjectCaller.wallet).setRebasingModule(subjectRebasingModule);
+    }
+
+    it("should set the new RebasingModule", async () => {
+      await subject();
+      expect(await cachedSetValuer.rebasingModule()).to.eq(subjectRebasingModule);
+    });
+
+    it("should emit RebasingModuleUpdated event", async () => {
+      await expect(subject())
+        .to.emit(cachedSetValuer, "RebasingModuleUpdated")
+        .withArgs(subjectRebasingModule);
+    });
+
+    describe("when RebasingModule is not enabled on controller", () => {
+      beforeEach(async () => {
+        const newRebasingModule = await deployer.modules.deployRebasingComponentModule(setup.controller.address);
+        subjectRebasingModule = newRebasingModule.address;
+      });
+
+      it("should revert", async () => {
+        await expect(subject()).to.be.revertedWith("RebasingModule must be enabled on Controller");
+      });
+    });
+
+    describe("when caller is not owner", () => {
+      beforeEach(async () => {
+        subjectCaller = await getRandomAccount();
+      });
+
+      it("should revert", async () => {
+        await expect(subject()).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+    });
+  });
+
+  describe("#_isCacheValid", () => {
+    beforeEach(async () => {
+      await cachedSetValuer.calculateSetTokenValuation(setToken.address, setup.usdc.address);
+    });
+
+    it("should return true for fresh cache", async () => {
+      const valuationInfo = await cachedSetValuer.previewValuation(setToken.address, setup.usdc.address);
+      expect(valuationInfo.isStale).to.be.false;
+    });
+
+    it("should return false for stale cache", async () => {
+      await increaseTimeAsync(initialMaxStaleness.add(1));
+      const valuationInfo = await cachedSetValuer.previewValuation(setToken.address, setup.usdc.address);
+      expect(valuationInfo.isStale).to.be.true;
     });
   });
 });

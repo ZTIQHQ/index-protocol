@@ -59,9 +59,9 @@ contract CachedSetValuer is Ownable {
         uint256 _valuation,
         uint256 _timestamp
     );
-    event MaxStalenessUpdated(uint256 _oldStalenessPeriod, uint256 _newStalenessPeriod);
-    event SetValuerUpdated(address _oldSetValuer, address _newSetValuer);
-    event RebasingModuleUpdated(address _oldModule, address _newModule);
+    event MaxStalenessUpdated(uint256 _newStalenessPeriod);
+    event SetValuerUpdated(address _newSetValuer);
+    event RebasingModuleUpdated(address _newModule);
 
     /* ============ State Variables ============ */
 
@@ -215,9 +215,8 @@ contract CachedSetValuer is Ownable {
         external
         onlyOwner
     {
-        uint256 oldStalenessPeriod = maxStaleness;
         maxStaleness = _maxStaleness;
-        emit MaxStalenessUpdated(oldStalenessPeriod, _maxStaleness);
+        emit MaxStalenessUpdated(_maxStaleness);
     }
 
     /**
@@ -230,17 +229,11 @@ contract CachedSetValuer is Ownable {
         onlyOwner
     {
         require(
-            address(_setValuer) != address(0),
-            "Invalid SetValuer address"
-        );
-        require(
             controller.isResource(address(_setValuer)),
             "SetValuer must be enabled on Controller"
         );
-
-        address oldSetValuer = address(setValuer);
         setValuer = _setValuer;
-        emit SetValuerUpdated(oldSetValuer, address(_setValuer));
+        emit SetValuerUpdated(address(_setValuer));
     }
 
     /**
@@ -252,16 +245,12 @@ contract CachedSetValuer is Ownable {
         external
         onlyOwner
     {
-        if (address(_rebasingModule) != address(0)) {
-            require(
-                controller.isModule(address(_rebasingModule)),
-                "RebasingModule must be enabled on Controller"
-            );
-        }
-
-        address oldModule = address(rebasingModule);
+        require(
+            controller.isModule(address(_rebasingModule)),
+            "RebasingModule must be enabled on Controller"
+        );
         rebasingModule = _rebasingModule;
-        emit RebasingModuleUpdated(oldModule, address(_rebasingModule));
+        emit RebasingModuleUpdated(address(_rebasingModule));
     }
 
     /* ============ Internal Functions ============ */
