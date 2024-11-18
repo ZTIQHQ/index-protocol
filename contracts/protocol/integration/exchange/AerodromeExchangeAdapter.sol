@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 Set Labs Inc.
+    Copyright 2024 IndexCoop
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,13 +23,7 @@ pragma experimental "ABIEncoderV2";
  * @title AerodromeExchangeAdapter
  * @author Set Protocol
  *
- * A Aerodrome Router exchange adapter that returns calldata for trading. Includes option for 2 different trade types on Aerodrome.
- *
- * CHANGE LOG:
- * - Add helper that encodes path and boolean into bytes
- * - Generalized ability to choose whether to swap an exact amount of source token for a min amount of receive token or swap a max amount of source token for
- * an exact amount of receive token
- * - Add helper to generate data parameter for `getTradeCallData`
+ * A Aerodrome Router exchange adapter that returns calldata for trading. Only supports swapExactTokensForTokens function.
  *
  */
 contract AerodromeExchangeAdapter {
@@ -45,6 +39,7 @@ contract AerodromeExchangeAdapter {
 
     // Address of Aerodrome  Router contract
     address public immutable router;
+    // Address of Aerodrome  Pool Factory contract
     address public immutable factory;
     // Aerodrome router function string for swapping exact tokens for a minimum of receive tokens
     string internal constant SWAP_EXACT_TOKENS_FOR_TOKENS = "swapExactTokensForTokens(uint256,uint256,(address,address,bool,address)[],address,uint256 )";
@@ -70,31 +65,29 @@ contract AerodromeExchangeAdapter {
      * Note: When selecting the swap for exact tokens function, _sourceQuantity is defined as the max token quantity you are willing to trade, and
      * _minDestinationQuantity is the exact quantity of token you are receiving.
      *
-     * @param  _sourceToken              Address of source token to be sold
-     * @param  _destinationToken         Address of destination token to buy
      * @param  _destinationAddress       Address that assets should be transferred to
      * @param  _sourceQuantity           Fixed/Max amount of source token to sell
      * @param  _destinationQuantity      Min/Fixed amount of destination token to buy
+     * @param  _data                     Arbitrary bytes data containing trade paths and bool to determine function string
      *
      * @return address                   Target contract address
      * @return uint256                   Call value
      * @return bytes                     Trade calldata
      */
     function getTradeCalldata(
-        address  _sourceToken,
-        address _destinationToken,
+        address /* _sourceToken */,
+        address /* _destinationToken */,
         address _destinationAddress,
         uint256 _sourceQuantity,
         uint256 _destinationQuantity,
-        bytes memory /* _data */
+        bytes memory _data
     )
         external
         view
         returns (address, uint256, bytes memory)
     {
 
-        Route[] memory routes = new Route[](1);
-        routes[0] = Route(_sourceToken, _destinationToken, false, factory);
+        Route[] memory routes = abi.decode(_data, (Route[]));
         
         bytes memory callData = abi.encodeWithSignature(
             SWAP_EXACT_TOKENS_FOR_TOKENS,
@@ -118,10 +111,13 @@ contract AerodromeExchangeAdapter {
      */
     function generateDataParam(address _sourceToken, address _destinationToken, bool _fixIn)
         external
-        pure
+        view
         returns (bytes memory data)
     {
         require(!_fixIn, "Only swapExactTokensForTokens is supported");
+        Route[] memory routes = new Route[](1);
+        routes[0] = Route(_sourceToken, _destinationToken, false, factory);
+        data = abi.encode(routes);
     }
 
     /**
