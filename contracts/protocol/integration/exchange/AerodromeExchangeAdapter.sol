@@ -87,7 +87,8 @@ contract AerodromeExchangeAdapter {
         returns (address, uint256, bytes memory)
     {
 
-        Route[] memory routes = abi.decode(_data, (Route[]));
+        Route[] memory routes = new Route[](1);
+        routes[0] = abi.decode(_data, (Route));
         
         bytes memory callData = abi.encodeWithSignature(
             SWAP_EXACT_TOKENS_FOR_TOKENS,
@@ -115,9 +116,7 @@ contract AerodromeExchangeAdapter {
         returns (bytes memory data)
     {
         require(!_fixIn, "Only swapExactTokensForTokens is supported");
-        Route[] memory routes = new Route[](1);
-        routes[0] = Route(_sourceToken, _destinationToken, false, factory);
-        data = abi.encode(routes);
+        data = abi.encode(Route(_sourceToken, _destinationToken, false, factory));
     }
 
     /**
