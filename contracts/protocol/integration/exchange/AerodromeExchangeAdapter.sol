@@ -42,7 +42,7 @@ contract AerodromeExchangeAdapter {
     // Address of Aerodrome  Pool Factory contract
     address public immutable factory;
     // Aerodrome router function string for swapping exact tokens for a minimum of receive tokens
-    string internal constant SWAP_EXACT_TOKENS_FOR_TOKENS = "swapExactTokensForTokens(uint256,uint256,(address,address,bool,address)[],address,uint256 )";
+    string internal constant SWAP_EXACT_TOKENS_FOR_TOKENS = "swapExactTokensForTokens(uint256,uint256,(address,address,bool,address)[],address,uint256)";
 
     /* ============ Constructor ============ */
 
@@ -115,7 +115,7 @@ contract AerodromeExchangeAdapter {
         view
         returns (bytes memory data)
     {
-        require(!_fixIn, "Only swapExactTokensForTokens is supported");
+        require(_fixIn, "Only swapExactTokensForTokens is supported");
         data = abi.encode(Route(_sourceToken, _destinationToken, false, factory));
     }
 
