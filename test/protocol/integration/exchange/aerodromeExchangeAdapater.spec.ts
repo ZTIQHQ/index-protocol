@@ -22,7 +22,7 @@ import { IERC20 } from "@typechain/IERC20";
 import { IERC20__factory } from "@typechain/factories/IERC20__factory";
 const expect = getWaffleExpect();
 
-describe("AerodromeExchangeAdapter", () => {
+describe("@forked-base AerodromeExchangeAdapter", () => {
   let owner: Account;
   let mockSetToken: Account;
   let deployer: DeployHelper;
