@@ -62,12 +62,9 @@ contract AerodromeExchangeAdapter {
     /**
      * Return calldata for Aerodrome  Router. Trade paths and bool to select trade function are encoded in the arbitrary data parameter.
      *
-     * Note: When selecting the swap for exact tokens function, _sourceQuantity is defined as the max token quantity you are willing to trade, and
-     * _minDestinationQuantity is the exact quantity of token you are receiving.
-     *
      * @param  _destinationAddress       Address that assets should be transferred to
-     * @param  _sourceQuantity           Fixed/Max amount of source token to sell
-     * @param  _destinationQuantity      Min/Fixed amount of destination token to buy
+     * @param  _sourceQuantity           Fixed amount of source token to sell
+     * @param  _destinationQuantity      Min amount of destination token to buy
      * @param  _data                     Arbitrary bytes data containing trade paths and bool to determine function string
      *
      * @return address                   Target contract address
