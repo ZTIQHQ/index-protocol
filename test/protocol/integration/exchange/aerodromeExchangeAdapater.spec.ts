@@ -11,6 +11,7 @@ import {
   getLastBlockTimestamp,
   getWaffleExpect,
   getRandomAddress,
+  addSnapshotBeforeRestoreAfterEach,
 } from "@utils/test/index";
 import { AerodromeExchangeAdapter } from "../../../../typechain/AerodromeExchangeAdapter";
 import { IAerodromeRouterInterface } from "../../../../typechain/IAerodromeRouter";
@@ -53,7 +54,7 @@ describe("@forked-base AerodromeExchangeAdapter", () => {
     );
   });
 
-  // addSnapshotBeforeRestoreAfterEach();
+  addSnapshotBeforeRestoreAfterEach();
 
   describe("#constructor", async () => {
     let subjectSwapRouter: Address;
@@ -99,7 +100,6 @@ describe("@forked-base AerodromeExchangeAdapter", () => {
   });
 
   describe("#getTradeCalldata", async () => {
-
     let subjectMockSetToken: Address;
     let subjectSourceToken: Address;
     let subjectDestinationToken: Address;
@@ -108,7 +108,6 @@ describe("@forked-base AerodromeExchangeAdapter", () => {
     let subjectRoute: Bytes;
 
     beforeEach(async () => {
-
       subjectSourceToken = wethAddress;
       subjectSourceQuantity = ether(1);
       subjectDestinationToken = usdcAddress;
