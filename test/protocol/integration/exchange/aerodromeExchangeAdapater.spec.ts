@@ -3,54 +3,57 @@ import { BigNumber, utils } from "ethers";
 
 import { Address, Bytes } from "@utils/types";
 import { Account } from "@utils/test/types";
-import { ZERO, EMPTY_BYTES } from "@utils/constants";
+import { ZERO } from "@utils/constants";
 import DeployHelper from "@utils/deploys";
-import { ether } from "@utils/index";
+import { ether, usdc } from "@utils/index";
 import {
-  addSnapshotBeforeRestoreAfterEach,
   getAccounts,
-  getSystemFixture,
   getLastBlockTimestamp,
   getWaffleExpect,
   getRandomAddress,
 } from "@utils/test/index";
-import { SystemFixture } from "@utils/fixtures";
 import { AerodromeExchangeAdapter } from "../../../../typechain/AerodromeExchangeAdapter";
-import {
-  IAerodromeRouterInterface,
-} from "../../../../typechain/IAerodromeRouter";
-import {
-  IAerodromeRouter__factory,
-} from "../../../../typechain/factories/IAerodromeRouter__factory";
+import { IAerodromeRouterInterface } from "../../../../typechain/IAerodromeRouter";
+import { IAerodromeRouter__factory } from "../../../../typechain/factories/IAerodromeRouter__factory";
+import { IWETH } from "@typechain/IWETH";
+import { IWETH__factory } from "@typechain/factories/IWETH__factory";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
+import { IERC20 } from "@typechain/IERC20";
+import { IERC20__factory } from "@typechain/factories/IERC20__factory";
 const expect = getWaffleExpect();
 
 describe("AerodromeExchangeAdapter", () => {
   let owner: Account;
   let mockSetToken: Account;
   let deployer: DeployHelper;
-  let setup: SystemFixture;
   let swapRouterInterface: IAerodromeRouterInterface;
   let swapRouterAddress: Address;
   let poolFactoryAddress: Address;
+  let wethAddress: Address;
+  let usdcAddress: Address;
+  let usdcContract: IERC20;
+  let weth: IWETH;
   let aerodromeExchangeAdapter: AerodromeExchangeAdapter;
 
   before(async () => {
     [owner, mockSetToken] = await getAccounts();
 
     deployer = new DeployHelper(owner.wallet);
-    setup = getSystemFixture(owner.address);
-    await setup.initialize();
 
     swapRouterInterface = IAerodromeRouter__factory.createInterface();
     swapRouterAddress = "0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43";
     poolFactoryAddress = "0x420DD381b31aEf6683db6B902084cB0FFECe40Da";
+    wethAddress = "0x4200000000000000000000000000000000000006";
+    usdcAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+    weth = IWETH__factory.connect(wethAddress, owner.wallet);
+    usdcContract = IERC20__factory.connect(usdcAddress, owner.wallet);
     aerodromeExchangeAdapter = await deployer.adapters.deployAerodromeExchangeAdapter(
       swapRouterAddress,
       poolFactoryAddress,
     );
   });
 
-  addSnapshotBeforeRestoreAfterEach();
+  // addSnapshotBeforeRestoreAfterEach();
 
   describe("#constructor", async () => {
     let subjectSwapRouter: Address;
@@ -96,7 +99,6 @@ describe("AerodromeExchangeAdapter", () => {
   });
 
   describe("#getTradeCalldata", async () => {
-    let fixIn: boolean;
 
     let subjectMockSetToken: Address;
     let subjectSourceToken: Address;
@@ -104,21 +106,18 @@ describe("AerodromeExchangeAdapter", () => {
     let subjectSourceQuantity: BigNumber;
     let subjectMinDestinationQuantity: BigNumber;
     let subjectRoute: Bytes;
-    let subjectDestinationAddress: Address;
 
     beforeEach(async () => {
-      fixIn = true;
 
-      subjectSourceToken = setup.wbtc.address;
-      subjectSourceQuantity = BigNumber.from(100000000);
-      subjectDestinationToken = setup.weth.address;
-      subjectMinDestinationQuantity = ether(25);
+      subjectSourceToken = wethAddress;
+      subjectSourceQuantity = ether(1);
+      subjectDestinationToken = usdcAddress;
+      subjectMinDestinationQuantity = usdc(1000);
       subjectMockSetToken = mockSetToken.address;
       subjectRoute = utils.defaultAbiCoder.encode(
         ["address", "address", "bool", "address"],
         [subjectSourceToken, subjectDestinationToken, false, poolFactoryAddress],
       );
-      subjectDestinationAddress = mockSetToken.address;
     });
 
     async function subject(): Promise<any> {
@@ -136,7 +135,7 @@ describe("AerodromeExchangeAdapter", () => {
       const blockTimestamp = await getLastBlockTimestamp();
       const calldata = await subject();
 
-        console.log("generating expected data");
+      console.log("generating expected data");
       const expectedCallData = swapRouterInterface.encodeFunctionData("swapExactTokensForTokens", [
         subjectSourceQuantity,
         subjectMinDestinationQuantity,
@@ -157,9 +156,25 @@ describe("AerodromeExchangeAdapter", () => {
       );
     });
 
+    it("should be able to use data to swap", async () => {
+      const [to, value, data] = await subject();
+      await weth.deposit({ value: subjectSourceQuantity });
+      await weth.approve(swapRouterAddress, subjectSourceQuantity);
+      const wethBalanceBefore = await weth.balanceOf(owner.address);
+      const usdcBalanceBefore = await usdcContract.balanceOf(mockSetToken.address);
+
+      const blockTimestamp = await getLastBlockTimestamp();
+      await time.setNextBlockTimestamp(blockTimestamp);
+      await owner.wallet.sendTransaction({ to, data, value, gasLimit: 2_000_000 });
+
+      const wethBalanceAfter = await weth.balanceOf(owner.address);
+      const usdcBalanceAfter = await usdcContract.balanceOf(mockSetToken.address);
+      expect(wethBalanceAfter).to.eq(wethBalanceBefore.sub(subjectSourceQuantity));
+      expect(usdcBalanceAfter).to.gt(usdcBalanceBefore.add(subjectMinDestinationQuantity));
+    });
+
     context("when data is of invalid length", async () => {
       beforeEach(() => {
-        // Skip encoding `fixIn` bool
         subjectRoute = utils.defaultAbiCoder.encode(
           ["address", "uint24", "address"],
           [subjectSourceToken, BigNumber.from(3000), subjectDestinationToken],
@@ -191,7 +206,7 @@ describe("AerodromeExchangeAdapter", () => {
       });
     });
 
-    context("when fixIn boolean is invalid number", async () => {
+    context("when stable boolean is invalid number", async () => {
       beforeEach(async () => {
         subjectRoute = utils.defaultAbiCoder.encode(
           ["address", "address", "uint8", "address"],
@@ -211,8 +226,8 @@ describe("AerodromeExchangeAdapter", () => {
     let subjectFixIn: boolean;
 
     beforeEach(async () => {
-      subjectToken1 = setup.wbtc.address;
-      subjectToken2 = setup.dai.address;
+      subjectToken1 = wethAddress;
+      subjectToken2 = usdcAddress;
       subjectFixIn = true;
     });
 

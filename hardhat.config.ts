@@ -31,7 +31,7 @@ const arbitrumForkingConfig = {
 
 const baseForkingConfig = {
   url: process.env.BASE_RPC_URL ?? "",
-  blockNumber: 16889000,
+  blockNumber: 22598000,
 };
 
 const forkConfigs = {
@@ -118,17 +118,20 @@ const config: HardhatUserConfig = {
       accounts: getHardhatPrivateKeys(),
       gas: 12000000,
       blockGasLimit: 12000000,
+      allowBlocksWithSameTimestamp: true,
     },
     localhost: {
       url: "http://127.0.0.1:8545",
       timeout: 200000,
       gas: 12000000,
       blockGasLimit: 12000000,
+      allowBlocksWithSameTimestamp: true,
     },
     // To update coverage network configuration got o .solcover.js and update param in providerOptions field
     coverage: {
       url: "http://127.0.0.1:8555", // Coverage launches its own ganache-cli client
       timeout: 200000,
+      allowBlocksWithSameTimestamp: true,
     },
     ...(process.env.KOVAN_DEPLOY_PRIVATE_KEY && hardhatNetworks),
   },
