@@ -118,20 +118,20 @@ const config: HardhatUserConfig = {
       accounts: getHardhatPrivateKeys(),
       gas: 12000000,
       blockGasLimit: 12000000,
-      allowBlocksWithSameTimestamp: true,
+      allowBlocksWithSameTimestamp: process.env.BLOCK_WITH_SAME_TIMESTAMP === "true",
     },
     localhost: {
       url: "http://127.0.0.1:8545",
       timeout: 200000,
       gas: 12000000,
       blockGasLimit: 12000000,
-      allowBlocksWithSameTimestamp: true,
+      allowBlocksWithSameTimestamp: process.env.BLOCK_WITH_SAME_TIMESTAMP === "true",
     },
     // To update coverage network configuration got o .solcover.js and update param in providerOptions field
     coverage: {
       url: "http://127.0.0.1:8555", // Coverage launches its own ganache-cli client
       timeout: 200000,
-      allowBlocksWithSameTimestamp: true,
+      allowBlocksWithSameTimestamp: process.env.BLOCK_WITH_SAME_TIMESTAMP === "true",
     },
     ...(process.env.KOVAN_DEPLOY_PRIVATE_KEY && hardhatNetworks),
   },
