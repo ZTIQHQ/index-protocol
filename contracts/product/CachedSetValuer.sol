@@ -178,6 +178,7 @@ contract CachedSetValuer is Ownable {
     /**
      * Returns both cached and current valuations for comparison.
      * Does not modify state or update cache.
+     * Does not factor in rebasing component updates to the current valuation.
      * 
      * @param _setToken        SetToken to get valuation for
      * @param _quoteAsset      Asset to quote valuation in
