@@ -156,12 +156,14 @@ describe("@forked-base AerodromeExchangeAdapter", () => {
     });
 
     it("should be able to use data to swap", async () => {
-      const [to, value, data] = await subject();
       await weth.deposit({ value: subjectSourceQuantity });
-      await weth.approve(swapRouterAddress, subjectSourceQuantity);
+      const tx = await weth.approve(swapRouterAddress, subjectSourceQuantity);
+      await tx.wait();
+
       const wethBalanceBefore = await weth.balanceOf(owner.address);
       const usdcBalanceBefore = await usdcContract.balanceOf(mockSetToken.address);
 
+      const [to, value, data] = await subject();
       const blockTimestamp = await getLastBlockTimestamp();
       await time.setNextBlockTimestamp(blockTimestamp);
       await owner.wallet.sendTransaction({ to, data, value, gasLimit: 2_000_000 });

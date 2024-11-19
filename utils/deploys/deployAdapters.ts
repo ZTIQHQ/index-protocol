@@ -41,7 +41,7 @@ import {
 import { Address, Bytes } from "./../types";
 import {
   UniswapV3ExchangeAdapterV3,
-    AerodromeExchangeAdapter,
+  AerodromeExchangeAdapter,
 } from "../../typechain";
 
 import { AaveGovernanceV2Adapter__factory } from "../../typechain/factories/AaveGovernanceV2Adapter__factory";
@@ -118,7 +118,7 @@ export default class DeployAdapters {
   ): Promise<AerodromeExchangeAdapter> {
     return await new AerodromeExchangeAdapter__factory(this._deployerSigner).deploy(
       aerodromeRouter,
-    aerodromePoolFactory,
+      aerodromePoolFactory,
     );
   }
 
