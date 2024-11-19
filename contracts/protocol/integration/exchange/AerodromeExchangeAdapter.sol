@@ -29,8 +29,8 @@ pragma experimental "ABIEncoderV2";
 contract AerodromeExchangeAdapter {
 
     struct Route {
-        address sourceToken;
-        address destinationToken;
+        address from;
+        address to;
         bool stable;
         address factory;
     }
@@ -75,8 +75,8 @@ contract AerodromeExchangeAdapter {
      * @return bytes                     Trade calldata
      */
     function getTradeCalldata(
-        address /* _sourceToken */,
-        address /* _destinationToken */,
+        address  _sourceToken,
+        address _destinationToken,
         address _destinationAddress,
         uint256 _sourceQuantity,
         uint256 _destinationQuantity,
@@ -89,6 +89,9 @@ contract AerodromeExchangeAdapter {
 
         Route[] memory routes = new Route[](1);
         routes[0] = abi.decode(_data, (Route));
+
+        require(routes[0].from == _sourceToken, "Source token path mismatch");
+        require(routes[0].to == _destinationToken, "Destination token path mismatch");
         
         bytes memory callData = abi.encodeWithSignature(
             SWAP_EXACT_TOKENS_FOR_TOKENS,

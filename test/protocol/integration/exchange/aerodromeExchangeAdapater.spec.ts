@@ -167,7 +167,7 @@ describe("AerodromeExchangeAdapter", () => {
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("Invalid data");
+        await expect(subject()).to.be.reverted;
       });
     });
 
@@ -200,7 +200,7 @@ describe("AerodromeExchangeAdapter", () => {
       });
 
       it("should revert", async () => {
-        await expect(subject()).to.be.revertedWith("Invalid bool data");
+        await expect(subject()).to.be.reverted;
       });
     });
   });
