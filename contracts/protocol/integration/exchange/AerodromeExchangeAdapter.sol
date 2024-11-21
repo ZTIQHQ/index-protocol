@@ -21,7 +21,7 @@ pragma experimental "ABIEncoderV2";
 
 /**
  * @title AerodromeExchangeAdapter
- * @author Set Protocol
+ * @author Index Coop
  *
  * A Aerodrome Router exchange adapter that returns calldata for trading. Only supports swapExactTokensForTokens function.
  *
